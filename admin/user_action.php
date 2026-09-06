@@ -1,7 +1,11 @@
 <?php
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
-require_login('admin');
+
+// Ensure user is logged in as administrator
+if (!is_logged_in() || !is_admin()) {
+    redirect('admin/manage_users.php');
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('admin/manage_users.php');
@@ -11,8 +15,8 @@ verify_csrf();
 $userId = (int) ($_POST['user_id'] ?? 0);
 $action = $_POST['action'] ?? '';
 
-// Never let an admin deactivate/delete their own account or another admin.
-$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role != 'admin'");
+// Never let an admin deactivate/delete their own account or another administrator.
+$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role != 'administrator'");
 $stmt->execute([$userId]);
 $target = $stmt->fetch();
 
@@ -22,15 +26,15 @@ if (!$target) {
 }
 
 if ($action === 'toggle_status') {
-    $newStatus = $target['status'] === 'active' ? 'inactive' : 'active';
-    $pdo->prepare('UPDATE users SET status = ? WHERE user_id = ?')->execute([$newStatus, $userId]);
-    flash_set('User ' . ($newStatus === 'active' ? 'activated' : 'deactivated') . '.', 'success');
+    $newStatus = $target['is_active'] ? 0 : 1;
+    $pdo->prepare('UPDATE users SET is_active = ? WHERE user_id = ?')->execute([$newStatus, $userId]);
+    flash_set('User ' . ($newStatus ? 'activated' : 'deactivated') . '.', 'success');
 } elseif ($action === 'delete') {
-    // Clean up any uploaded photos belonging to this user's listings first.
-    $listings = $pdo->prepare('SELECT listing_id FROM listings WHERE landlord_id = ?');
-    $listings->execute([$userId]);
-    foreach ($listings->fetchAll() as $l) {
-        $dir = __DIR__ . '/../assets/uploads/listings/' . $l['listing_id'];
+    // Clean up any uploaded images belonging to this user's boarding houses first
+    $bhouses = $pdo->prepare('SELECT boarding_house_id FROM boarding_houses WHERE landlord_id = ?');
+    $bhouses->execute([$userId]);
+    foreach ($bhouses->fetchAll() as $bh) {
+        $dir = __DIR__ . '/../assets/uploads/boarding_houses/' . $bh['boarding_house_id'];
         if (is_dir($dir)) {
             array_map('unlink', glob("$dir/*.*") ?: []);
             rmdir($dir);

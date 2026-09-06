@@ -27,7 +27,7 @@ $flash = flash_get();
         <?php if (current_role() === 'landlord'): ?>
           <a href="<?= base_url('landlord/dashboard.php') ?>">My Listings</a>
           <a href="<?= base_url('landlord/add_listing.php') ?>" class="btn-nav">+ Add Listing</a>
-        <?php elseif (current_role() === 'admin'): ?>
+        <?php elseif (is_admin()): ?>
           <a href="<?= base_url('admin/dashboard.php') ?>">Admin Panel</a>
         <?php elseif (current_role() === 'boarder'): ?>
           <!-- boarders just browse -->

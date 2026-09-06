@@ -52,10 +52,22 @@ function require_login($roles = null) {
     }
     if ($roles !== null) {
         $roles = (array) $roles;
+        // Support 'admin' alias for 'administrator'
+        if (in_array('admin', $roles, true) && !in_array('administrator', $roles, true)) {
+            $roles[] = 'administrator';
+        }
+        if (in_array('administrator', $roles, true) && !in_array('admin', $roles, true)) {
+            $roles[] = 'admin';
+        }
         if (!in_array(current_role(), $roles, true)) {
             redirect('index.php');
         }
     }
+}
+
+/** Check if current user is an administrator. */
+function is_admin() {
+    return in_array(current_role(), ['administrator', 'admin'], true);
 }
 
 /** Simple CSRF token helpers. */
@@ -93,11 +105,11 @@ function flash_get() {
 }
 
 /**
- * Handle an uploaded listing photo. Validates type/size and moves it into
- * assets/uploads/listings/{listing_id}/. Returns the stored relative path,
+ * Handle an uploaded property image. Validates type/size and moves it into
+ * assets/uploads/boarding_houses/{boarding_house_id}/. Returns the stored relative path,
  * or null if no file was uploaded. Throws on validation failure.
  */
-function handle_photo_upload($fileField, $listingId) {
+function handle_photo_upload($fileField, $boardingHouseId) {
     if (empty($_FILES[$fileField]['name'])) {
         return null;
     }
@@ -119,19 +131,19 @@ function handle_photo_upload($fileField, $listingId) {
         throw new RuntimeException('Photo must be smaller than 5MB.');
     }
 
-    $dir = __DIR__ . '/../assets/uploads/listings/' . $listingId;
+    $dir = __DIR__ . '/../assets/uploads/boarding_houses/' . $boardingHouseId;
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }
 
-    $filename = uniqid('photo_', true) . '.' . $allowed[$mime];
+    $filename = uniqid('bh_', true) . '.' . $allowed[$mime];
     $destination = $dir . '/' . $filename;
 
     if (!move_uploaded_file($file['tmp_name'], $destination)) {
         throw new RuntimeException('Could not save the uploaded photo.');
     }
 
-    return 'assets/uploads/listings/' . $listingId . '/' . $filename;
+    return 'assets/uploads/boarding_houses/' . $boardingHouseId . '/' . $filename;
 }
 
 /** Format a peso amount for display. */
@@ -150,9 +162,26 @@ function amenity_options() {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     } catch (PDOException $e) {
         return [
-            'WiFi', 'Air Conditioning', 'Own Comfort Room', 'Shared Kitchen',
-            'Parking Space', 'Laundry Area', 'CCTV', '24/7 Security',
-            'Furnished', 'Study Table', 'Near Transport Terminal',
+            'Wi-Fi', 'Air Conditioning', 'Private Bathroom', 'Kitchen Access',
+            'Laundry Area', 'Study Table & Chair', 'CCTV & 24/7 Security',
+            'Refrigerator Access', 'Gated Compound', 'Near VSU / Transport Terminal',
+        ];
+    }
+}
+
+/** Utility checklist offered on the listing form, fetched from DB. */
+function utility_options() {
+    global $pdo;
+    try {
+        $stmt = $pdo->query('SELECT utility_id, utility_name FROM utilities ORDER BY utility_id ASC');
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        return [
+            ['utility_id' => 1, 'utility_name' => 'Water'],
+            ['utility_id' => 2, 'utility_name' => 'Electricity'],
+            ['utility_id' => 3, 'utility_name' => 'Trash Collection'],
+            ['utility_id' => 4, 'utility_name' => 'Internet / Wi-Fi'],
+            ['utility_id' => 5, 'utility_name' => 'Cooking Gas'],
         ];
     }
 }

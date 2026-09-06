@@ -3,90 +3,119 @@ require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 require_login('landlord');
 
-$listingId = (int) ($_GET['id'] ?? $_POST['listing_id'] ?? 0);
+$boardingHouseId = (int) ($_GET['id'] ?? $_POST['boarding_house_id'] ?? 0);
 
-$stmt = $pdo->prepare('SELECT * FROM listings WHERE listing_id = ? AND landlord_id = ?');
-$stmt->execute([$listingId, $_SESSION['user_id']]);
+$stmt = $pdo->prepare('SELECT * FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
+$stmt->execute([$boardingHouseId, $_SESSION['user_id']]);
 $listing = $stmt->fetch();
 
 if (!$listing) {
-    flash_set('Listing not found, or you do not have permission to edit it.', 'error');
+    flash_set('Boarding house not found, or you do not have permission to edit it.', 'error');
     redirect('landlord/dashboard.php');
 }
 
 $errors = [];
+
+// Load selected amenities
 $amenStmt = $pdo->prepare(
-    'SELECT a.amenity_name 
-     FROM listing_amenities la 
-     JOIN amenities a ON la.amenity_id = a.amenity_id 
-     WHERE la.listing_id = ?'
+    'SELECT a.amenity_name
+     FROM boarding_house_amenities bha
+     JOIN amenities a ON bha.amenity_id = a.amenity_id
+     WHERE bha.boarding_house_id = ?'
 );
-$amenStmt->execute([$listingId]);
+$amenStmt->execute([$boardingHouseId]);
 $selectedAmens = $amenStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Load selected utilities + policies
+$utilStmt = $pdo->prepare(
+    'SELECT utility_id, billing_policy
+     FROM boarding_house_utilities
+     WHERE boarding_house_id = ?'
+);
+$utilStmt->execute([$boardingHouseId]);
+$selectedUtils = $utilStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Load existing images
+$imgStmt = $pdo->prepare('SELECT * FROM images WHERE boarding_house_id = ? ORDER BY is_primary DESC, image_id ASC');
+$imgStmt->execute([$boardingHouseId]);
+$existingImages = $imgStmt->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
-    foreach (['boarding_house_name', 'address', 'city', 'monthly_rent', 'reservation_fee',
-              'room_type', 'room_capacity', 'electricity_payment', 'water_payment',
-              'house_rules', 'contact_info', 'status'] as $key) {
+    foreach (['name', 'address', 'monthly_rent', 'room_type', 'room_capacity',
+              'availability_status', 'description', 'contact_number', 'house_rules'] as $key) {
         $listing[$key] = trim($_POST[$key] ?? '');
     }
     $selectedAmens = $_POST['amenities'] ?? [];
+    $rawUtils      = $_POST['utilities'] ?? [];
+    $billingPolicy = $_POST['billing_policy'] ?? [];
 
-    if ($listing['boarding_house_name'] === '') $errors[] = 'Boarding house name is required.';
-    if ($listing['address'] === '') $errors[] = 'Address is required.';
-    if ($listing['city'] === '') $errors[] = 'City is required.';
-    if (!is_numeric($listing['monthly_rent']) || $listing['monthly_rent'] < 0) $errors[] = 'Enter a valid monthly rent.';
-    if ($listing['reservation_fee'] !== '' && (!is_numeric($listing['reservation_fee']) || $listing['reservation_fee'] < 0)) {
-        $errors[] = 'Enter a valid reservation fee, or leave it blank.';
+    $selectedUtils = [];
+    foreach ($rawUtils as $uId) {
+        $uId = (int)$uId;
+        $selectedUtils[$uId] = trim($billingPolicy[$uId] ?? 'Included in Rent');
     }
-    if (!in_array($listing['room_type'], ['Private Room', 'Bed Spacer'], true)) $errors[] = 'Invalid room type.';
-    if (!ctype_digit((string)$listing['room_capacity']) || (int)$listing['room_capacity'] < 1) $errors[] = 'Room capacity must be at least 1.';
-    if ($listing['contact_info'] === '') $errors[] = 'Contact information is required.';
-    if (!in_array($listing['status'], ['available', 'full', 'inactive'], true)) $errors[] = 'Invalid status.';
+
+    if ($listing['name'] === '') $errors[] = 'Boarding house name is required.';
+    if ($listing['address'] === '') $errors[] = 'Complete address is required.';
+    if (!is_numeric($listing['monthly_rent']) || (float)$listing['monthly_rent'] < 0) {
+        $errors[] = 'Enter a valid monthly rent amount.';
+    }
+    if (!ctype_digit((string)$listing['room_capacity']) || (int)$listing['room_capacity'] < 1) {
+        $errors[] = 'Room capacity must be at least 1.';
+    }
+    if ($listing['contact_number'] === '') $errors[] = 'Contact number is required.';
+    if (!in_array($listing['availability_status'], ['available', 'unavailable'], true)) {
+        $listing['availability_status'] = 'available';
+    }
 
     if (!$errors) {
+        // Update boarding house
         $stmt = $pdo->prepare(
-            'UPDATE listings SET boarding_house_name=?, address=?, city=?, monthly_rent=?, reservation_fee=?,
-                room_type=?, room_capacity=?, electricity_payment=?, water_payment=?,
-                house_rules=?, contact_info=?, status=?
-             WHERE listing_id=? AND landlord_id=?'
+            'UPDATE boarding_houses SET name=?, address=?, monthly_rent=?, room_type=?,
+             room_capacity=?, availability_status=?, description=?, contact_number=?, house_rules=?
+             WHERE boarding_house_id=? AND landlord_id=?'
         );
         $stmt->execute([
-            $listing['boarding_house_name'], $listing['address'], $listing['city'],
-            $listing['monthly_rent'], $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
-            $listing['room_type'], (int)$listing['room_capacity'],
-            $listing['electricity_payment'], $listing['water_payment'],
-            $listing['house_rules'], $listing['contact_info'],
-            $listing['status'], $listingId, $_SESSION['user_id'],
+            $listing['name'], $listing['address'], $listing['monthly_rent'], $listing['room_type'],
+            (int)$listing['room_capacity'], $listing['availability_status'],
+            $listing['description'], $listing['contact_number'], $listing['house_rules'],
+            $boardingHouseId, $_SESSION['user_id'],
         ]);
 
-        // Clear existing associations
-        $del = $pdo->prepare('DELETE FROM listing_amenities WHERE listing_id = ?');
-        $del->execute([$listingId]);
-
-        // Insert new associations
+        // Sync amenities
+        $pdo->prepare('DELETE FROM boarding_house_amenities WHERE boarding_house_id = ?')->execute([$boardingHouseId]);
         if (!empty($selectedAmens)) {
-            $mapStmt = $pdo->query('SELECT amenity_id, amenity_name FROM amenities');
+            $mapStmt = $pdo->query('SELECT amenity_name, amenity_id FROM amenities');
             $amenityMap = $mapStmt->fetchAll(PDO::FETCH_KEY_PAIR);
-            $insAmen = $pdo->prepare('INSERT INTO listing_amenities (listing_id, amenity_id) VALUES (?, ?)');
+            $insAmen = $pdo->prepare('INSERT IGNORE INTO boarding_house_amenities (boarding_house_id, amenity_id, is_available) VALUES (?, ?, 1)');
             foreach ($selectedAmens as $amenName) {
                 if (isset($amenityMap[$amenName])) {
-                    $insAmen->execute([$listingId, $amenityMap[$amenName]]);
+                    $insAmen->execute([$boardingHouseId, $amenityMap[$amenName]]);
                 }
             }
         }
 
+        // Sync utilities
+        $pdo->prepare('DELETE FROM boarding_house_utilities WHERE boarding_house_id = ?')->execute([$boardingHouseId]);
+        if (!empty($selectedUtils)) {
+            $insUtil = $pdo->prepare('INSERT IGNORE INTO boarding_house_utilities (boarding_house_id, utility_id, billing_policy) VALUES (?, ?, ?)');
+            foreach ($selectedUtils as $uId => $policy) {
+                $insUtil->execute([$boardingHouseId, $uId, $policy ?: 'Included in Rent']);
+            }
+        }
+
+        // Handle photo upload
         if (!empty($_FILES['photo']['name'])) {
             try {
-                $path = handle_photo_upload('photo', $listingId);
+                $path = handle_photo_upload('photo', $boardingHouseId);
                 if ($path) {
-                    $hasPrimary = $pdo->prepare('SELECT COUNT(*) c FROM listing_photos WHERE listing_id=? AND is_primary=1');
-                    $hasPrimary->execute([$listingId]);
-                    $isPrimary = ((int)$hasPrimary->fetch()['c'] === 0) ? 1 : 0;
-                    $pdo->prepare('INSERT INTO listing_photos (listing_id, photo_path, is_primary) VALUES (?, ?, ?)')
-                        ->execute([$listingId, $path, $isPrimary]);
+                    $hasPrimary = $pdo->prepare('SELECT COUNT(*) FROM images WHERE boarding_house_id=? AND is_primary=1');
+                    $hasPrimary->execute([$boardingHouseId]);
+                    $isPrimary = ((int)$hasPrimary->fetchColumn() === 0) ? 1 : 0;
+                    $pdo->prepare('INSERT INTO images (boarding_house_id, image_path, is_primary) VALUES (?, ?, ?)')
+                        ->execute([$boardingHouseId, $path, $isPrimary]);
                 }
             } catch (RuntimeException $e) {
                 flash_set('Listing updated, but photo upload failed: ' . $e->getMessage(), 'error');
@@ -94,40 +123,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        flash_set('Listing updated successfully.', 'success');
+        flash_set('Boarding house listing updated successfully.', 'success');
         redirect('landlord/dashboard.php');
     }
 }
-
-$photosStmt = $pdo->prepare('SELECT * FROM listing_photos WHERE listing_id = ? ORDER BY is_primary DESC, photo_id ASC');
-$photosStmt->execute([$listingId]);
-$photos = $photosStmt->fetchAll();
 
 $pageTitle = 'Edit Listing';
 require __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="panel panel-pad" style="max-width:680px; margin:0 auto;">
-  <h1>Edit Listing</h1>
+  <h1>Edit Boarding House</h1>
+  <p class="auth-sub">Update property details, utilities, and amenities.</p>
 
   <?php if ($errors): ?>
     <div class="alert alert-error"><?php foreach ($errors as $e) echo h($e) . '<br>'; ?></div>
   <?php endif; ?>
 
-  <?php if ($photos): ?>
-    <label>Current photos</label>
-    <div class="detail-thumbs" style="margin-bottom:18px;">
-      <?php foreach ($photos as $p): ?>
-        <img src="<?= h(base_url($p['photo_path'])) ?>" alt="Listing photo">
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
   <form method="post" enctype="multipart/form-data" novalidate>
     <?= csrf_field() ?>
-    <input type="hidden" name="listing_id" value="<?= (int)$listingId ?>">
+    <input type="hidden" name="boarding_house_id" value="<?= (int)$boardingHouseId ?>">
     <?php require __DIR__ . '/../includes/listing_form.php'; ?>
-    <button type="submit" class="btn btn-brass btn-block">Save Changes</button>
+    <button type="submit" class="btn btn-brass btn-block" style="margin-top:16px;">Save Changes</button>
   </form>
 </div>
 

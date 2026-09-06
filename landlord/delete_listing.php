@@ -8,20 +8,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 verify_csrf();
 
-$listingId = (int) ($_POST['listing_id'] ?? 0);
+$boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
 
-// Ownership check happens in the WHERE clause itself.
-$stmt = $pdo->prepare('DELETE FROM listings WHERE listing_id = ? AND landlord_id = ?');
-$stmt->execute([$listingId, $_SESSION['user_id']]);
+// Ownership check inside the WHERE clause itself
+$stmt = $pdo->prepare('DELETE FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
+$stmt->execute([$boardingHouseId, $_SESSION['user_id']]);
 
 if ($stmt->rowCount() > 0) {
-    // Clean up uploaded photo files for this listing.
-    $dir = __DIR__ . '/../assets/uploads/listings/' . $listingId;
+    // Clean up uploaded image files for this boarding house
+    $dir = __DIR__ . '/../assets/uploads/boarding_houses/' . $boardingHouseId;
     if (is_dir($dir)) {
         array_map('unlink', glob("$dir/*.*") ?: []);
         rmdir($dir);
     }
-    flash_set('Listing deleted.', 'success');
+    flash_set('Boarding house listing deleted.', 'success');
 } else {
     flash_set('Listing not found, or you do not have permission to delete it.', 'error');
 }
