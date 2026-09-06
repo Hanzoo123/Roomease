@@ -7,21 +7,21 @@ require __DIR__ . '/../includes/functions.php';
 
 // Ensure user is logged in as administrator
 if (!is_logged_in() || !is_admin()) {
-    redirect('admin/login.php');
+  redirect('admin/login.php');
 }
 
 $roleFilter = $_GET['role'] ?? '';
 $where = "role != 'administrator'";
 $params = [];
 if (in_array($roleFilter, ['landlord', 'boarder'], true)) {
-    $where .= ' AND role = ?';
-    $params[] = $roleFilter;
+  $where .= ' AND role = ?';
+  $params[] = $roleFilter;
 }
 
 // Counts for filter pills
-$totalNonAdmin  = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role != 'administrator'")->fetchColumn();
-$totalLandlords = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'landlord'")->fetchColumn();
-$totalBoarders  = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'boarder'")->fetchColumn();
+$totalNonAdmin = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role != 'administrator'")->fetchColumn();
+$totalLandlords = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'landlord'")->fetchColumn();
+$totalBoarders = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'boarder'")->fetchColumn();
 
 // Fetch users for DataTable
 $stmt = $pdo->prepare("SELECT *, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE $where ORDER BY created_at DESC");
@@ -70,10 +70,12 @@ require __DIR__ . '/includes/sidebar.php';
             <a href="manage_users.php" class="btn btn-sm btn-outline-primary <?= $roleFilter === '' ? 'active' : '' ?>">
               All <span class="badge badge-light ml-1"><?= $totalNonAdmin ?></span>
             </a>
-            <a href="manage_users.php?role=landlord" class="btn btn-sm btn-outline-info <?= $roleFilter === 'landlord' ? 'active' : '' ?>">
+            <a href="manage_users.php?role=landlord"
+              class="btn btn-sm btn-outline-info <?= $roleFilter === 'landlord' ? 'active' : '' ?>">
               Landlords <span class="badge badge-light ml-1"><?= $totalLandlords ?></span>
             </a>
-            <a href="manage_users.php?role=boarder" class="btn btn-sm btn-outline-secondary <?= $roleFilter === 'boarder' ? 'active' : '' ?>">
+            <a href="manage_users.php?role=boarder"
+              class="btn btn-sm btn-outline-secondary <?= $roleFilter === 'boarder' ? 'active' : '' ?>">
               Boarders <span class="badge badge-light ml-1"><?= $totalBoarders ?></span>
             </a>
           </div>
@@ -96,7 +98,8 @@ require __DIR__ . '/includes/sidebar.php';
               <?php foreach ($users as $u): ?>
                 <tr>
                   <td class="font-weight-bold">
-                    <i class="fas <?= $u['role'] === 'landlord' ? 'fa-user-tie text-info' : 'fa-user text-secondary' ?> mr-1"></i>
+                    <i
+                      class="fas <?= $u['role'] === 'landlord' ? 'fa-user-tie text-info' : 'fa-user text-secondary' ?> mr-1"></i>
                     <?= h($u['full_name']) ?>
                   </td>
                   <td>
@@ -125,7 +128,7 @@ require __DIR__ . '/includes/sidebar.php';
                       <!-- Status Toggle Button -->
                       <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
+                        <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                         <input type="hidden" name="action" value="toggle_status">
                         <?php if ($u['is_active']): ?>
                           <button type="submit" class="btn btn-xs btn-outline-warning" title="Deactivate Account">
@@ -140,9 +143,9 @@ require __DIR__ . '/includes/sidebar.php';
 
                       <!-- Delete User Button -->
                       <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline"
-                            onsubmit="return confirm('Permanently delete <?= h(addslashes($u['full_name'])) ?> and all associated listings? This cannot be undone.');">
+                        onsubmit="return confirm('Permanently delete <?= h(addslashes($u['full_name'])) ?> and all associated listings? This cannot be undone.');">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
+                        <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                         <input type="hidden" name="action" value="delete">
                         <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete User">
                           <i class="fas fa-trash"></i>

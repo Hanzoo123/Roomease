@@ -9,9 +9,10 @@ $adminName = $_SESSION['full_name'] ?? 'Administrator';
   <!-- Left navbar links -->
   <ul class="navbar-nav">
     <li class="nav-item">
-      <a class="nav-link" data-widget="pushmenu" href="#" role="button" title="Toggle Sidebar"><i class="fas fa-bars"></i></a>
+      <a class="nav-link" data-widget="pushmenu" href="#" role="button" title="Toggle Sidebar"><i
+          class="fas fa-bars"></i></a>
     </li>
-    
+
   </ul>
 
   <!-- Right navbar links -->

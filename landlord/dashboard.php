@@ -32,7 +32,7 @@ require __DIR__ . '/../includes/header.php';
     <?php foreach ($listings as $l): ?>
       <div class="listing-card">
         <div class="listing-photo" style="<?= $l['cover_photo'] ? "background-image:url('" . h(base_url($l['cover_photo'])) . "')" : '' ?>">
-          <span class="plate-number">RM-<?= str_pad($l['boarding_house_id'], 3, '0', STR_PAD_LEFT) ?></span>
+          
           <span class="status-badge status-<?= $l['availability_status'] === 'available' ? 'available' : 'unavailable' ?>">
             <?= $l['availability_status'] === 'available' ? 'Available' : 'Unavailable' ?>
           </span>

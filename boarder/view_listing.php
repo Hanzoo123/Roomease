@@ -5,7 +5,7 @@ require __DIR__ . '/../includes/functions.php';
 $listingId = (int) ($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare(
-    "SELECT bh.*,
+  "SELECT bh.*,
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
             u.phone_number AS landlord_phone,
             u.email AS landlord_email
@@ -17,21 +17,21 @@ $stmt->execute([$listingId]);
 $listing = $stmt->fetch();
 
 if (!$listing) {
-    $pageTitle = 'Listing Not Found';
-    require __DIR__ . '/../includes/header.php';
-    echo '<div class="empty-state panel panel-pad">This listing does not exist or has been removed. <a href="' . base_url('boarder/browse.php') . '">Back to browse</a></div>';
-    require __DIR__ . '/../includes/footer.php';
-    exit;
+  $pageTitle = 'Listing Not Found';
+  require __DIR__ . '/../includes/header.php';
+  echo '<div class="empty-state panel panel-pad">This listing does not exist or has been removed. <a href="' . base_url('boarder/browse.php') . '">Back to browse</a></div>';
+  require __DIR__ . '/../includes/footer.php';
+  exit;
 }
 
 $photosStmt = $pdo->prepare(
-    'SELECT * FROM images WHERE boarding_house_id = ? ORDER BY is_primary DESC, image_id ASC'
+  'SELECT * FROM images WHERE boarding_house_id = ? ORDER BY is_primary DESC, image_id ASC'
 );
 $photosStmt->execute([$listingId]);
 $photos = $photosStmt->fetchAll();
 
 $amenStmt = $pdo->prepare(
-    'SELECT a.amenity_name
+  'SELECT a.amenity_name
      FROM boarding_house_amenities bha
      JOIN amenities a ON bha.amenity_id = a.amenity_id
      WHERE bha.boarding_house_id = ? AND bha.is_available = 1'
@@ -40,7 +40,7 @@ $amenStmt->execute([$listingId]);
 $amenities = $amenStmt->fetchAll(PDO::FETCH_COLUMN);
 
 $utilStmt = $pdo->prepare(
-    'SELECT ut.utility_name, bhu.billing_policy
+  'SELECT ut.utility_name, bhu.billing_policy
      FROM boarding_house_utilities bhu
      JOIN utilities ut ON ut.utility_id = bhu.utility_id
      WHERE bhu.boarding_house_id = ?
@@ -96,11 +96,12 @@ require __DIR__ . '/../includes/header.php';
 
   <div>
     <div class="panel panel-pad">
-      <div class="listing-rent" style="font-size:22px; margin-bottom:14px;"><?= peso($listing['monthly_rent']) ?> <span>/ month</span></div>
+      <div class="listing-rent" style="font-size:22px; margin-bottom:14px;"><?= peso($listing['monthly_rent']) ?>
+        <span>/ month</span></div>
 
       <ul class="spec-list">
         <li><span>Room type</span><span><?= h($listing['room_type'] ?: '—') ?></span></li>
-        <li><span>Capacity</span><span><?= (int)$listing['room_capacity'] ?> person(s)</span></li>
+        <li><span>Capacity</span><span><?= (int) $listing['room_capacity'] ?> person(s)</span></li>
         <?php foreach ($utilities as $util): ?>
           <li><span><?= h($util['utility_name']) ?></span><span><?= h($util['billing_policy'] ?: '—') ?></span></li>
         <?php endforeach; ?>
@@ -119,11 +120,12 @@ require __DIR__ . '/../includes/header.php';
         <li><span>Name</span><span><?= h($listing['landlord_name']) ?></span></li>
         <li><span>Listed contact</span><span><?= h($listing['contact_number'] ?: '—') ?></span></li>
         <?php if (is_logged_in()): ?>
-        <li><span>Phone on file</span><span><?= h($listing['landlord_phone'] ?: '—') ?></span></li>
+          <li><span>Phone on file</span><span><?= h($listing['landlord_phone'] ?: '—') ?></span></li>
         <?php endif; ?>
       </ul>
       <?php if (!is_logged_in()): ?>
-        <p class="field-hint" style="margin-top:10px;"><a href="<?= base_url('auth/login.php') ?>">Log in</a> to see the landlord's phone number on file.</p>
+        <p class="field-hint" style="margin-top:10px;"><a href="<?= base_url('auth/login.php') ?>">Log in</a> to see the
+          landlord's phone number on file.</p>
       <?php endif; ?>
     </div>
   </div>

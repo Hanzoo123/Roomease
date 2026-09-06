@@ -7,12 +7,12 @@ require __DIR__ . '/../includes/functions.php';
 
 // Ensure user is logged in as administrator
 if (!is_logged_in() || !is_admin()) {
-    redirect('admin/login.php');
+  redirect('admin/login.php');
 }
 
 // Fetch counts
 $counts = $pdo->query(
-    "SELECT
+  "SELECT
         (SELECT COUNT(*) FROM users WHERE role='landlord') AS landlords,
         (SELECT COUNT(*) FROM users WHERE role='boarder') AS boarders,
         (SELECT COUNT(*) FROM boarding_houses) AS listings,
@@ -21,7 +21,7 @@ $counts = $pdo->query(
 
 // Fetch recently added boarding houses
 $recentListings = $pdo->query(
-    "SELECT bh.boarding_house_id, bh.name AS boarding_house_name, bh.address,
+  "SELECT bh.boarding_house_id, bh.name AS boarding_house_name, bh.address,
             bh.monthly_rent, bh.availability_status AS status, bh.created_at,
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
      FROM boarding_houses bh
@@ -32,7 +32,7 @@ $recentListings = $pdo->query(
 
 // Fetch recently registered users
 $recentUsers = $pdo->query(
-    "SELECT user_id, first_name, last_name, CONCAT(first_name, ' ', last_name) AS full_name,
+  "SELECT user_id, first_name, last_name, CONCAT(first_name, ' ', last_name) AS full_name,
             email, role, is_active, created_at
      FROM users
      WHERE role != 'administrator'
@@ -78,7 +78,7 @@ require __DIR__ . '/includes/sidebar.php';
         <div class="col-lg-3 col-6">
           <div class="small-box bg-info shadow-sm">
             <div class="inner">
-              <h3><?= (int)$counts['landlords'] ?></h3>
+              <h3><?= (int) $counts['landlords'] ?></h3>
               <p>Registered Landlords</p>
             </div>
             <div class="icon">
@@ -94,7 +94,7 @@ require __DIR__ . '/includes/sidebar.php';
         <div class="col-lg-3 col-6">
           <div class="small-box bg-success shadow-sm">
             <div class="inner">
-              <h3><?= (int)$counts['boarders'] ?></h3>
+              <h3><?= (int) $counts['boarders'] ?></h3>
               <p>Registered Boarders</p>
             </div>
             <div class="icon">
@@ -110,7 +110,7 @@ require __DIR__ . '/includes/sidebar.php';
         <div class="col-lg-3 col-6">
           <div class="small-box bg-warning shadow-sm">
             <div class="inner">
-              <h3><?= (int)$counts['listings'] ?></h3>
+              <h3><?= (int) $counts['listings'] ?></h3>
               <p>Total Boarding Houses</p>
             </div>
             <div class="icon">
@@ -126,7 +126,7 @@ require __DIR__ . '/includes/sidebar.php';
         <div class="col-lg-3 col-6">
           <div class="small-box bg-olive shadow-sm">
             <div class="inner">
-              <h3><?= (int)$counts['available'] ?></h3>
+              <h3><?= (int) $counts['available'] ?></h3>
               <p>Available Listings</p>
             </div>
             <div class="icon">
@@ -174,13 +174,16 @@ require __DIR__ . '/includes/sidebar.php';
                     <?php foreach ($recentListings as $l): ?>
                       <tr>
                         <td class="font-weight-bold">
-                          <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank" class="text-dark">
+                          <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>"
+                            target="_blank" class="text-dark">
                             <?= h($l['boarding_house_name']) ?>
                           </a>
                         </td>
                         <td><?= h($l['address']) ?></td>
                         <td><?= h($l['landlord_name']) ?></td>
-                        <td><span class="text-success font-weight-bold">&#8369;<?= number_format((float)$l['monthly_rent'], 2) ?></span></td>
+                        <td><span
+                            class="text-success font-weight-bold">&#8369;<?= number_format((float) $l['monthly_rent'], 2) ?></span>
+                        </td>
                         <td>
                           <?php if ($l['status'] === 'available'): ?>
                             <span class="badge badge-success px-2 py-1">Available</span>
@@ -190,7 +193,8 @@ require __DIR__ . '/includes/sidebar.php';
                         </td>
                         <td class="text-muted text-sm"><?= h(date('M j, Y', strtotime($l['created_at']))) ?></td>
                         <td>
-                          <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank" class="btn btn-sm btn-outline-info" title="View Details">
+                          <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>"
+                            target="_blank" class="btn btn-sm btn-outline-info" title="View Details">
                             <i class="fas fa-eye"></i>
                           </a>
                         </td>
@@ -214,7 +218,7 @@ require __DIR__ . '/includes/sidebar.php';
         <!-- Right column -->
         <div class="col-lg-4">
           <!-- Quick Actions Card -->
-          <div class="card card-outline card-secondary shadow-sm mb-4">
+          <!-- <div class="card card-outline card-secondary shadow-sm mb-4">
             <div class="card-header">
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-bolt mr-1 text-warning"></i> Quick Management
@@ -225,15 +229,17 @@ require __DIR__ . '/includes/sidebar.php';
                 <a href="<?= base_url('admin/manage_users.php') ?>" class="btn btn-outline-primary btn-block text-left">
                   <i class="fas fa-users mr-2"></i> Manage System Users
                 </a>
-                <a href="<?= base_url('admin/manage_listings.php') ?>" class="btn btn-outline-success btn-block text-left">
+                <a href="<?= base_url('admin/manage_listings.php') ?>"
+                  class="btn btn-outline-success btn-block text-left">
                   <i class="fas fa-building mr-2"></i> Manage House Listings
                 </a>
-                <a href="<?= base_url('boarder/browse.php') ?>" target="_blank" class="btn btn-outline-secondary btn-block text-left">
+                <a href="<?= base_url('boarder/browse.php') ?>" target="_blank"
+                  class="btn btn-outline-secondary btn-block text-left">
                   <i class="fas fa-globe mr-2"></i> Browse Site as Guest
                 </a>
               </div>
             </div>
-          </div>
+          </div> -->
 
           <!-- Recently Joined Users Card -->
           <div class="card card-outline card-info shadow-sm">
@@ -257,14 +263,14 @@ require __DIR__ . '/includes/sidebar.php';
                       </div>
                       <div class="product-info">
                         <span class="product-title font-weight-bold">
-                           <?= h($ru['full_name']) ?>
-                           <span class="badge badge-<?= $ru['role'] === 'landlord' ? 'info' : 'secondary' ?> float-right">
-                             <?= h(ucfirst($ru['role'])) ?>
-                           </span>
-                         </span>
-                         <span class="product-description text-xs text-muted">
-                           <?= h($ru['email']) ?> &middot; Joined <?= h(date('M j, Y', strtotime($ru['created_at']))) ?>
-                         </span>
+                          <?= h($ru['full_name']) ?>
+                          <span class="badge badge-<?= $ru['role'] === 'landlord' ? 'info' : 'secondary' ?> float-right">
+                            <?= h(ucfirst($ru['role'])) ?>
+                          </span>
+                        </span>
+                        <span class="product-description text-xs text-muted">
+                          <?= h($ru['email']) ?> &middot; Joined <?= h(date('M j, Y', strtotime($ru['created_at']))) ?>
+                        </span>
                       </div>
                     </li>
                   <?php endforeach; ?>

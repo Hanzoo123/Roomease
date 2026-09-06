@@ -4,13 +4,14 @@
  */
 $flash = flash_get();
 ?>
-  <!-- Main Footer -->
-  <footer class="main-footer">
-    <div class="float-right d-none d-sm-inline">
-      RoomEase v1.0 &middot; Admin Panel
-    </div>
-    <strong>Copyright &copy; <?= date('Y') ?> <a href="<?= base_url('boarder/browse.php') ?>" target="_blank">RoomEase</a>.</strong> All rights reserved.
-  </footer>
+<!-- Main Footer -->
+<footer class="main-footer">
+  <div class="float-right d-none d-sm-inline">
+    RoomEase v1.0 &middot; Admin Panel
+  </div>
+  <strong>Copyright &copy; <?= date('Y') ?> <a href="<?= base_url('boarder/browse.php') ?>"
+      target="_blank">RoomEase</a>.</strong> All rights reserved.
+</footer>
 </div>
 <!-- ./wrapper -->
 
@@ -31,21 +32,22 @@ $flash = flash_get();
 
 <!-- Flash Notification Trigger via Toastr -->
 <?php if ($flash): ?>
-<script>
-  $(function() {
-    toastr.options = {
-      "closeButton": true,
-      "progressBar": true,
-      "positionClass": "toast-top-right",
-      "timeOut": "5000"
-    };
-    <?php if ($flash['type'] === 'error'): ?>
-      toastr.error(<?= json_encode($flash['message']) ?>, 'Error');
-    <?php else: ?>
-      toastr.success(<?= json_encode($flash['message']) ?>, 'Success');
-    <?php endif; ?>
-  });
-</script>
+  <script>
+    $(function () {
+      toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "timeOut": "5000"
+      };
+      <?php if ($flash['type'] === 'error'): ?>
+        toastr.error(<?= json_encode($flash['message']) ?>, 'Error');
+      <?php else: ?>
+        toastr.success(<?= json_encode($flash['message']) ?>, 'Success');
+      <?php endif; ?>
+    });
+  </script>
 <?php endif; ?>
 </body>
+
 </html>

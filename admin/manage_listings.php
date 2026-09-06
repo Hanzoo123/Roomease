@@ -7,12 +7,12 @@ require __DIR__ . '/../includes/functions.php';
 
 // Ensure user is logged in as administrator
 if (!is_logged_in() || !is_admin()) {
-    redirect('admin/login.php');
+  redirect('admin/login.php');
 }
 
 // Fetch all boarding houses with landlord name
 $listings = $pdo->query(
-    "SELECT bh.*,
+  "SELECT bh.*,
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
             u.email AS landlord_email
      FROM boarding_houses bh
@@ -80,7 +80,8 @@ require __DIR__ . '/includes/sidebar.php';
               <?php foreach ($listings as $l): ?>
                 <tr>
                   <td class="font-weight-bold">
-                    <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank" class="text-dark" title="View Listing Details">
+                    <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank"
+                      class="text-dark" title="View Listing Details">
                       <i class="fas fa-external-link-alt text-xs text-primary mr-1"></i>
                       <?= h($l['name']) ?>
                     </a>
@@ -95,18 +96,21 @@ require __DIR__ . '/includes/sidebar.php';
                     <?= h($l['address']) ?>
                   </td>
                   <td>
-                    <span class="text-success font-weight-bold">&#8369;<?= number_format((float)$l['monthly_rent'], 2) ?></span>
+                    <span
+                      class="text-success font-weight-bold">&#8369;<?= number_format((float) $l['monthly_rent'], 2) ?></span>
                   </td>
                   <td>
                     <span class="badge badge-info"><?= h($l['room_type'] ?? 'N/A') ?></span>
                     <br>
-                    <small class="text-muted"><i class="fas fa-user-friends mr-1"></i>Cap: <?= (int)$l['room_capacity'] ?></small>
+                    <small class="text-muted"><i class="fas fa-user-friends mr-1"></i>Cap:
+                      <?= (int) $l['room_capacity'] ?></small>
                   </td>
                   <td>
                     <?php if ($l['availability_status'] === 'available'): ?>
                       <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Available</span>
                     <?php else: ?>
-                      <span class="badge badge-secondary px-2 py-1"><i class="fas fa-times-circle mr-1"></i> Unavailable</span>
+                      <span class="badge badge-secondary px-2 py-1"><i class="fas fa-times-circle mr-1"></i>
+                        Unavailable</span>
                     <?php endif; ?>
                   </td>
                   <td class="text-sm text-muted">
@@ -115,15 +119,16 @@ require __DIR__ . '/includes/sidebar.php';
                   <td>
                     <div class="d-flex align-items-center" style="gap: 5px;">
                       <!-- View Button -->
-                      <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank" class="btn btn-xs btn-outline-info" title="Preview on Website">
+                      <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank"
+                        class="btn btn-xs btn-outline-info" title="Preview on Website">
                         <i class="fas fa-eye"></i>
                       </a>
 
                       <!-- Remove Button -->
                       <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline"
-                            onsubmit="return confirm('Permanently remove \'<?= h(addslashes($l['name'])) ?>\' from RoomEase?');">
+                        onsubmit="return confirm('Permanently remove \'<?= h(addslashes($l['name'])) ?>\' from RoomEase?');">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="boarding_house_id" value="<?= (int)$l['boarding_house_id'] ?>">
+                        <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
                         <button type="submit" class="btn btn-xs btn-outline-danger" title="Remove Listing">
                           <i class="fas fa-trash"></i>
                         </button>
