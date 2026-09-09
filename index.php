@@ -19,8 +19,3 @@ if (is_logged_in()) {
 }
 
 redirect('boarder/browse.php');
-
-<?php 
-hihfjaj
-
-?>
