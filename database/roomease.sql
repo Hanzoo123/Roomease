@@ -12,6 +12,7 @@ USE roomease;
 -- Disable foreign key checks for clean teardown/rebuild
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS favorites;
 DROP TABLE IF EXISTS images;
 DROP TABLE IF EXISTS boarding_house_utilities;
@@ -156,6 +157,26 @@ CREATE TABLE favorites (
         REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_fav_bh FOREIGN KEY (boarding_house_id)
         REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 10. Table: password_resets
+-- One row per "forgot password" request. Only a SHA-256 hash of the
+-- token is stored, so a leaked database still cannot be used to reset
+-- anyone's password. Rows are single use (used_at) and short lived
+-- (expires_at).
+-- ---------------------------------------------------------
+CREATE TABLE password_resets (
+    reset_id    INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT NOT NULL,
+    token_hash  CHAR(64) NOT NULL,
+    expires_at  DATETIME NOT NULL,
+    used_at     DATETIME DEFAULT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_reset_token (token_hash),
+    KEY idx_reset_user (user_id),
+    CONSTRAINT fk_reset_user FOREIGN KEY (user_id)
+        REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

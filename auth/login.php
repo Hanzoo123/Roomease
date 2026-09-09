@@ -159,7 +159,13 @@ $flash = flash_get();
           </div>
         </form>
 
-        <div class="text-center mt-4 pt-3 border-top">
+        <div class="text-center mt-3">
+          <a href="<?= base_url('auth/forgot_password.php') ?>" class="text-sm">
+            <i class="fas fa-key mr-1"></i> Forgot your password?
+          </a>
+        </div>
+
+        <div class="text-center mt-3 pt-3 border-top">
           <a href="<?= base_url('boarder/browse.php') ?>" class="text-sm text-secondary">
             <i class="fas fa-arrow-left mr-1"></i> Return to Main Website
           </a>

@@ -366,6 +366,123 @@ function can_save_listings()
     return is_logged_in() && current_role() === 'boarder';
 }
 
+/** How long a password reset link stays valid. */
+function password_reset_ttl_minutes()
+{
+    return 60;
+}
+
+/**
+ * True when the request came from this machine. Reset links are only ever
+ * shown on screen for loopback requests, so a deployed copy of RoomEase can
+ * never hand a stranger a working link just by typing somebody's email.
+ */
+function is_local_request()
+{
+    return in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+}
+
+/**
+ * Issue a password reset token for a user and return the raw token.
+ *
+ * Only the SHA-256 hash is stored, exactly as passwords are hashed: the value
+ * that travels in the link is never written to the database. Any earlier
+ * unused tokens for the same user are dropped so only the newest link works.
+ */
+function create_password_reset($userId)
+{
+    global $pdo;
+
+    // Housekeeping: clear this user's outstanding links plus anything stale.
+    $pdo->prepare('DELETE FROM password_resets WHERE user_id = ?')->execute([$userId]);
+    $pdo->exec('DELETE FROM password_resets WHERE expires_at < NOW() - INTERVAL 1 DAY');
+
+    $token = bin2hex(random_bytes(32));
+    $stmt = $pdo->prepare(
+        'INSERT INTO password_resets (user_id, token_hash, expires_at)
+         VALUES (?, ?, NOW() + INTERVAL ? MINUTE)'
+    );
+    $stmt->execute([$userId, hash('sha256', $token), password_reset_ttl_minutes()]);
+
+    return $token;
+}
+
+/**
+ * Look up an unused, unexpired reset token. Returns the reset row joined to
+ * its user, or null. The lookup is by hash, so the raw token is never compared
+ * against stored data.
+ */
+function find_valid_reset($token)
+{
+    global $pdo;
+
+    if (!is_string($token) || !preg_match('/^[a-f0-9]{64}$/', $token)) {
+        return null;
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT pr.reset_id, pr.user_id, pr.expires_at,
+                u.email, u.first_name, u.is_active
+           FROM password_resets pr
+           JOIN users u ON u.user_id = pr.user_id
+          WHERE pr.token_hash = ?
+            AND pr.used_at IS NULL
+            AND pr.expires_at > NOW()'
+    );
+    $stmt->execute([hash('sha256', $token)]);
+
+    return $stmt->fetch() ?: null;
+}
+
+/** Absolute URL for a reset link, which is what has to go in an email. */
+function password_reset_url($token)
+{
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    return $scheme . '://' . $host . base_url('auth/reset_password.php?token=' . $token);
+}
+
+/**
+ * Try to email a reset link. Returns true only if PHP accepted the message.
+ *
+ * A stock WAMP/XAMPP install has no mail server, so this normally fails; the
+ * calling page falls back to showing the link for local requests. Either way a
+ * record of the attempt is logged, deliberately WITHOUT the token, so the log
+ * itself can never be used to take over an account.
+ */
+function send_password_reset_email($email, $firstName, $url)
+{
+    $minutes = password_reset_ttl_minutes();
+    $subject = 'Reset your RoomEase password';
+    $body = "Hi " . $firstName . ",\r\n\r\n"
+        . "Someone asked to reset the password for your RoomEase account.\r\n"
+        . "Open the link below within " . $minutes . " minutes to choose a new one:\r\n\r\n"
+        . $url . "\r\n\r\n"
+        . "If this wasn't you, ignore this message; your password stays unchanged.\r\n\r\n"
+        . "RoomEase\r\n";
+    $headers = "From: no-reply@roomease.local\r\nContent-Type: text/plain; charset=UTF-8\r\n";
+
+    $sent = false;
+    try {
+        $sent = @mail($email, $subject, $body, $headers);
+    } catch (Throwable $e) {
+        $sent = false;
+    }
+
+    $logDir = __DIR__ . '/../storage';
+    if (!is_dir($logDir)) {
+        @mkdir($logDir, 0755, true);
+    }
+    @file_put_contents(
+        $logDir . '/password_resets.log',
+        sprintf("[%s] reset requested for %s - mail(): %s%s",
+            date('Y-m-d H:i:s'), $email, $sent ? 'accepted' : 'FAILED', PHP_EOL),
+        FILE_APPEND
+    );
+
+    return (bool) $sent;
+}
+
 /**
  * Render pagination controls, preserving existing URL query filters.
  */
