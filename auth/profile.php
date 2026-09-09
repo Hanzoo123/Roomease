@@ -56,12 +56,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Password change validation
+    // Password change validation. The trigger is deliberately the NEW password
+    // fields, not the current one: browsers autofill saved credentials into
+    // "Current password", and that alone must not turn an ordinary profile
+    // edit into a failed password change.
     $changePassword = false;
-    if ($currentPassword !== '' || $newPassword !== '' || $confirmPassword !== '') {
+    if ($newPassword !== '' || $confirmPassword !== '') {
         $changePassword = true;
         if ($currentPassword === '') {
-            $errors[] = 'Current password is required to change password.';
+            $errors[] = 'Enter your current password to set a new one.';
         } elseif (!password_verify($currentPassword, $user['password_hash'])) {
             $errors[] = 'Incorrect current password.';
         }
@@ -115,60 +118,139 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = 'Edit Profile';
-require __DIR__ . '/../includes/header.php';
+
+// Admins and landlords work inside the management panel, so their profile page
+// renders there too. Boarders only ever see the public site, so theirs stays on
+// the public theme. The form below is written once; only the class names differ.
+$usePanel = is_admin() || current_role() === 'landlord';
+
+$cls = $usePanel
+    ? ['row' => 'form-row', 'col' => 'col-md-6 form-group', 'group' => 'form-group',
+       'input' => 'form-control', 'hint' => 'form-text text-muted',
+       'alert' => 'alert alert-danger', 'btn' => 'btn btn-primary']
+    : ['row' => 'field-row', 'col' => '', 'group' => '',
+       'input' => '', 'hint' => 'field-hint',
+       'alert' => 'alert alert-error', 'btn' => 'btn btn-primary btn-block'];
+
+if ($usePanel) {
+    require __DIR__ . '/../includes/panel_head.php';
+    require __DIR__ . '/../includes/panel_navbar.php';
+    require __DIR__ . '/../includes/panel_sidebar.php';
+} else {
+    require __DIR__ . '/../includes/header.php';
+}
 ?>
 
-<div class="auth-wrap panel panel-pad" style="max-width: 500px; margin: 32px auto;">
-  <h1>Edit Profile</h1>
-  <p class="auth-sub">Manage your account information and change your password.</p>
-
-  <?php if ($errors): ?>
-    <div class="alert alert-error">
-      <?php foreach ($errors as $e) echo h($e) . '<br>'; ?>
-    </div>
-  <?php endif; ?>
-
-  <form method="post" novalidate>
-    <?= csrf_field() ?>
-
-    <div class="field-row">
-      <div>
-        <label for="first_name">First name</label>
-        <input type="text" id="first_name" name="first_name" value="<?= h($old['first_name']) ?>" required>
-      </div>
-      <div>
-        <label for="last_name">Last name</label>
-        <input type="text" id="last_name" name="last_name" value="<?= h($old['last_name']) ?>" required>
+<?php if ($usePanel): ?>
+  <div class="content-wrapper">
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0 font-weight-bold">
+              <i class="fas fa-user-cog text-primary mr-2"></i>My Profile
+            </h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="<?= base_url(panel_config()['home']) ?>">Home</a></li>
+              <li class="breadcrumb-item active">My Profile</li>
+            </ol>
+          </div>
+        </div>
       </div>
     </div>
 
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row justify-content-center">
+          <div class="col-lg-7">
+            <div class="card card-primary card-outline shadow-sm">
+              <div class="card-header">
+                <h3 class="card-title font-weight-bold">
+                  <i class="fas fa-id-card mr-1"></i> Account Information
+                </h3>
+              </div>
+              <div class="card-body">
+<?php else: ?>
+  <div class="auth-wrap panel panel-pad" style="max-width: 500px; margin: 32px auto;">
+    <h1>Edit Profile</h1>
+    <p class="auth-sub">Manage your account information and change your password.</p>
+<?php endif; ?>
+
+<?php if ($errors): ?>
+  <div class="<?= $cls['alert'] ?>">
+    <?php foreach ($errors as $e)
+      echo h($e) . '<br>'; ?>
+  </div>
+<?php endif; ?>
+
+<form method="post" novalidate>
+  <?= csrf_field() ?>
+
+  <div class="<?= $cls['row'] ?>">
+    <div class="<?= $cls['col'] ?>">
+      <label for="first_name">First name</label>
+      <input type="text" class="<?= $cls['input'] ?>" id="first_name" name="first_name"
+        value="<?= h($old['first_name']) ?>" required>
+    </div>
+    <div class="<?= $cls['col'] ?>">
+      <label for="last_name">Last name</label>
+      <input type="text" class="<?= $cls['input'] ?>" id="last_name" name="last_name"
+        value="<?= h($old['last_name']) ?>" required>
+    </div>
+  </div>
+
+  <div class="<?= $cls['group'] ?>">
     <label for="email">Email address</label>
-    <input type="email" id="email" name="email" value="<?= h($old['email']) ?>" required>
+    <input type="email" class="<?= $cls['input'] ?>" id="email" name="email" value="<?= h($old['email']) ?>" required>
+  </div>
 
+  <div class="<?= $cls['group'] ?>">
     <label for="phone_number">Phone number</label>
-    <input type="tel" id="phone_number" name="phone_number" value="<?= h($old['phone_number']) ?>" placeholder="e.g. 09171234567">
+    <input type="tel" class="<?= $cls['input'] ?>" id="phone_number" name="phone_number"
+      value="<?= h($old['phone_number']) ?>" placeholder="e.g. 09171234567">
+  </div>
 
-    <hr style="border:0; border-top:1px dashed var(--line); margin: 24px 0;">
-    
-    <h3 style="font-size:16px; margin-bottom:12px;">Change Password</h3>
-    <p class="field-hint" style="margin-top:-8px; margin-bottom:16px;">Leave password fields blank if you do not wish to change your password.</p>
+  <hr>
 
+  <h5 class="font-weight-bold">Change Password</h5>
+  <p class="<?= $cls['hint'] ?> mb-3">Leave these blank if you do not wish to change your password.</p>
+
+  <div class="<?= $cls['group'] ?>">
     <label for="current_password">Current password</label>
-    <input type="password" id="current_password" name="current_password">
+    <input type="password" class="<?= $cls['input'] ?>" id="current_password" name="current_password"
+      autocomplete="new-password">
+  </div>
 
-    <div class="field-row">
-      <div>
-        <label for="new_password">New password</label>
-        <input type="password" id="new_password" name="new_password">
-      </div>
-      <div>
-        <label for="confirm_password">Confirm new password</label>
-        <input type="password" id="confirm_password" name="confirm_password">
-      </div>
+  <div class="<?= $cls['row'] ?>">
+    <div class="<?= $cls['col'] ?>">
+      <label for="new_password">New password</label>
+      <input type="password" class="<?= $cls['input'] ?>" id="new_password" name="new_password"
+      autocomplete="new-password">
     </div>
+    <div class="<?= $cls['col'] ?>">
+      <label for="confirm_password">Confirm new password</label>
+      <input type="password" class="<?= $cls['input'] ?>" id="confirm_password" name="confirm_password"
+      autocomplete="new-password">
+    </div>
+  </div>
 
-    <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">Save Profile Changes</button>
-  </form>
-</div>
+  <button type="submit" class="<?= $cls['btn'] ?>" style="margin-top:8px;">
+    <i class="fas fa-save mr-1"></i> Save Profile Changes
+  </button>
+</form>
 
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+<?php if ($usePanel): ?>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php else: ?>
+  </div>
+  <?php require __DIR__ . '/../includes/footer.php'; ?>
+<?php endif; ?>

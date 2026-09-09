@@ -106,11 +106,11 @@ require __DIR__ . '/../includes/header.php';
     <div class="field-row">
       <div>
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" required>
+        <input type="password" id="password" name="password" autocomplete="new-password" required>
       </div>
       <div>
         <label for="confirm_password">Confirm password</label>
-        <input type="password" id="confirm_password" name="confirm_password" required>
+        <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
       </div>
     </div>
 

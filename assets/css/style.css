@@ -701,3 +701,40 @@ footer {
 html {
   scroll-behavior: smooth;
 }
+/* Save (heart) button on listing cards and the listing detail page */
+.save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, .08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .92);
+  color: #6b7280;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .12);
+  transition: color .15s ease, transform .15s ease;
+}
+
+.save-btn:hover {
+  color: #dc2626;
+  transform: scale(1.08);
+}
+
+.save-btn.is-saved {
+  color: #dc2626;
+}
+
+/* Wider variant used on the listing detail page, where it carries a label */
+.save-btn.save-btn-wide {
+  width: auto;
+  height: auto;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}

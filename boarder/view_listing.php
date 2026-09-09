@@ -16,6 +16,17 @@ $stmt = $pdo->prepare(
 $stmt->execute([$listingId]);
 $listing = $stmt->fetch();
 
+// A listing that has not been approved yet is visible only to the landlord who
+// owns it and to administrators, so they can preview it. To everyone else it
+// simply does not exist.
+$isOwner = $listing && is_logged_in() && current_role() === 'landlord'
+    && (int) $listing['landlord_id'] === (int) $_SESSION['user_id'];
+$canPreview = $isOwner || is_admin();
+
+if ($listing && $listing['moderation_status'] !== 'approved' && !$canPreview) {
+    $listing = false;
+}
+
 if (!$listing) {
   $pageTitle = 'Listing Not Found';
   require __DIR__ . '/../includes/header.php';
@@ -50,11 +61,27 @@ $utilStmt->execute([$listingId]);
 $utilities = $utilStmt->fetchAll();
 
 $isAvailable = $listing['availability_status'] === 'available';
+$isSaved = can_save_listings()
+  && isset(saved_listing_ids($_SESSION['user_id'])[$listingId]);
 $pageTitle = $listing['name'];
 require __DIR__ . '/../includes/header.php';
 ?>
 
 <a href="<?= base_url('boarder/browse.php') ?>" style="font-size:13px;">&larr; Back to Browse</a>
+
+<?php if ($listing['moderation_status'] !== 'approved'): ?>
+  <div class="alert alert-error" style="margin-top:14px;">
+    <strong>Preview only.</strong>
+    <?php if ($listing['moderation_status'] === 'pending'): ?>
+      This listing is waiting for administrator approval, so boarders cannot see it yet.
+    <?php else: ?>
+      This listing was rejected and is hidden from boarders.
+      <?php if ($listing['rejection_reason']): ?>
+        Reason: <?= h($listing['rejection_reason']) ?>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
 
 <div class="section-head" style="border-bottom:none; margin-bottom:0;">
   <h2 style="font-size:26px;"><?= h($listing['name']) ?></h2>
@@ -99,7 +126,30 @@ require __DIR__ . '/../includes/header.php';
       <div class="listing-rent" style="font-size:22px; margin-bottom:14px;"><?= peso($listing['monthly_rent']) ?>
         <span>/ month</span></div>
 
+      <?php if (can_save_listings()): ?>
+        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" style="margin-bottom:14px;">
+          <?= csrf_field() ?>
+          <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
+          <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">
+          <input type="hidden" name="return" value="view">
+          <button type="submit" class="save-btn save-btn-wide btn-block <?= $isSaved ? 'is-saved' : '' ?>"
+            style="width:100%;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $isSaved ? 'currentColor' : 'none' ?>"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <?= $isSaved ? 'Saved' : 'Save this listing' ?>
+          </button>
+        </form>
+      <?php elseif (!is_logged_in()): ?>
+        <p class="field-hint" style="margin-bottom:14px;">
+          <a href="<?= base_url('auth/login.php') ?>">Log in</a> as a boarder to save this listing.
+        </p>
+      <?php endif; ?>
+
       <ul class="spec-list">
+        <li><span>Reservation fee</span><span><?= ($listing['reservation_fee'] === null || $listing['reservation_fee'] === '') ? 'Not required' : peso($listing['reservation_fee']) ?></span></li>
+
         <li><span>Room type</span><span><?= h($listing['room_type'] ?: '—') ?></span></li>
         <li><span>Capacity</span><span><?= (int) $listing['room_capacity'] ?> person(s)</span></li>
         <?php foreach ($utilities as $util): ?>

@@ -7,7 +7,7 @@ require __DIR__ . '/../includes/functions.php';
 
 // Ensure user is logged in as administrator
 if (!is_logged_in() || !is_admin()) {
-  redirect('admin/login.php');
+  redirect('auth/login.php');
 }
 
 // Fetch counts
@@ -16,7 +16,8 @@ $counts = $pdo->query(
         (SELECT COUNT(*) FROM users WHERE role='landlord') AS landlords,
         (SELECT COUNT(*) FROM users WHERE role='boarder') AS boarders,
         (SELECT COUNT(*) FROM boarding_houses) AS listings,
-        (SELECT COUNT(*) FROM boarding_houses WHERE availability_status='available') AS available"
+        (SELECT COUNT(*) FROM boarding_houses WHERE availability_status='available') AS available,
+        (SELECT COUNT(*) FROM boarding_houses WHERE moderation_status='pending') AS pending"
 )->fetch();
 
 // Fetch recently added boarding houses
@@ -41,9 +42,9 @@ $recentUsers = $pdo->query(
 )->fetchAll();
 
 $pageTitle = 'Dashboard';
-require __DIR__ . '/includes/head.php';
-require __DIR__ . '/includes/navbar.php';
-require __DIR__ . '/includes/sidebar.php';
+require __DIR__ . '/../includes/panel_head.php';
+require __DIR__ . '/../includes/panel_navbar.php';
+require __DIR__ . '/../includes/panel_sidebar.php';
 ?>
 
 <!-- Content Wrapper. Contains page content -->
@@ -124,16 +125,16 @@ require __DIR__ . '/includes/sidebar.php';
 
         <!-- Available Listings -->
         <div class="col-lg-3 col-6">
-          <div class="small-box bg-olive shadow-sm">
+          <div class="small-box <?= (int) $counts['pending'] > 0 ? 'bg-danger' : 'bg-olive' ?> shadow-sm">
             <div class="inner">
-              <h3><?= (int) $counts['available'] ?></h3>
-              <p>Available Listings</p>
+              <h3><?= (int) $counts['pending'] ?></h3>
+              <p>Awaiting Approval</p>
             </div>
             <div class="icon">
-              <i class="fas fa-check-circle"></i>
+              <i class="fas fa-clipboard-check"></i>
             </div>
-            <a href="<?= base_url('admin/manage_listings.php') ?>" class="small-box-footer">
-              Manage Listings <i class="fas fa-arrow-circle-right"></i>
+            <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>" class="small-box-footer">
+              Review Queue <i class="fas fa-arrow-circle-right"></i>
             </a>
           </div>
         </div>
@@ -292,4 +293,4 @@ require __DIR__ . '/includes/sidebar.php';
 </div>
 <!-- /.content-wrapper -->
 
-<?php require __DIR__ . '/includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/panel_footer.php'; ?>

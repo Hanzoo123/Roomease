@@ -7,7 +7,7 @@ require __DIR__ . '/../includes/functions.php';
 
 // Ensure user is logged in as administrator
 if (!is_logged_in() || !is_admin()) {
-  redirect('admin/login.php');
+  redirect('auth/login.php');
 }
 
 $roleFilter = $_GET['role'] ?? '';
@@ -29,9 +29,9 @@ $stmt->execute($params);
 $users = $stmt->fetchAll();
 
 $pageTitle = 'Manage Users';
-require __DIR__ . '/includes/head.php';
-require __DIR__ . '/includes/navbar.php';
-require __DIR__ . '/includes/sidebar.php';
+require __DIR__ . '/../includes/panel_head.php';
+require __DIR__ . '/../includes/panel_navbar.php';
+require __DIR__ . '/../includes/panel_sidebar.php';
 ?>
 
 <!-- Content Wrapper. Contains page content -->
@@ -66,7 +66,7 @@ require __DIR__ . '/includes/sidebar.php';
           <h3 class="card-title font-weight-bold">
             <i class="fas fa-list mr-1"></i> User Directory
           </h3>
-          <div class="btn-group btn-group-toggle mt-2 mt-sm-0" data-toggle="buttons">
+          <div class="btn-group mt-2 mt-sm-0" role="group" aria-label="Filter users by role">
             <a href="manage_users.php" class="btn btn-sm btn-outline-primary <?= $roleFilter === '' ? 'active' : '' ?>">
               All <span class="badge badge-light ml-1"><?= $totalNonAdmin ?></span>
             </a>
@@ -168,7 +168,7 @@ require __DIR__ . '/includes/sidebar.php';
 </div>
 <!-- /.content-wrapper -->
 
-<?php require __DIR__ . '/includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
 
 <!-- Initialize DataTables for usersTable -->
 <script>

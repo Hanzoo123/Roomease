@@ -34,7 +34,7 @@ $flash = flash_get();
           <?php elseif (is_admin()): ?>
             <a href="<?= base_url('admin/dashboard.php') ?>">Admin Panel</a>
           <?php elseif (current_role() === 'boarder'): ?>
-            <!-- boarders just browse -->
+            <a href="<?= base_url('boarder/saved.php') ?>">Saved</a>
           <?php endif; ?>
           <span class="role-tag"><?= h(current_role()) ?></span>
           <a href="<?= base_url('auth/profile.php') ?>">Profile</a>

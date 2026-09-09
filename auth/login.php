@@ -5,15 +5,11 @@
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 
-// If already logged in, redirect to the appropriate dashboard
+// If already logged in, send them to their own landing page. index.php routes
+// each role (admin panel, landlord panel, or browse), so that rule lives in
+// exactly one place.
 if (is_logged_in()) {
-    $role = current_role();
-    if ($role === 'administrator') {
-        redirect('admin/dashboard.php');
-    } else {
-        // For any other role (user, staff, etc.)
-        redirect('boarder/browse.php'); // change to your user dashboard path
-    }
+    redirect('index.php');
 }
 
 $error = '';
@@ -46,24 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
             $_SESSION['email'] = $user['email'];
 
-            // Redirect based on role
-            $role = $user['role'];
-            if ($role === 'administrator') {
-                $redirect = 'admin/dashboard.php';
-            } else {
-                // Adjust this to match your user dashboard file
-                $redirect = 'boarder/browse.php';
-            }
-
             flash_set("Welcome back, " . h($user['first_name']) . "!", "success");
-            redirect($redirect);
+            // index.php sends each role to its own landing page.
+            redirect('index.php');
         }
     }
 }
 
 $flash = flash_get();
-// ... keep your HTML form here (unchanged)
-?>
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,13 +63,13 @@ $flash = flash_get();
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="<?= base_url('AdminLTE/plugins/fontawesome-free/css/all.min.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/adminlte/plugins/fontawesome-free/css/all.min.css') ?>">
   <!-- icheck bootstrap -->
-  <link rel="stylesheet" href="<?= base_url('AdminLTE/plugins/icheck-bootstrap/icheck-bootstrap.min.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/adminlte/plugins/icheck-bootstrap/icheck-bootstrap.min.css') ?>">
   <!-- Toastr CSS -->
-  <link rel="stylesheet" href="<?= base_url('AdminLTE/plugins/toastr/toastr.min.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/adminlte/plugins/toastr/toastr.min.css') ?>">
   <!-- Theme style -->
-  <link rel="stylesheet" href="<?= base_url('AdminLTE/dist/css/adminlte.min.css') ?>">
+  <link rel="stylesheet" href="<?= base_url('assets/adminlte/dist/css/adminlte.min.css') ?>">
   <style>
     body.login-page {
       background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -155,7 +141,8 @@ $flash = flash_get();
           </div>
 
           <div class="input-group mb-3">
-            <input type="password" name="password" class="form-control" placeholder="Password" required>
+            <input type="password" name="password" class="form-control" placeholder="Password"
+              autocomplete="current-password" required>
             <div class="input-group-append">
               <div class="input-group-text">
                 <span class="fas fa-lock"></span>
@@ -185,13 +172,13 @@ $flash = flash_get();
   <!-- /.login-box -->
 
   <!-- jQuery -->
-  <script src="<?= base_url('AdminLTE/plugins/jquery/jquery.min.js') ?>"></script>
+  <script src="<?= base_url('assets/adminlte/plugins/jquery/jquery.min.js') ?>"></script>
   <!-- Bootstrap 4 -->
-  <script src="<?= base_url('AdminLTE/plugins/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
+  <script src="<?= base_url('assets/adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
   <!-- Toastr JS -->
-  <script src="<?= base_url('AdminLTE/plugins/toastr/toastr.min.js') ?>"></script>
+  <script src="<?= base_url('assets/adminlte/plugins/toastr/toastr.min.js') ?>"></script>
   <!-- AdminLTE App -->
-  <script src="<?= base_url('AdminLTE/dist/js/adminlte.min.js') ?>"></script>
+  <script src="<?= base_url('assets/adminlte/dist/js/adminlte.min.js') ?>"></script>
 
   <?php if ($flash): ?>
     <script>
@@ -210,6 +197,8 @@ $flash = flash_get();
       });
     </script>
   <?php endif; ?>
+
+<?php require __DIR__ . '/../includes/password_toggle.php'; ?>
 
 </body>
 

@@ -6,7 +6,7 @@ $q = trim($_GET['q'] ?? '');
 $roomType = $_GET['room_type'] ?? '';
 $maxRent = $_GET['max_rent'] ?? '';
 
-$where = ["bh.availability_status = 'available'"];
+$where = ["bh.availability_status = 'available'", "bh.moderation_status = 'approved'"];
 $params = [];
 
 if ($q !== '') {
@@ -46,7 +46,8 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $listings = $stmt->fetchAll();
 
-$roomTypes = ['Single', 'Double', 'Dormitory', 'Private Room', 'Bed Spacer'];
+$roomTypes = room_type_options();
+$savedIds  = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
 
 $pageTitle = 'Browse Listings';
 require __DIR__ . '/../includes/header.php';
@@ -96,7 +97,7 @@ require __DIR__ . '/../includes/header.php';
 
 <div class="section-head">
   <h2>Results</h2>
-  <span class="count-tag"><?= count($listings) ?> listing<?= count($listings) === 1 ? '' : 's' ?></span>
+  <span class="count-tag"><?= $totalCount ?> listing<?= $totalCount === 1 ? '' : 's' ?> found</span>
 </div>
 
 <?php if (!$listings): ?>
@@ -104,6 +105,29 @@ require __DIR__ . '/../includes/header.php';
 <?php else: ?>
   <div class="listing-grid">
     <?php foreach ($listings as $l): ?>
+      <?php $isSaved = isset($savedIds[$l['boarding_house_id']]); ?>
+      <div style="position:relative;">
+      <?php if (can_save_listings()): ?>
+        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>"
+          style="position:absolute; top:10px; right:10px; z-index:2; margin:0;">
+          <?= csrf_field() ?>
+          <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
+          <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">
+          <input type="hidden" name="return" value="browse">
+          <input type="hidden" name="q" value="<?= h($q) ?>">
+          <input type="hidden" name="room_type" value="<?= h($roomType) ?>">
+          <input type="hidden" name="max_rent" value="<?= h($maxRent) ?>">
+          <input type="hidden" name="page" value="<?= (int) $page ?>">
+          <button type="submit" class="save-btn <?= $isSaved ? 'is-saved' : '' ?>"
+            title="<?= $isSaved ? 'Remove from saved' : 'Save this listing' ?>"
+            aria-label="<?= $isSaved ? 'Remove from saved' : 'Save this listing' ?>">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $isSaved ? 'currentColor' : 'none' ?>"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </form>
+      <?php endif; ?>
       <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" class="listing-card"
         style="text-decoration:none;color:inherit;">
         <div class="listing-photo"
@@ -124,6 +148,7 @@ require __DIR__ . '/../includes/header.php';
           <span class="btn btn-ghost btn-block">View Details</span>
         </div>
       </a>
+      </div>
     <?php endforeach; ?>
   </div>
   <?php render_pagination($page, $totalPages); ?>

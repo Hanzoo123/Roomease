@@ -4,8 +4,8 @@
  */
 require __DIR__ . '/../includes/functions.php';
 
-if (is_logged_in() && current_role() === 'admin') {
+if (is_logged_in() && is_admin()) {
     redirect('admin/dashboard.php');
 } else {
-    redirect('admin/login.php');
+    redirect('auth/login.php');
 }

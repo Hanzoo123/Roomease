@@ -116,47 +116,143 @@ function flash_get()
     return $flash;
 }
 
-/**
- * Handle an uploaded property image. Validates type/size and moves it into
- * assets/uploads/boarding_houses/{boarding_house_id}/. Returns the stored relative path,
- * or null if no file was uploaded. Throws on validation failure.
- */
-function handle_photo_upload($fileField, $boardingHouseId)
+/** Convert a php.ini shorthand size such as "2M" into bytes. */
+function ini_bytes($value)
 {
-    if (empty($_FILES[$fileField]['name'])) {
-        return null;
+    $value = trim((string) $value);
+    if ($value === '') {
+        return 0;
     }
-    $file = $_FILES[$fileField];
+    $number = (int) $value;
+    switch (strtolower(substr($value, -1))) {
+        case 'g':
+            return $number * 1024 * 1024 * 1024;
+        case 'm':
+            return $number * 1024 * 1024;
+        case 'k':
+            return $number * 1024;
+        default:
+            return $number;
+    }
+}
 
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        throw new RuntimeException('Photo upload failed. Please try again.');
+/** Human-readable byte size, e.g. "2 MB". */
+function format_bytes($bytes)
+{
+    if ($bytes >= 1024 * 1024) {
+        return rtrim(rtrim(number_format($bytes / (1024 * 1024), 1), '0'), '.') . ' MB';
+    }
+    return max(1, (int) round($bytes / 1024)) . ' KB';
+}
+
+/**
+ * Largest single photo we will accept: our own 5MB policy, but never more
+ * than PHP itself is configured to take, so the limit shown on the form is
+ * the limit actually enforced.
+ */
+function max_upload_bytes()
+{
+    static $bytes = null;
+    if ($bytes === null) {
+        $bytes = min(5 * 1024 * 1024, ini_bytes(ini_get('upload_max_filesize')));
+    }
+    return $bytes;
+}
+
+/** How many photos may be attached to one submission. */
+function max_photos_per_upload()
+{
+    return 10;
+}
+
+/**
+ * True when the browser sent more data than post_max_size allows. PHP then
+ * discards $_POST and $_FILES entirely, which otherwise surfaces as a
+ * confusing CSRF failure rather than "your photos were too large".
+ */
+function post_too_large()
+{
+    return ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+        && empty($_POST)
+        && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0;
+}
+
+/**
+ * Handle one or more uploaded property images. Every file is validated
+ * before any of them is moved, so one bad file in a batch cannot leave a
+ * half-uploaded set behind. Accepts both the single-file and multi-file
+ * shapes of $_FILES. Returns the stored relative paths, in submitted order.
+ * Throws on validation failure.
+ */
+function handle_photo_uploads($fileField, $boardingHouseId)
+{
+    if (empty($_FILES[$fileField])) {
+        return [];
     }
 
-    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
+    $files = $_FILES[$fileField];
+    $names = (array) $files['name'];
+    $tmps  = (array) $files['tmp_name'];
+    $errs  = (array) $files['error'];
+    $sizes = (array) $files['size'];
 
-    if (!isset($allowed[$mime])) {
-        throw new RuntimeException('Only JPG, PNG, or WEBP photos are allowed.');
+    $allowed  = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    $maxBytes = max_upload_bytes();
+    $maxFiles = max_photos_per_upload();
+    $queue    = [];
+
+    foreach ($names as $i => $name) {
+        $error = $errs[$i] ?? UPLOAD_ERR_NO_FILE;
+        if ($name === '' || $error === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
+            throw new RuntimeException('"' . $name . '" is larger than the ' . format_bytes($maxBytes) . ' limit.');
+        }
+        if ($error !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Upload failed for "' . $name . '". Please try again.');
+        }
+        if (count($queue) >= $maxFiles) {
+            throw new RuntimeException('Please upload at most ' . $maxFiles . ' photos at a time.');
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime  = finfo_file($finfo, $tmps[$i]);
+        finfo_close($finfo);
+
+        if (!isset($allowed[$mime])) {
+            throw new RuntimeException('"' . $name . '" is not a JPG, PNG, or WEBP image.');
+        }
+        if ($sizes[$i] > $maxBytes) {
+            throw new RuntimeException('"' . $name . '" is larger than the ' . format_bytes($maxBytes) . ' limit.');
+        }
+
+        $queue[] = ['tmp' => $tmps[$i], 'ext' => $allowed[$mime]];
     }
-    if ($file['size'] > 5 * 1024 * 1024) {
-        throw new RuntimeException('Photo must be smaller than 5MB.');
+
+    if (!$queue) {
+        return [];
     }
 
     $dir = __DIR__ . '/../assets/uploads/boarding_houses/' . $boardingHouseId;
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+        throw new RuntimeException('Could not create the photo folder for this listing.');
     }
 
-    $filename = uniqid('bh_', true) . '.' . $allowed[$mime];
-    $destination = $dir . '/' . $filename;
-
-    if (!move_uploaded_file($file['tmp_name'], $destination)) {
-        throw new RuntimeException('Could not save the uploaded photo.');
+    $stored = [];
+    foreach ($queue as $item) {
+        $filename = uniqid('bh_', true) . '.' . $item['ext'];
+        if (!move_uploaded_file($item['tmp'], $dir . '/' . $filename)) {
+            // Keep the batch all-or-nothing: undo whatever already landed.
+            foreach ($stored as $done) {
+                @unlink(__DIR__ . '/../' . $done);
+            }
+            throw new RuntimeException('Could not save the uploaded photos.');
+        }
+        $stored[] = 'assets/uploads/boarding_houses/' . $boardingHouseId . '/' . $filename;
     }
 
-    return 'assets/uploads/boarding_houses/' . $boardingHouseId . '/' . $filename;
+    return $stored;
 }
 
 /** Format a peso amount for display. */
@@ -207,6 +303,67 @@ function utility_options()
             ['utility_id' => 5, 'utility_name' => 'Cooking Gas'],
         ];
     }
+}
+
+/**
+ * Room types offered on the listing form and in the browse filter.
+ * Both read from here so the two lists can never drift apart.
+ */
+function room_type_options()
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->query('SELECT room_type_name FROM room_types ORDER BY room_type_id ASC');
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        return [
+            'Single Room',
+            'Double Sharing',
+            'Bed Spacer',
+            'Dormitory',
+            'Private Room',
+        ];
+    }
+}
+
+/**
+ * Bootstrap badge for a listing's moderation state. Used by the admin queue
+ * and the landlord dashboard so both describe a listing the same way.
+ */
+function moderation_badge($status)
+{
+    switch ($status) {
+        case 'approved':
+            return '<span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Approved</span>';
+        case 'rejected':
+            return '<span class="badge badge-danger px-2 py-1"><i class="fas fa-times-circle mr-1"></i> Rejected</span>';
+        default:
+            return '<span class="badge badge-warning px-2 py-1"><i class="fas fa-clock mr-1"></i> Pending</span>';
+    }
+}
+
+/**
+ * The boarding_house_id values the given user has saved, as a lookup set.
+ * Fetched once per page rather than queried per listing.
+ */
+function saved_listing_ids($userId)
+{
+    global $pdo;
+    if (!$userId) {
+        return [];
+    }
+    $stmt = $pdo->prepare('SELECT boarding_house_id FROM favorites WHERE user_id = ?');
+    $stmt->execute([$userId]);
+    return array_flip($stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/**
+ * True when the current user may save listings. Saving is a boarder feature;
+ * landlords and administrators manage listings instead.
+ */
+function can_save_listings()
+{
+    return is_logged_in() && current_role() === 'boarder';
 }
 
 /**
