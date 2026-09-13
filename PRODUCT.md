@@ -114,8 +114,13 @@ typography seen at the defence.
 **Explicitly undecided**
 
 - Whether the capstone's *Limitations of the Study* bind future scope. The user
-  did not mark it fixed, so real-time chat, payments, maps, and SMS are absent
+  did not mark it fixed, so real-time chat, payments, and SMS are absent
   today but are not ruled out.
+- **Maps are an accepted exception to "runs offline".** The user chose to add
+  a listing map and a landlord pin picker knowing the tiles need internet.
+  Leaflet is self-hosted in `assets/vendor/leaflet`; only the tile images come
+  from `tile.openstreetmap.org`, which the CSP allows as an image source. An
+  offline demo shows every other section and a "map could not load" note.
 - The inquiry inbox (B1), moderation attribution (B2), browse sort options
   (B3), server-side paging for admin tables (B4), and room-slot tracking (B5)
   are identified in the improvement plan but not built.
@@ -124,13 +129,26 @@ typography seen at the defence.
 
 The name **RoomEase** is fixed.
 
-An incumbent visual world exists and should be treated as evidence rather than
-as a commitment — the user did not declare it binding. `assets/css/style.css`
-documents a deliberate concept: *a building lobby directory board*, where
-listings read as nameplates on a tenant directory and hairline rules stand in
-for the board's slats. It carries a real palette (`--paper` #F6F2E9, `--board`
-#1C3435, `--brass` #B8863C, `--clay` #A9573C, `--sage` #6E8168) with Zilla Slab
-headings and IBM Plex Mono accents.
+The public theme was redesigned from principles taken from myboardmate.com, at
+the user's request: the principles, not its palette, type, or layout. The user's
+standing brief is one bold element with everything else restrained, and no
+generic template tells (uniform card grids, all-caps eyebrow labels, scroll
+fade-ins). `assets/css/style.css` documents the concept: *a forest-green frame
+with the thing you came for sitting on its lower edge*. Every public page opens
+on a forest band, and the search form, listing gallery, or auth form sits across
+the band's seam. Palette: `--forest` #184A3F, `--marigold` #F2A93B (reserved for
+the hero's second line, Search, and Call), `--paper` #FAF8F3, `--ink` #1F2A28,
+`--leaf` #E6EFEA. Fraunces (soft axis) for headings and IBM Plex Sans for body,
+both self-hosted. At the user's request the listing layouts then followed
+MyBoardMate's structure more closely, still in RoomEase's colours and type:
+listings are photo cards with a "View details" button (three across on a
+laptop, one on a phone), browse shows six at a time with "Show more rooms"
+adding the next six (`?page=N` renders everything up to N), and the listing
+page is a title band with tags, a main column of sections (photos with a
+full-screen viewer, utilities, living here, what to expect, house rules, map),
+and a sticky Quick Info card with price and landlord contact.
+The earlier *lobby directory board* theme (Zilla Slab, brass on dark board) is
+retired.
 
 Visual maturity is split and future work should know it: the public theme is
 authored and coherent, while the admin and landlord panels are stock AdminLTE

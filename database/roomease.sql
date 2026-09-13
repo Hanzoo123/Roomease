@@ -67,6 +67,18 @@ CREATE TABLE boarding_houses (
     description         TEXT DEFAULT NULL,
     contact_number      VARCHAR(50) DEFAULT NULL,
     house_rules         TEXT DEFAULT NULL,
+    -- Stay terms and map pin (see migration_stay_terms.sql). NULL means the
+    -- landlord has not stated it, and the listing page leaves it out.
+    curfew              VARCHAR(60) DEFAULT NULL,
+    security_deposit    DECIMAL(10, 2) DEFAULT NULL,
+    minimum_stay_months TINYINT UNSIGNED DEFAULT NULL,
+    payment_methods     VARCHAR(100) DEFAULT NULL,
+    gender_policy       ENUM('any', 'female', 'male') DEFAULT NULL,
+    visitors_allowed    TINYINT(1) DEFAULT NULL,
+    pets_allowed        TINYINT(1) DEFAULT NULL,
+    cooking_allowed     TINYINT(1) DEFAULT NULL,
+    latitude            DECIMAL(9, 6) DEFAULT NULL,
+    longitude           DECIMAL(9, 6) DEFAULT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     -- Indexes for the queries the application actually runs. The two status

@@ -59,6 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               'availability_status', 'description', 'contact_number', 'house_rules'] as $key) {
         $listing[$key] = trim($_POST[$key] ?? '');
     }
+    [$stayTerms, $stayErrors, $stayEcho] = stay_terms_from_post($_POST);
+    $listing = array_merge($listing, $stayEcho);
     $selectedAmens = $_POST['amenities'] ?? [];
     $rawUtils      = $_POST['utilities'] ?? [];
     $billingPolicy = $_POST['billing_policy'] ?? [];
@@ -90,22 +92,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset(room_type_options()[(int) $listing['room_type_id']])) {
         $errors[] = 'Choose a room type from the list.';
     }
+    $errors = array_merge($errors, $stayErrors);
 
     if (!$errors) {
         // Update boarding house
+        $stayAssignments = implode(', ', array_map(function ($column) {
+            return $column . '=?';
+        }, STAY_TERM_COLUMNS));
         $stmt = $pdo->prepare(
             'UPDATE boarding_houses SET name=?, address=?, monthly_rent=?, reservation_fee=?, room_type_id=?,
-             room_capacity=?, availability_status=?, description=?, contact_number=?, house_rules=?
+             room_capacity=?, availability_status=?, description=?, contact_number=?, house_rules=?, ' . $stayAssignments . '
              WHERE boarding_house_id=? AND landlord_id=?'
         );
-        $stmt->execute([
+        $stmt->execute(array_merge([
             $listing['name'], $listing['address'], $listing['monthly_rent'],
             $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
             (int) $listing['room_type_id'],
             (int)$listing['room_capacity'], $listing['availability_status'],
             $listing['description'], $listing['contact_number'], $listing['house_rules'],
+        ], array_values($stayTerms), [
             $boardingHouseId, $_SESSION['user_id'],
-        ]);
+        ]));
 
         // A rejected listing has presumably just been corrected, so put it
         // back in the queue for another look. Approved listings stay approved.

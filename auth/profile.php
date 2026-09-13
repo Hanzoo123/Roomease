@@ -180,7 +180,7 @@ if ($usePanel) {
               </div>
               <div class="card-body">
 <?php else: ?>
-  <div class="auth-wrap panel panel-pad" style="max-width: 500px; margin: 32px auto;">
+  <div class="auth-wrap auth-wrap--wide panel panel-pad on-seam">
     <h1>Edit Profile</h1>
     <p class="auth-sub">Manage your account information and change your password.</p>
 <?php endif; ?>

@@ -14,7 +14,9 @@
 ?>
 <script>
   (function () {
-    var buttons = document.querySelectorAll('.js-copy-number');
+    // .js-copy-number carries a phone number; .js-copy carries anything else,
+    // such as the listing page's own link.
+    var buttons = document.querySelectorAll('.js-copy-number, .js-copy');
     if (!buttons.length) return;
 
     function legacyCopy(text) {
@@ -44,7 +46,7 @@
 
     Array.prototype.forEach.call(buttons, function (btn) {
       btn.addEventListener('click', function () {
-        var number = btn.getAttribute('data-number') || '';
+        var number = btn.getAttribute('data-copy') || btn.getAttribute('data-number') || '';
         if (!number) return;
 
         if (navigator.clipboard && window.isSecureContext) {

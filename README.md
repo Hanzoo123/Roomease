@@ -53,6 +53,16 @@ photo uploads, search/filter, and account management.
    `migration_indexes.sql`, `migration_soft_delete.sql` and
    `migration_room_type_fk.sql`; a fresh import already has all three.
 
+   Upgrading a database created before listings had stay terms (curfew,
+   security deposit, minimum stay, payment methods, who can stay, visitor /
+   pet / cooking rules) and a map pin? Run this too; it is safe to run twice:
+   ```
+   mysql -u root -p roomease < database/migration_stay_terms.sql
+   ```
+   The listing map and the landlord's pin picker draw OpenStreetMap tiles, so
+   they need an internet connection. Offline, the rest of the listing page
+   works and the map says it could not load.
+
 5. **Set the administrator password.** The schema seeds the admin account with
    a placeholder that no password can ever match, so the account cannot be
    signed into until you choose one:

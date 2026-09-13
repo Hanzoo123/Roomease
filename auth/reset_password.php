@@ -56,7 +56,7 @@ $pageTitle = 'Reset Password';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="auth-wrap panel panel-pad">
+<div class="auth-wrap panel panel-pad on-seam">
   <?php if ($done): ?>
     <h1>Password changed</h1>
     <div class="alert alert-success">Your password has been changed. You can log in with it now.</div>

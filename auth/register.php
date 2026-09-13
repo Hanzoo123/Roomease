@@ -9,6 +9,12 @@ if (is_logged_in()) {
 $errors = [];
 $old = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'role' => 'boarder'];
 
+// "List a property" links arrive with ?role=landlord so the right option is
+// already chosen. Only the two self-service roles are honoured.
+if (in_array($_GET['role'] ?? '', ['landlord', 'boarder'], true)) {
+  $old['role'] = $_GET['role'];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   verify_csrf();
 
@@ -63,7 +69,7 @@ $pageTitle = 'Sign Up';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="auth-wrap panel panel-pad">
+<div class="auth-wrap panel panel-pad on-seam">
   <h1>Create your account</h1>
   <p class="auth-sub">Join RoomEase as a landlord to list rooms, or as a boarder to browse them in Baybay City.</p>
 

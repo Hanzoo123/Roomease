@@ -1,6 +1,8 @@
 <?php
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/listing_card.php';
+require __DIR__ . '/../includes/search_bar.php';
 
 $q = trim($_GET['q'] ?? '');
 // The filter is a room_type_id now that the column is a foreign key. An
@@ -37,11 +39,13 @@ $countStmt = $pdo->prepare($countSql);
 $countStmt->execute($params);
 $totalCount = (int) $countStmt->fetchColumn();
 
+// Rooms come in groups of $perPage. ?page=N shows every group up to N, so the
+// "Show more rooms" link works with JavaScript off, and a saved heart that
+// reloads the page brings back everything the boarder had already opened.
 $perPage = 6;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1;
 $totalPages = max(1, (int) ceil($totalCount / $perPage));
 $page = max(1, min($page, $totalPages));
-$offset = ($page - 1) * $perPage;
 
 $sql = "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
             (SELECT image_path FROM images img WHERE img.boarding_house_id = bh.boarding_house_id
@@ -51,127 +55,84 @@ $sql = "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
         " . ROOM_TYPE_JOIN . "
         WHERE " . implode(' AND ', $where) . "
         ORDER BY bh.created_at DESC
-        LIMIT " . (int) $perPage . " OFFSET " . (int) $offset;
+        LIMIT " . (int) ($perPage * $page);
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $listings = $stmt->fetchAll();
 
 $savedIds  = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
+$filtered = $q !== '' || $roomType !== '' || ($maxRent !== '' && is_numeric($maxRent));
 
-$pageTitle = 'Browse Listings';
+// The filters that actually applied, carried into "Show more" and the heart forms.
+$filters = array_filter([
+  'q' => $q,
+  'room_type' => $roomType,
+  'max_rent' => is_numeric($maxRent) ? $maxRent : '',
+], function ($v) {
+  return $v !== '';
+});
+$shown = count($listings);
+$moreUrl = '?' . http_build_query($filters + ['page' => $page + 1]) . '#chunk-' . ($page + 1);
+
+$pageTitle = 'Browse rooms';
+$band = [
+  'title' => 'Rooms in Baybay City',
+  'lede' => 'Every room here is approved and open for boarders. Filter by name, room type, or budget.',
+];
 require __DIR__ . '/../includes/header.php';
-?>
-<div class="hero hero--bleed">
-  <div class="container">
-    <h1>Find Your Next Room in Baybay City</h1>
-    <p>Find a place that feels like home. Explore comfortable boarding houses and rooms that match your needs and
-      budget.</p>
-    <div class="hero-actions">
-      <a href="#listings" class="btn btn-brass">Explore Boarding Houses</a>
-      <?php if (!is_logged_in()): ?>
-        <a href="<?= base_url('auth/register.php') ?>" class="btn btn-hero-ghost">List Your Property</a>
-      <?php endif; ?>
-    </div>
-  </div>
-</div>
 
-<?php /* The hero already titles this page. A second "Browse Boarding Houses"
-         heading repeated it and cost a phone most of a screen before the first
-         room came into view, so the filter bar carries the #listings anchor. */ ?>
-<form method="get" class="search-bar" id="listings">
-  <div>
-    <label for="q">Search</label>
-    <input type="text" id="q" name="q" value="<?= h($q) ?>" placeholder="Name or address">
-  </div>
-  <?php /* Presentation only, and deliberately without a name attribute so it
-           never reaches the query string. Hidden entirely above 720px. */ ?>
-  <input type="checkbox" id="more-filters" class="filter-toggle">
-  <label for="more-filters" class="filter-toggle-label">More filters</label>
-  <div class="filter-fields">
-    <div>
-      <label for="room_type">Room type</label>
-      <select id="room_type" name="room_type">
-        <option value="">Any</option>
-        <?php foreach ($roomTypes as $rtId => $rtName): ?>
-          <option value="<?= (int) $rtId ?>" <?= $roomType === $rtId ? 'selected' : '' ?>><?= h($rtName) ?></option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-    <div>
-      <label for="max_rent">Max rent (₱)</label>
-      <input type="number" id="max_rent" name="max_rent" value="<?= h($maxRent) ?>">
-    </div>
-  </div>
-  <button type="submit" class="btn btn-primary">Filter</button>
-</form>
+// The filter bar carries the #listings anchor, so links from the home page
+// land with the search form and the first rooms in view.
+render_search_bar([
+  'id' => 'listings',
+  'room_types' => $roomTypes,
+  'q' => $q,
+  'room_type' => $roomType,
+  'max_rent' => $maxRent,
+]);
+?>
 
 <div class="section-head">
-  <h2>Results</h2>
-  <span class="count-tag"><?= $totalCount ?> listing<?= $totalCount === 1 ? '' : 's' ?> found</span>
+  <h2><?= $filtered ? 'Matching rooms' : 'All rooms' ?></h2>
+  <span class="count-tag"><?= $totalCount ?> <?= $totalCount === 1 ? 'room' : 'rooms' ?> found</span>
 </div>
+
 <?php if (!$listings): ?>
-  <div class="board">
-    <p class="board-empty">No listings match your search. Try widening your filters.</p>
-  </div>
+  <p class="rooms-empty">No rooms match your search. Try a higher budget or a different room type.</p>
 <?php else: ?>
-  <div class="board">
-    <?php foreach ($listings as $l): ?>
-      <?php
-      $isSaved = isset($savedIds[$l['boarding_house_id']]);
-      $plateNo = str_pad((string) $l['boarding_house_id'], 3, '0', STR_PAD_LEFT);
-      ?>
-      <div class="board-row">
-        <a class="board-link" href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>">
-          <?php /* The plate keeps one footprint either way: a cover photo fills
-                   it, and without one it carries the room type instead. */ ?>
-          <?php if ($l['cover_photo']): ?>
-            <span class="plate plate--photo"
-              style="background-image:url('<?= h(base_url($l['cover_photo'])) ?>')"></span>
-          <?php else: ?>
-            <span class="plate">
-              <span class="plate-no"><?= $plateNo ?></span>
-              <span class="plate-kind"><?= h($l['room_type'] ?: 'Room') ?></span>
-            </span>
-          <?php endif; ?>
-
-          <span class="board-main">
-            <span class="board-name"><?= h($l['name']) ?></span>
-            <span class="board-addr"><?= h($l['address']) ?></span>
-            <span class="board-meta">
-              <span><span class="state-dot state-dot--available"></span>Available</span>
-              <span class="sep">&middot;</span>
-              <span><?= (int) $l['room_capacity'] ?> pax</span>
-            </span>
-          </span>
-
-          <span class="board-rent"><?= peso_round($l['monthly_rent']) ?><span>per month</span></span>
-        </a>
-
-        <?php if (can_save_listings()): ?>
-          <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
-            <?= csrf_field() ?>
-            <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
-            <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">
-            <input type="hidden" name="return" value="browse">
-            <input type="hidden" name="q" value="<?= h($q) ?>">
-            <input type="hidden" name="room_type" value="<?= h($roomType) ?>">
-            <input type="hidden" name="max_rent" value="<?= h($maxRent) ?>">
-            <input type="hidden" name="page" value="<?= (int) $page ?>">
-            <button type="submit" class="save-btn <?= $isSaved ? 'is-saved' : '' ?>"
-              title="<?= $isSaved ? 'Remove from saved' : 'Save this listing' ?>"
-              aria-label="<?= $isSaved ? 'Remove from saved' : 'Save this listing' ?>"
-              aria-pressed="<?= $isSaved ? 'true' : 'false' ?>">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $isSaved ? 'currentColor' : 'none' ?>"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-            </button>
-          </form>
-        <?php endif; ?>
+  <?php foreach (array_chunk($listings, $perPage) as $i => $chunk): ?>
+    <?php
+    $n = $i + 1;
+    $from = $i * $perPage + 1;
+    $to = $from + count($chunk) - 1;
+    ?>
+    <?php /* Each group is its own grid so "Show more rooms" can lift exactly one
+             group out of the next page; the gap between grids matches the gap
+             inside them, so the groups read as one continuous grid. */ ?>
+    <section class="card-chunk" id="chunk-<?= $n ?>" aria-label="Rooms <?= $from ?>–<?= $to ?> of <?= $totalCount ?>">
+      <div class="card-grid">
+        <?php foreach ($chunk as $l): ?>
+          <?php render_listing_card($l, can_save_listings() ? [
+            'saved' => isset($savedIds[$l['boarding_house_id']]),
+            'return' => 'browse',
+            'fields' => $filters + ['page' => (int) $page],
+          ] : null); ?>
+        <?php endforeach; ?>
       </div>
-    <?php endforeach; ?>
-  </div>
-  <?php render_pagination($page, $totalPages); ?>
+    </section>
+  <?php endforeach; ?>
+
+  <?php if ($shown < $totalCount): ?>
+    <div class="show-more">
+      <a href="<?= h($moreUrl) ?>" class="btn btn-ghost js-show-more">Show more rooms</a>
+      <p class="count-tag">Showing <?= $shown ?> of <?= $totalCount ?></p>
+    </div>
+  <?php elseif ($totalCount > $perPage): ?>
+    <div class="show-more">
+      <p class="count-tag">Showing all <?= $totalCount ?> rooms</p>
+    </div>
+  <?php endif; ?>
 <?php endif; ?>
 
+<?php require __DIR__ . '/../includes/show_more.php'; ?>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

@@ -61,7 +61,7 @@ $pageTitle = 'Forgot Password';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="auth-wrap panel panel-pad">
+<div class="auth-wrap panel panel-pad on-seam">
   <h1>Forgot your password?</h1>
 
   <?php if ($submitted): ?>

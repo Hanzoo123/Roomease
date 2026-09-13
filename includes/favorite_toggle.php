@@ -70,14 +70,14 @@
      * once, which is the cheapest way to get the proper empty state back.
      */
     function dropCard(form) {
-      var card = form.closest('.board-row');
+      var card = form.closest('.room-card');
       if (!card) {
         return;
       }
       card.classList.add('is-removing');
       setTimeout(function () {
         card.remove();
-        var left = document.querySelectorAll('.board .board-row').length;
+        var left = document.querySelectorAll('.card-grid .room-card').length;
         var counter = document.getElementById('saved-count');
         if (counter) {
           counter.textContent = left + ' saved';

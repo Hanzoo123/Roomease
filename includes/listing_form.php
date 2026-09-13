@@ -172,6 +172,186 @@ $policyPresets = [
 
 <hr>
 
+<?php
+/* Stay terms. Every field is optional: anything left blank or "Not stated"
+   is simply left off the listing page rather than shown as a guess. The
+   yes/no rules come back from the database as '1'/'0'/NULL and from a failed
+   submit as 1/0/NULL, so they are compared as strings. */
+$selectedPayments = explode(',', (string) ($listing['payment_methods'] ?? ''));
+$houseRuleFlags = [
+  'visitors_allowed' => 'Visitors',
+  'pets_allowed' => 'Pets',
+  'cooking_allowed' => 'Cooking',
+];
+?>
+<h5 class="font-weight-bold text-primary mb-1">
+  <i class="fas fa-clipboard-check mr-1"></i> Stay Terms
+</h5>
+<p class="text-muted small mb-3">Optional. Anything you leave blank is not shown on your listing.</p>
+
+<div class="form-row">
+  <div class="col-md-6 form-group">
+    <label for="curfew">Curfew</label>
+    <input type="text" maxlength="60" class="form-control" id="curfew" name="curfew" value="<?= $val('curfew') ?>"
+      placeholder="e.g. 10:00 PM, or No curfew">
+  </div>
+  <div class="col-md-6 form-group">
+    <label for="gender_policy">Who can stay</label>
+    <select class="form-control" id="gender_policy" name="gender_policy">
+      <option value="">Not stated</option>
+      <?php foreach (gender_policy_options() as $value => $label): ?>
+        <option value="<?= h($value) ?>" <?= ($listing['gender_policy'] ?? '') === $value ? 'selected' : '' ?>><?= h($label) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+</div>
+
+<div class="form-row">
+  <div class="col-md-6 form-group">
+    <label for="security_deposit">Security deposit (&#8369;)</label>
+    <input type="number" step="0.01" min="0" class="form-control" id="security_deposit" name="security_deposit"
+      value="<?= $val('security_deposit') ?>" placeholder="e.g. 3000.00">
+    <small class="form-text text-muted">Enter 0 if no deposit is required.</small>
+  </div>
+  <div class="col-md-6 form-group">
+    <label for="minimum_stay_months">Minimum stay (months)</label>
+    <input type="number" step="1" min="1" max="60" class="form-control" id="minimum_stay_months"
+      name="minimum_stay_months" value="<?= $val('minimum_stay_months') ?>" placeholder="e.g. 6">
+  </div>
+</div>
+
+<div class="form-group">
+  <label class="d-block">Payment methods accepted</label>
+  <?php foreach (payment_method_options() as $value => $label): ?>
+    <div class="custom-control custom-checkbox custom-control-inline">
+      <input type="checkbox" class="custom-control-input" id="payment_<?= h($value) ?>" name="payment_methods[]"
+        value="<?= h($value) ?>" <?= in_array($value, $selectedPayments, true) ? 'checked' : '' ?>>
+      <label class="custom-control-label" for="payment_<?= h($value) ?>"><?= h($label) ?></label>
+    </div>
+  <?php endforeach; ?>
+</div>
+
+<div class="form-row">
+  <?php foreach ($houseRuleFlags as $field => $label): ?>
+    <?php $current = (string) ($listing[$field] ?? ''); ?>
+    <div class="col-md-4 form-group">
+      <label for="<?= $field ?>"><?= $label ?></label>
+      <select class="form-control" id="<?= $field ?>" name="<?= $field ?>">
+        <option value="" <?= $current === '' ? 'selected' : '' ?>>Not stated</option>
+        <option value="1" <?= $current === '1' ? 'selected' : '' ?>>Allowed</option>
+        <option value="0" <?= $current === '0' ? 'selected' : '' ?>>Not allowed</option>
+      </select>
+    </div>
+  <?php endforeach; ?>
+</div>
+
+<hr>
+
+<h5 class="font-weight-bold text-primary mb-1">
+  <i class="fas fa-map-marker-alt mr-1"></i> Location on Map
+</h5>
+<p class="text-muted small mb-3">
+  Click the map to drop a pin on the boarding house, then drag the pin to adjust it. Boarders see this pin on
+  your listing. The map needs an internet connection; without one, you can type the coordinates instead.
+</p>
+
+<link rel="stylesheet" href="<?= base_url('assets/vendor/leaflet/leaflet.css') ?>">
+<div id="location-picker" class="rounded border mb-2" style="height: 320px;"></div>
+<p id="location-picker-offline" class="text-muted small d-none">
+  <i class="fas fa-wifi mr-1"></i> The map could not load. Check the internet connection, or type the
+  coordinates below.
+</p>
+
+<div class="form-row">
+  <div class="col-md-5 form-group">
+    <label for="latitude">Latitude</label>
+    <input type="text" inputmode="decimal" class="form-control" id="latitude" name="latitude"
+      value="<?= $val('latitude') ?>" placeholder="e.g. 10.678100">
+  </div>
+  <div class="col-md-5 form-group">
+    <label for="longitude">Longitude</label>
+    <input type="text" inputmode="decimal" class="form-control" id="longitude" name="longitude"
+      value="<?= $val('longitude') ?>" placeholder="e.g. 124.800300">
+  </div>
+  <div class="col-md-2 form-group d-flex align-items-end">
+    <button type="button" class="btn btn-outline-secondary btn-block" id="location-clear">Clear</button>
+  </div>
+</div>
+
+<script src="<?= base_url('assets/vendor/leaflet/leaflet.js') ?>"></script>
+<script>
+  (function () {
+    var el = document.getElementById('location-picker');
+    var offline = document.getElementById('location-picker-offline');
+    var latIn = document.getElementById('latitude');
+    var lngIn = document.getElementById('longitude');
+    if (!el || !latIn || !lngIn) return;
+    if (!window.L) {
+      el.classList.add('d-none');
+      offline.classList.remove('d-none');
+      return;
+    }
+
+    // Centre of Baybay City, used until the landlord drops a pin.
+    var BAYBAY = [10.6781, 124.8003];
+
+    function readInputs() {
+      var lat = parseFloat(latIn.value);
+      var lng = parseFloat(lngIn.value);
+      return (isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) ? [lat, lng] : null;
+    }
+
+    var start = readInputs();
+    var map = L.map(el).setView(start || BAYBAY, start ? 17 : 14);
+    var tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    tiles.once('tileerror', function () {
+      offline.classList.remove('d-none');
+    });
+
+    var marker = null;
+
+    function write(latlng) {
+      latIn.value = latlng.lat.toFixed(6);
+      lngIn.value = latlng.lng.toFixed(6);
+    }
+
+    function place(latlng, pan) {
+      if (!marker) {
+        marker = L.marker(latlng, { draggable: true }).addTo(map);
+        marker.on('dragend', function () { write(marker.getLatLng()); });
+      } else {
+        marker.setLatLng(latlng);
+      }
+      write(L.latLng(latlng));
+      if (pan) map.panTo(latlng);
+    }
+
+    if (start) place(start, false);
+    map.on('click', function (e) { place(e.latlng, false); });
+
+    function fromInputs() {
+      var typed = readInputs();
+      if (typed) place(typed, true);
+    }
+    latIn.addEventListener('change', fromInputs);
+    lngIn.addEventListener('change', fromInputs);
+
+    document.getElementById('location-clear').addEventListener('click', function () {
+      latIn.value = '';
+      lngIn.value = '';
+      if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+      }
+    });
+  })();
+</script>
+
+<hr>
+
 <h5 class="font-weight-bold text-primary mb-1">
   <i class="fas fa-images mr-1"></i> Property Photographs
 </h5>

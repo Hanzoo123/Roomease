@@ -16,6 +16,8 @@ $listing = [
     'contact_number'      => '',
     'house_rules'         => '',
 ];
+$baseKeys = array_keys($listing);
+$listing += array_fill_keys(STAY_TERM_COLUMNS, '');
 $selectedAmens = [];
 $selectedUtils = [];
 
@@ -30,9 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     verify_csrf();
 
-    foreach (array_keys($listing) as $key) {
+    foreach ($baseKeys as $key) {
         $listing[$key] = trim($_POST[$key] ?? '');
     }
+    [$stayTerms, $stayErrors, $stayEcho] = stay_terms_from_post($_POST);
+    $listing = array_merge($listing, $stayEcho);
     $selectedAmens = $_POST['amenities'] ?? [];
     $rawUtils      = $_POST['utilities'] ?? [];
     $billingPolicy = $_POST['billing_policy'] ?? [];
@@ -64,13 +68,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset(room_type_options()[(int) $listing['room_type_id']])) {
         $errors[] = 'Choose a room type from the list.';
     }
+    $errors = array_merge($errors, $stayErrors);
 
     if (!$errors) {
-        $stmt = $pdo->prepare(
-            'INSERT INTO boarding_houses (landlord_id, name, address, monthly_rent, reservation_fee, room_type_id, room_capacity, availability_status, description, contact_number, house_rules)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        $columns = array_merge(
+            ['landlord_id', 'name', 'address', 'monthly_rent', 'reservation_fee', 'room_type_id', 'room_capacity',
+             'availability_status', 'description', 'contact_number', 'house_rules'],
+            STAY_TERM_COLUMNS
         );
-        $stmt->execute([
+        $stmt = $pdo->prepare(
+            'INSERT INTO boarding_houses (' . implode(', ', $columns) . ')
+             VALUES (' . implode(', ', array_fill(0, count($columns), '?')) . ')'
+        );
+        $stmt->execute(array_merge([
             $_SESSION['user_id'],
             $listing['name'],
             $listing['address'],
@@ -82,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $listing['description'],
             $listing['contact_number'],
             $listing['house_rules'],
-        ]);
+        ], array_values($stayTerms)));
         $newId = (int)$pdo->lastInsertId();
 
         // 1. Insert Amenities

@@ -382,6 +382,161 @@ const ROOM_TYPE_JOIN   = 'LEFT JOIN room_types rt ON rt.room_type_id = bh.room_t
 const LIVE_LANDLORD_JOIN =
     'JOIN users lu ON lu.user_id = bh.landlord_id AND lu.is_active = 1 AND lu.deleted_at IS NULL';
 
+/** What else a listing needs to be on the public site. Pair with LIVE_LANDLORD_JOIN. */
+const LIVE_LISTING_WHERE = "bh.availability_status = 'available' AND bh.moderation_status = 'approved'";
+
+/**
+ * How many listings the public site is showing right now. The home page quotes
+ * this, so it has to be the real figure browse would return, never a rounded
+ * or padded one.
+ */
+function live_listing_count()
+{
+    global $pdo;
+    try {
+        return (int) $pdo->query(
+            'SELECT COUNT(*) FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' WHERE ' . LIVE_LISTING_WHERE
+        )->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('RoomEase: live listing count failed - ' . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Every room type with its number of live listings, in the same order as the
+ * browse filter. Types with no listings are kept, with a count of 0.
+ */
+function room_type_counts()
+{
+    return lookup_options(
+        'SELECT rt.room_type_id, rt.room_type_name, COUNT(bh.boarding_house_id) AS listings
+           FROM room_types rt
+           LEFT JOIN (boarding_houses bh ' . LIVE_LANDLORD_JOIN . ')
+                  ON bh.room_type_id = rt.room_type_id AND ' . LIVE_LISTING_WHERE . '
+          GROUP BY rt.room_type_id, rt.room_type_name
+          ORDER BY rt.room_type_id ASC',
+        PDO::FETCH_ASSOC
+    );
+}
+
+/* ---------------------------------------------------------------------------
+ * Stay terms (database/migration_stay_terms.sql)
+ *
+ * What a boarder asks before visiting: curfew, deposit, minimum stay, how rent
+ * is paid, who the house accepts, and whether visitors, pets and cooking are
+ * allowed, plus the listing's map pin. Every one is optional, and NULL means
+ * the landlord has not said, so the listing page leaves it out rather than
+ * guessing.
+ * ------------------------------------------------------------------------ */
+
+/** The stay-term columns on boarding_houses, in the order the forms write them. */
+const STAY_TERM_COLUMNS = [
+    'curfew', 'security_deposit', 'minimum_stay_months', 'payment_methods', 'gender_policy',
+    'visitors_allowed', 'pets_allowed', 'cooking_allowed', 'latitude', 'longitude',
+];
+
+/** Payment methods a landlord can tick, as stored value => label. */
+function payment_method_options()
+{
+    return ['cash' => 'Cash', 'gcash' => 'GCash', 'maya' => 'Maya', 'bank_transfer' => 'Bank transfer'];
+}
+
+/** Who a listing accepts, as stored value => label. */
+function gender_policy_options()
+{
+    return ['any' => 'All genders', 'female' => 'Female only', 'male' => 'Male only'];
+}
+
+/** "cash,gcash" as "Cash, GCash". Unknown values are dropped. */
+function payment_methods_label($stored)
+{
+    $options = payment_method_options();
+    $labels = [];
+    foreach (explode(',', (string) $stored) as $value) {
+        if (isset($options[$value])) {
+            $labels[] = $options[$value];
+        }
+    }
+    return implode(', ', $labels);
+}
+
+/**
+ * Read and validate the stay-term fields from a submitted listing form.
+ *
+ * Returns [$values, $errors, $echo]:
+ *   $values  exactly STAY_TERM_COLUMNS, normalised for the database: blanks
+ *            become NULL, yes/no rules become 1, 0 or NULL, payment methods
+ *            are filtered to the known list, and coordinates are kept only as
+ *            a valid pair.
+ *   $errors  messages for the form.
+ *   $echo    what to put back in the form if it is shown again, so a typo is
+ *            corrected rather than silently cleared.
+ */
+function stay_terms_from_post(array $post)
+{
+    $errors = [];
+    $values = array_fill_keys(STAY_TERM_COLUMNS, null);
+    $text = function ($key) use ($post) {
+        return is_string($post[$key] ?? null) ? trim($post[$key]) : '';
+    };
+
+    $curfew = $text('curfew');
+    if (mb_strlen($curfew) > 60) {
+        $errors[] = 'Curfew must be 60 characters or fewer.';
+    } elseif ($curfew !== '') {
+        $values['curfew'] = $curfew;
+    }
+
+    $deposit = $text('security_deposit');
+    if ($deposit !== '') {
+        if (!is_numeric($deposit) || (float) $deposit < 0) {
+            $errors[] = 'Security deposit must be a valid amount, 0 if none is required, or left blank.';
+        } else {
+            $values['security_deposit'] = $deposit;
+        }
+    }
+
+    $stay = $text('minimum_stay_months');
+    if ($stay !== '') {
+        if (!ctype_digit($stay) || (int) $stay < 1 || (int) $stay > 60) {
+            $errors[] = 'Minimum stay must be between 1 and 60 months, or left blank.';
+        } else {
+            $values['minimum_stay_months'] = (int) $stay;
+        }
+    }
+
+    $ticked = array_filter((array) ($post['payment_methods'] ?? []), 'is_string');
+    $methods = array_values(array_intersect(array_keys(payment_method_options()), $ticked));
+    $values['payment_methods'] = $methods ? implode(',', $methods) : null;
+
+    $gender = $text('gender_policy');
+    $values['gender_policy'] = isset(gender_policy_options()[$gender]) ? $gender : null;
+
+    foreach (['visitors_allowed', 'pets_allowed', 'cooking_allowed'] as $rule) {
+        $answer = $text($rule);
+        $values[$rule] = $answer === '1' ? 1 : ($answer === '0' ? 0 : null);
+    }
+
+    $lat = $text('latitude');
+    $lng = $text('longitude');
+    if ($lat !== '' || $lng !== '') {
+        if (!is_numeric($lat) || !is_numeric($lng) || abs((float) $lat) > 90 || abs((float) $lng) > 180) {
+            $errors[] = 'Place the map pin by clicking the map, or clear the location.';
+        } else {
+            $values['latitude'] = round((float) $lat, 6);
+            $values['longitude'] = round((float) $lng, 6);
+        }
+    }
+
+    $echo = $values;
+    foreach (['curfew', 'security_deposit', 'minimum_stay_months', 'latitude', 'longitude'] as $typed) {
+        $echo[$typed] = $text($typed);
+    }
+
+    return [$values, $errors, $echo];
+}
+
 /**
  * The message shown in place of a lookup checklist that came back empty, so a
  * missing or unimported table is visible on the page instead of silently
@@ -552,41 +707,6 @@ function send_password_reset_email($email, $firstName, $url)
     );
 
     return (bool) $sent;
-}
-
-/**
- * Render pagination controls, preserving existing URL query filters.
- */
-function render_pagination($currentPage, $totalPages)
-{
-    if ($totalPages <= 1) {
-        return;
-    }
-
-    $queryParams = $_GET;
-    $buildUrl = function ($p) use ($queryParams) {
-        $queryParams['page'] = $p;
-        return '?' . http_build_query($queryParams);
-    };
-
-    echo '<div class="pagination">';
-    if ($currentPage > 1) {
-        echo '<a href="' . h($buildUrl($currentPage - 1)) . '" class="btn btn-ghost btn-sm">&larr; Prev</a>';
-    } else {
-        echo '<span class="btn btn-ghost btn-sm disabled">&larr; Prev</span>';
-    }
-
-    for ($i = 1; $i <= $totalPages; $i++) {
-        $activeClass = ($i === $currentPage) ? 'btn-primary' : 'btn-ghost';
-        echo '<a href="' . h($buildUrl($i)) . '" class="btn ' . $activeClass . ' btn-sm">' . $i . '</a>';
-    }
-
-    if ($currentPage < $totalPages) {
-        echo '<a href="' . h($buildUrl($currentPage + 1)) . '" class="btn btn-ghost btn-sm">Next &rarr;</a>';
-    } else {
-        echo '<span class="btn btn-ghost btn-sm disabled">Next &rarr;</span>';
-    }
-    echo '</div>';
 }
 
 /**

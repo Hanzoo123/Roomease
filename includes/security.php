@@ -82,6 +82,10 @@ function configure_session_security()
  * through. The policy still allows inline scripts and styles, because AdminLTE
  * and these pages are written that way, but it blocks loading or exfiltrating
  * through any third-party origin, and blocks <base> and plugin content outright.
+ *
+ * The one third-party origin is OpenStreetMap's tile server, and only as an
+ * image source: the listing map and the landlord's pin picker draw its tiles.
+ * Leaflet itself is served from assets/vendor, so no script leaves 'self'.
  */
 function send_security_headers()
 {
@@ -100,7 +104,7 @@ function send_security_headers()
         . "script-src 'self' 'unsafe-inline'; "
         . "style-src 'self' 'unsafe-inline'; "
         . "font-src 'self' data:; "
-        . "img-src 'self' data:; "
+        . "img-src 'self' data: https://tile.openstreetmap.org; "
         . "form-action 'self'; "
         . "frame-ancestors 'self'; "
         . "base-uri 'self'; "

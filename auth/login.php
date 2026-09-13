@@ -74,7 +74,7 @@ $pageTitle = 'Log in';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="auth-wrap panel panel-pad">
+<div class="auth-wrap panel panel-pad on-seam">
   <h1>Log in</h1>
   <p class="auth-sub">Sign in to save rooms you like, manage your listings, or open your panel.</p>
 

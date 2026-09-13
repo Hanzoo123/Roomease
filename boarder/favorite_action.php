@@ -79,6 +79,8 @@ if ($return === 'view') {
     $target = 'boarder/view_listing.php?id=' . $boardingHouseId;
 } elseif ($return === 'saved') {
     $target = 'boarder/saved.php';
+} elseif ($return === 'home') {
+    $target = 'index.php';
 } else {
     $filters = [];
     foreach (['q', 'room_type', 'max_rent', 'page'] as $key) {
