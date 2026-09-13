@@ -30,6 +30,7 @@ function panel_config()
                 ['url' => 'admin/manage_users.php',    'icon' => 'fa-users',          'label' => 'Manage Users'],
                 ['url' => 'admin/manage_listings.php', 'icon' => 'fa-home',           'label' => 'Manage Listings'],
                 ['url' => 'admin/manage_listings.php?status=pending', 'icon' => 'fa-clipboard-check', 'label' => 'Pending Approvals'],
+                ['url' => 'admin/appearance.php',      'icon' => 'fa-paint-brush',    'label' => 'Appearance'],
             ],
         ];
     }

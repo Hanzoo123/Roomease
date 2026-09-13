@@ -63,6 +63,21 @@ photo uploads, search/filter, and account management.
    they need an internet connection. Offline, the rest of the listing page
    works and the map says it could not load.
 
+   For "Remember me", Google sign-in, and the administrator's Appearance page
+   (the sign-in pages' background), run this as well; it is safe to run twice:
+   ```
+   mysql -u root -p roomease < database/migration_auth_extras.sql
+   ```
+
+   **Optional: "Continue with Google".** The button stays hidden until
+   credentials are set. In Google Cloud console, create an OAuth client ID of
+   type *Web application* and add the callback as an authorized redirect URI,
+   for example `http://localhost/roomease/auth/google_callback.php`. Then copy
+   `config/google.local.example.php` to `config/google.local.php` (ignored by
+   git) and fill in the client ID and secret, or set the
+   `ROOMEASE_GOOGLE_CLIENT_ID` and `ROOMEASE_GOOGLE_CLIENT_SECRET` environment
+   variables. Google sign-in needs internet; email and password login does not.
+
 5. **Set the administrator password.** The schema seeds the admin account with
    a placeholder that no password can ever match, so the account cannot be
    signed into until you choose one:

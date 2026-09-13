@@ -111,6 +111,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // is the whole point of changing the password after a scare.
         if ($changePassword) {
             session_regenerate_id(true);
+
+            // Same for "Remember me": every remembered device is forgotten.
+            // This device keeps being remembered if it already was.
+            $rememberedHere = isset($_COOKIE[REMEMBER_COOKIE]);
+            forget_all_remembered_logins($userId);
+            if ($rememberedHere) {
+                remember_login((int) $userId);
+            }
         }
 
         // Update session info

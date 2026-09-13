@@ -31,6 +31,10 @@ if ($action === 'toggle_status') {
     }
     $newStatus = $target['is_active'] ? 0 : 1;
     $pdo->prepare('UPDATE users SET is_active = ? WHERE user_id = ?')->execute([$newStatus, $userId]);
+    if (!$newStatus) {
+        // Deactivation also ends every "Remember me" device for the account.
+        forget_all_remembered_logins($userId);
+    }
     flash_set('User ' . ($newStatus ? 'activated' : 'deactivated') . '.', 'success');
 
 } elseif ($action === 'delete') {
@@ -49,6 +53,7 @@ if ($action === 'toggle_status') {
     }
     $pdo->prepare('UPDATE users SET deleted_at = NOW(), is_active = 0 WHERE user_id = ?')
         ->execute([$userId]);
+    forget_all_remembered_logins($userId);
     flash_set('"' . $name . '" was removed. Their listings are hidden, and the account can be restored.', 'success');
 
 } elseif ($action === 'restore') {

@@ -129,6 +129,9 @@ function client_ip()
  */
 function force_logout($message)
 {
+    // A remembered device would otherwise sign straight back in on the next
+    // request, which is exactly what force_logout exists to prevent.
+    forget_remembered_login();
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
@@ -156,21 +159,30 @@ function enforce_session_policy()
 {
     global $pdo;
 
-    if (!is_logged_in()) {
+    // No session, but a "Remember me" cookie: sign the device back in quietly.
+    if (!is_logged_in() && !restore_remembered_login()) {
         return;
     }
 
     $now = time();
+    $idle = isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity']) > SESSION_IDLE_TIMEOUT;
+    $aged = isset($_SESSION['session_started_at']) && ($now - $_SESSION['session_started_at']) > SESSION_ABSOLUTE_LIFETIME;
 
-    if (isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity']) > SESSION_IDLE_TIMEOUT) {
-        force_logout('You were signed out after 30 minutes of inactivity. Please log in again.');
+    // A session that has aged out still ends. A remembered device then gets a
+    // brand new session from its cookie; anyone else is signed out.
+    if ($idle || $aged) {
+        $_SESSION = [];
+        if (!restore_remembered_login()) {
+            force_logout($idle
+                ? 'You were signed out after 30 minutes of inactivity. Please log in again.'
+                : 'Your session has expired. Please log in again.');
+        }
+        $now = time();
     }
-    $_SESSION['last_activity'] = $now;
 
+    $_SESSION['last_activity'] = $now;
     if (!isset($_SESSION['session_started_at'])) {
         $_SESSION['session_started_at'] = $now;
-    } elseif (($now - $_SESSION['session_started_at']) > SESSION_ABSOLUTE_LIFETIME) {
-        force_logout('Your session has expired. Please log in again.');
     }
 
     // Pages that never touch the database (logout, the router) have no $pdo;
@@ -192,16 +204,236 @@ function enforce_session_policy()
     }
     // An archived account is checked before the active flag, so archiving
     // takes effect on the user's very next request even if is_active was
-    // left set.
+    // left set. Either way every remembered device goes with the session.
     if (!empty($account['deleted_at'])) {
+        forget_all_remembered_logins($_SESSION['user_id']);
         force_logout('That account has been removed. Please contact support.');
     }
     if (empty($account['is_active'])) {
+        forget_all_remembered_logins($_SESSION['user_id']);
         force_logout('Your account has been deactivated. Please contact support.');
     }
 
     // The session is a cache of the account, never the source of truth for it.
     $_SESSION['role'] = $account['role'];
+}
+
+/**
+ * Begin a signed-in session for a user row (user_id, role, first_name,
+ * last_name, email). Used by the password login, Google sign-in, and
+ * "Remember me", so all three start a session the same way: a brand new
+ * session id and nothing carried over from whatever session came before.
+ */
+function start_user_session(array $user)
+{
+    session_regenerate_id(true);
+    $_SESSION = [];
+    $_SESSION['session_started_at'] = time();
+    $_SESSION['last_activity'] = time();
+    $_SESSION['user_id'] = $user['user_id'];
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['first_name'] = $user['first_name'];
+    $_SESSION['last_name'] = $user['last_name'];
+    $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+    $_SESSION['email'] = $user['email'];
+}
+
+/* ---------------------------------------------------------------------------
+ * Remember me
+ *
+ * Ticking "Remember me" issues a cookie holding selector:validator. The
+ * selector finds the row; only a SHA-256 hash of the validator is stored, so
+ * the table alone cannot be replayed as a login. Every sign-in from a cookie
+ * deletes its row and issues a new one, so a copied cookie stops working the
+ * moment the real device uses it. Logging out, changing or resetting the
+ * password, and deactivation all delete the rows.
+ * ------------------------------------------------------------------------ */
+
+/** How long "Remember me" keeps a device signed in. */
+const REMEMBER_LIFETIME = 2592000; // 30 days
+
+const REMEMBER_COOKIE = 'roomease_remember';
+
+/** True when the remember_tokens table exists (migration_auth_extras.sql). */
+function remember_available()
+{
+    global $pdo;
+    static $available = null;
+
+    if ($available === null) {
+        if (!isset($pdo) || !($pdo instanceof PDO)) {
+            return false;
+        }
+        try {
+            $pdo->query('SELECT 1 FROM remember_tokens LIMIT 1');
+            $available = true;
+        } catch (PDOException $e) {
+            $available = false;
+            error_log('RoomEase: remember_tokens table missing - "Remember me" is OFF. '
+                . 'Import database/migration_auth_extras.sql to enable it.');
+        }
+    }
+
+    return $available;
+}
+
+function set_remember_cookie($value, $expires)
+{
+    if (headers_sent()) {
+        return;
+    }
+    setcookie(REMEMBER_COOKIE, $value, [
+        'expires'  => $expires,
+        'path'     => app_cookie_path(),
+        'domain'   => '',
+        'secure'   => is_https_request(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    if ($value === '') {
+        unset($_COOKIE[REMEMBER_COOKIE]);
+    } else {
+        $_COOKIE[REMEMBER_COOKIE] = $value;
+    }
+}
+
+/** Remember this device for the given user. */
+function remember_login($userId)
+{
+    global $pdo;
+    if (!remember_available()) {
+        return;
+    }
+
+    $selector = bin2hex(random_bytes(12));
+    $validator = bin2hex(random_bytes(32));
+    $expires = time() + REMEMBER_LIFETIME;
+
+    try {
+        $pdo->prepare(
+            'INSERT INTO remember_tokens (user_id, selector, validator_hash, expires_at)
+             VALUES (?, ?, ?, FROM_UNIXTIME(?))'
+        )->execute([$userId, $selector, hash('sha256', $validator), $expires]);
+
+        // Opportunistic housekeeping so expired devices do not pile up.
+        if (random_int(1, 20) === 1) {
+            $pdo->exec('DELETE FROM remember_tokens WHERE expires_at < NOW()');
+        }
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not remember a device - ' . $e->getMessage());
+        return;
+    }
+
+    set_remember_cookie($selector . ':' . $validator, $expires);
+}
+
+/** Split a remember cookie into [selector, validator], or null if malformed. */
+function parse_remember_cookie($cookie)
+{
+    $parts = explode(':', (string) $cookie);
+    if (count($parts) !== 2
+        || !preg_match('/^[a-f0-9]{24}$/', $parts[0])
+        || !preg_match('/^[a-f0-9]{64}$/', $parts[1])) {
+        return null;
+    }
+    return $parts;
+}
+
+/** Forget this device: delete its row and clear the cookie. */
+function forget_remembered_login()
+{
+    global $pdo;
+    $cookie = $_COOKIE[REMEMBER_COOKIE] ?? '';
+    if ($cookie === '') {
+        return;
+    }
+
+    $parts = parse_remember_cookie($cookie);
+    if ($parts && remember_available()) {
+        try {
+            $pdo->prepare('DELETE FROM remember_tokens WHERE selector = ?')->execute([$parts[0]]);
+        } catch (PDOException $e) {
+            // The row expires on its own; clearing the cookie still matters.
+        }
+    }
+    set_remember_cookie('', time() - 3600);
+}
+
+/** Forget every device remembered for a user. */
+function forget_all_remembered_logins($userId)
+{
+    global $pdo;
+    if (!remember_available()) {
+        return;
+    }
+    try {
+        $pdo->prepare('DELETE FROM remember_tokens WHERE user_id = ?')->execute([$userId]);
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not forget remembered devices - ' . $e->getMessage());
+    }
+}
+
+/**
+ * Sign a visitor back in from their "Remember me" cookie. Returns true when
+ * the cookie was valid and a session was started.
+ */
+function restore_remembered_login()
+{
+    global $pdo;
+    $cookie = $_COOKIE[REMEMBER_COOKIE] ?? '';
+    if ($cookie === '' || !remember_available()) {
+        return false;
+    }
+
+    $parts = parse_remember_cookie($cookie);
+    if (!$parts) {
+        set_remember_cookie('', time() - 3600);
+        return false;
+    }
+    [$selector, $validator] = $parts;
+
+    try {
+        $stmt = $pdo->prepare(
+            'SELECT rt.token_id, rt.validator_hash, rt.expires_at > NOW() AS is_live,
+                    u.user_id, u.role, u.first_name, u.last_name, u.email, u.is_active, u.deleted_at
+               FROM remember_tokens rt
+               JOIN users u ON u.user_id = rt.user_id
+              WHERE rt.selector = ?'
+        );
+        $stmt->execute([$selector]);
+        $row = $stmt->fetch();
+    } catch (PDOException $e) {
+        return false;
+    }
+
+    // No row: the token was already used or forgotten. The cookie is left
+    // alone, because a parallel request may just have replaced it with a new
+    // one, and clearing it here could race and throw that new cookie away.
+    if (!$row) {
+        return false;
+    }
+
+    // Right selector, wrong validator: someone is guessing at a real token.
+    // Every device for the account is signed out rather than risk it.
+    if (!hash_equals($row['validator_hash'], hash('sha256', $validator))) {
+        error_log('RoomEase: remember-me validator mismatch for user ' . (int) $row['user_id']
+            . ' - all remembered devices for this account were forgotten.');
+        forget_all_remembered_logins($row['user_id']);
+        set_remember_cookie('', time() - 3600);
+        return false;
+    }
+
+    // Single use, valid or not.
+    $pdo->prepare('DELETE FROM remember_tokens WHERE token_id = ?')->execute([$row['token_id']]);
+
+    if (!$row['is_live'] || !empty($row['deleted_at']) || empty($row['is_active'])) {
+        set_remember_cookie('', time() - 3600);
+        return false;
+    }
+
+    start_user_session($row);
+    remember_login((int) $row['user_id']);
+    return true;
 }
 
 /* ---------------------------------------------------------------------------

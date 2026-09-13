@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/google_auth.php';
 
 if (is_logged_in()) {
   redirect('index.php');
@@ -65,65 +66,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-$pageTitle = 'Sign Up';
-require __DIR__ . '/../includes/header.php';
+$pageTitle = 'Sign up';
+$authHeading = 'Create your RoomEase account';
+$authWide = true;
+$authSwitch = ['text' => 'Already have an account?', 'href' => base_url('auth/login.php'), 'label' => 'Log in'];
+require __DIR__ . '/../includes/auth_header.php';
 ?>
 
-<div class="auth-wrap panel panel-pad on-seam">
-  <h1>Create your account</h1>
-  <p class="auth-sub">Join RoomEase as a landlord to list rooms, or as a boarder to browse them in Baybay City.</p>
+<?php if (google_enabled()): ?>
+  <a class="btn-google" href="<?= base_url('auth/google_start.php?from=register') ?>" data-google-start>
+    <?= google_logo_svg() ?> Sign up with Google
+  </a>
+  <p class="auth-fineprint">Your account is created as the role you pick below.</p>
+  <div class="auth-divider"><span>or sign up with email</span></div>
+<?php endif; ?>
 
-  <?php if ($errors): ?>
-    <div class="alert alert-error">
-      <?php foreach ($errors as $e)
-        echo h($e) . '<br>'; ?>
-    </div>
-  <?php endif; ?>
+<?php if ($errors): ?>
+  <div class="alert alert-error">
+    <?php foreach ($errors as $e)
+      echo h($e) . '<br>'; ?>
+  </div>
+<?php endif; ?>
 
-  <form method="post" novalidate>
-    <?= csrf_field() ?>
+<form method="post" novalidate>
+  <?= csrf_field() ?>
 
-    <label>I am a...</label>
+  <fieldset class="auth-fields">
+    <legend class="auth-legend">I am a...</legend>
     <div class="checkbox-grid role-choice">
-      <label><input type="radio" name="role" value="boarder" <?= $old['role'] === 'boarder' ? 'checked' : '' ?>> Prospective
-        Boarder</label>
-      <label><input type="radio" name="role" value="landlord" <?= $old['role'] === 'landlord' ? 'checked' : '' ?>>
-        Landlord</label>
+      <label><input type="radio" name="role" value="boarder" <?= $old['role'] === 'boarder' ? 'checked' : '' ?>> Boarder looking for a room</label>
+      <label><input type="radio" name="role" value="landlord" <?= $old['role'] === 'landlord' ? 'checked' : '' ?>> Landlord with rooms to rent</label>
     </div>
+  </fieldset>
 
-    <div class="field-row">
-      <div>
-        <label for="first_name">First name</label>
-        <input type="text" id="first_name" name="first_name" value="<?= h($old['first_name']) ?>" required autofocus>
-      </div>
-      <div>
-        <label for="last_name">Last name</label>
-        <input type="text" id="last_name" name="last_name" value="<?= h($old['last_name']) ?>" required>
-      </div>
+  <div class="field-row">
+    <div>
+      <label for="first_name">First name</label>
+      <input type="text" id="first_name" name="first_name" value="<?= h($old['first_name']) ?>" required autofocus>
     </div>
-
-    <label for="email">Email address</label>
-    <input type="email" id="email" name="email" value="<?= h($old['email']) ?>" required>
-
-    <label for="phone_number">Phone number</label>
-    <input type="tel" id="phone_number" name="phone_number" value="<?= h($old['phone_number']) ?>"
-      placeholder="e.g. 09171234567">
-
-    <div class="field-row">
-      <div>
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" autocomplete="new-password" required>
-      </div>
-      <div>
-        <label for="confirm_password">Confirm password</label>
-        <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
-      </div>
+    <div>
+      <label for="last_name">Last name</label>
+      <input type="text" id="last_name" name="last_name" value="<?= h($old['last_name']) ?>" required>
     </div>
+  </div>
 
-    <button type="submit" class="btn btn-primary btn-block">Create account</button>
-  </form>
+  <label for="email">Email address</label>
+  <input type="email" id="email" name="email" value="<?= h($old['email']) ?>" autocomplete="email" required>
 
-  <div class="auth-switch">Already have an account? <a href="<?= base_url('auth/login.php') ?>">Log in</a></div>
-</div>
+  <label for="phone_number">Phone number</label>
+  <input type="tel" id="phone_number" name="phone_number" value="<?= h($old['phone_number']) ?>"
+    autocomplete="tel" placeholder="e.g. 09171234567">
 
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+  <div class="field-row">
+    <div>
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="new-password" required>
+    </div>
+    <div>
+      <label for="confirm_password">Confirm password</label>
+      <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary btn-block btn-auth">Create account</button>
+</form>
+
+<script>
+  // The Google button creates the account in whichever role is picked.
+  (function () {
+    var google = document.querySelector('[data-google-start]');
+    if (!google) return;
+    var base = google.getAttribute('href');
+    function sync() {
+      var picked = document.querySelector('input[name="role"]:checked');
+      google.setAttribute('href', base + '&role=' + (picked ? picked.value : 'boarder'));
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="role"]'), function (radio) {
+      radio.addEventListener('change', sync);
+    });
+    sync();
+  })();
+</script>
+
+<?php require __DIR__ . '/../includes/auth_footer.php'; ?>

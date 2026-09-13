@@ -116,6 +116,10 @@ typography seen at the defence.
 - Whether the capstone's *Limitations of the Study* bind future scope. The user
   did not mark it fixed, so real-time chat, payments, and SMS are absent
   today but are not ruled out.
+- **Google sign-in is a second accepted exception.** The user chose it knowing
+  it needs internet and Google Cloud OAuth credentials that only they can
+  create. The button is hidden until credentials exist; email and password
+  login, "Remember me", and everything else still work offline.
 - **Maps are an accepted exception to "runs offline".** The user chose to add
   a listing map and a landlord pin picker knowing the tiles need internet.
   Leaflet is self-hosted in `assets/vendor/leaflet`; only the tile images come
@@ -147,6 +151,12 @@ adding the next six (`?page=N` renders everything up to N), and the listing
 page is a title band with tags, a main column of sections (photos with a
 full-screen viewer, utilities, living here, what to expect, house rules, map),
 and a sticky Quick Info card with price and landlord contact.
+
+The sign-in pages (log in, sign up, forgot and reset password) are standalone,
+after MyBoardMate's login: no site header, band, or footer, just the RoomEase
+wordmark, a heading, and one card. An administrator chooses their background
+(a colour or a photo) in the panel under Appearance; the text outside the card
+switches between forest and white by contrast, and photos get a forest tint.
 The earlier *lobby directory board* theme (Zilla Slab, brass on dark board) is
 retired.
 

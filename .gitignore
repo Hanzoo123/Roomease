@@ -6,6 +6,9 @@ storage/*.log
 assets/uploads/boarding_houses/
 !assets/uploads/.htaccess
 
+# Background photos an administrator uploads in Appearance. Same reasoning.
+assets/uploads/site/
+
 # Composer, if and when it is added.
 /vendor/
 composer.lock
@@ -23,3 +26,6 @@ Desktop.ini
 # ROOMEASE_DB_* environment variables, never in a tracked file.
 .env
 .env.local
+
+# Google sign-in credentials. Copy config/google.local.example.php to create it.
+config/google.local.php

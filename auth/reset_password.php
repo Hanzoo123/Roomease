@@ -49,54 +49,53 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare('DELETE FROM password_resets WHERE user_id = ? AND reset_id <> ?')
             ->execute([$reset['user_id'], $reset['reset_id']]);
 
+        // A new password signs the account out of every remembered device, so
+        // whoever prompted the reset loses any "Remember me" cookie they held.
+        forget_all_remembered_logins($reset['user_id']);
+
         $done = true;
     }
 }
-$pageTitle = 'Reset Password';
-require __DIR__ . '/../includes/header.php';
+
+$pageTitle = 'Reset password';
+$authHeading = $done ? 'Password changed' : (!$reset ? 'Link no longer valid' : 'Choose a new password');
+$authSwitch = ['text' => 'Remembered your password?', 'href' => base_url('auth/login.php'), 'label' => 'Log in'];
+require __DIR__ . '/../includes/auth_header.php';
 ?>
 
-<div class="auth-wrap panel panel-pad on-seam">
-  <?php if ($done): ?>
-    <h1>Password changed</h1>
-    <div class="alert alert-success">Your password has been changed. You can log in with it now.</div>
-    <a href="<?= base_url('auth/login.php') ?>" class="btn btn-primary btn-block">Go to log in</a>
+<?php if ($done): ?>
+  <div class="alert alert-success">Your password has been changed. You can log in with it now.</div>
+  <a href="<?= base_url('auth/login.php') ?>" class="btn btn-primary btn-block btn-auth">Go to log in</a>
 
-  <?php elseif (!$reset): ?>
-    <h1>Link no longer valid</h1>
+<?php elseif (!$reset): ?>
+  <div class="alert alert-error">
+    This reset link is invalid, has already been used, or has expired.
+    Reset links last <?= password_reset_ttl_minutes() ?> minutes.
+  </div>
+  <a href="<?= base_url('auth/forgot_password.php') ?>" class="btn btn-primary btn-block btn-auth">Request a new link</a>
+
+<?php else: ?>
+  <p class="auth-sub">Setting a new password for <strong><?= h($reset['email']) ?></strong>.</p>
+
+  <?php if ($errors): ?>
     <div class="alert alert-error">
-      This reset link is invalid, has already been used, or has expired.
-      Reset links last <?= password_reset_ttl_minutes() ?> minutes.
+      <?php foreach ($errors as $e)
+        echo h($e) . '<br>'; ?>
     </div>
-    <a href="<?= base_url('auth/forgot_password.php') ?>" class="btn btn-primary btn-block">Request a new link</a>
-    <div class="auth-switch"><a href="<?= base_url('auth/login.php') ?>">&larr; Back to log in</a></div>
-
-  <?php else: ?>
-    <h1>Choose a new password</h1>
-    <p class="auth-sub">Setting a new password for <strong><?= h($reset['email']) ?></strong>.</p>
-
-    <?php if ($errors): ?>
-      <div class="alert alert-error">
-        <?php foreach ($errors as $e)
-          echo h($e) . '<br>'; ?>
-      </div>
-    <?php endif; ?>
-
-    <form method="post" novalidate>
-      <?= csrf_field() ?>
-      <input type="hidden" name="token" value="<?= h($token) ?>">
-
-      <label for="new_password">New password</label>
-      <input type="password" id="new_password" name="new_password" autocomplete="new-password" required autofocus>
-
-      <label for="confirm_password">Confirm new password</label>
-      <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
-
-      <button type="submit" class="btn btn-primary btn-block">Set new password</button>
-    </form>
-
-    <div class="auth-switch"><a href="<?= base_url('auth/login.php') ?>">&larr; Back to log in</a></div>
   <?php endif; ?>
-</div>
 
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+  <form method="post" novalidate>
+    <?= csrf_field() ?>
+    <input type="hidden" name="token" value="<?= h($token) ?>">
+
+    <label for="new_password">New password</label>
+    <input type="password" id="new_password" name="new_password" autocomplete="new-password" required autofocus>
+
+    <label for="confirm_password">Confirm new password</label>
+    <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
+
+    <button type="submit" class="btn btn-primary btn-block btn-auth">Set new password</button>
+  </form>
+<?php endif; ?>
+
+<?php require __DIR__ . '/../includes/auth_footer.php'; ?>

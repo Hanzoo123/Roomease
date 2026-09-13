@@ -57,12 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Forgot Password';
-require __DIR__ . '/../includes/header.php';
+$pageTitle = 'Forgot password';
+$authHeading = 'Reset your password';
+$authSwitch = ['text' => 'Remembered it?', 'href' => base_url('auth/login.php'), 'label' => 'Log in'];
+require __DIR__ . '/../includes/auth_header.php';
 ?>
-
-<div class="auth-wrap panel panel-pad on-seam">
-  <h1>Forgot your password?</h1>
 
   <?php if ($submitted): ?>
     <div class="alert alert-success">
@@ -92,11 +91,8 @@ require __DIR__ . '/../includes/header.php';
       <?= csrf_field() ?>
       <label for="email">Email address</label>
       <input type="email" id="email" name="email" value="<?= h($email) ?>" autocomplete="username" required autofocus>
-      <button type="submit" class="btn btn-primary btn-block">Send reset link</button>
+      <button type="submit" class="btn btn-primary btn-block btn-auth">Send reset link</button>
     </form>
   <?php endif; ?>
 
-  <div class="auth-switch"><a href="<?= base_url('auth/login.php') ?>">&larr; Back to log in</a></div>
-</div>
-
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/auth_footer.php'; ?>

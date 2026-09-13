@@ -1,25 +1,29 @@
 <?php
 /**
- * RoomEase login — one sign-in for every role, on the public theme.
+ * RoomEase login — one sign-in for every role, on the standalone sign-in layout.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/google_auth.php';
 
-// If already logged in, send them to their own landing page. index.php routes
-// each role (admin panel, landlord panel, or browse), so that rule lives in
-// exactly one place.
-if (is_logged_in()) {
+// An administrator can open ?preview=1 from Appearance to see this page with
+// the chosen background. Anyone else who is logged in goes to their own
+// landing page; index.php routes each role, so that rule lives in one place.
+$preview = is_logged_in() && is_admin() && isset($_GET['preview']);
+if (is_logged_in() && !$preview) {
     redirect('index.php');
 }
 
 $error = '';
 $loginId = '';
+$remember = false;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
     $loginId = trim($_POST['login_id'] ?? '');
     $password = $_POST['password'] ?? '';
+    $remember = ($_POST['remember'] ?? '') === '1';
 
     // Counted per account and per source address, so neither guessing one
     // account's password nor spraying one common password across many
@@ -45,58 +49,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             record_failed_attempt('login', $loginId);
             $error = "Your account is deactivated. Please contact support.";
         } else {
-            // A clean slate on every sign-in: a brand new session id, and
-            // nothing carried over from whatever session existed before it.
             clear_failed_attempts('login', $loginId);
-            session_regenerate_id(true);
-            $_SESSION = [];
-            $_SESSION['session_started_at'] = time();
-            $_SESSION['last_activity'] = time();
-            $_SESSION['user_id'] = $user['user_id'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['first_name'] = $user['first_name'];
-            $_SESSION['last_name'] = $user['last_name'];
-            $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
-            $_SESSION['email'] = $user['email'];
+            start_user_session($user);
+            if ($remember) {
+                remember_login((int) $user['user_id']);
+            }
 
-            // No h() here: the toast escapes its own message now, and escaping
-            // twice would show the raw entities to the user.
+            // No h() here: the flash is escaped where it is rendered, and
+            // escaping twice would show the raw entities to the user.
             flash_set("Welcome back, " . $user["first_name"] . "!", "success");
-            // index.php sends each role to its own landing page.
             redirect('index.php');
         }
     }
 }
 
-/* The flash is rendered by includes/header.php, which calls flash_get() itself.
-   Reading it here as well would consume the message before the header saw it. */
 $pageTitle = 'Log in';
-require __DIR__ . '/../includes/header.php';
+$authHeading = 'Sign in to your account';
+$authPreview = $preview;
+$authSwitch = ['text' => 'New to RoomEase?', 'href' => base_url('auth/register.php'), 'label' => 'Create an account'];
+require __DIR__ . '/../includes/auth_header.php';
 ?>
 
-<div class="auth-wrap panel panel-pad on-seam">
-  <h1>Log in</h1>
-  <p class="auth-sub">Sign in to save rooms you like, manage your listings, or open your panel.</p>
-
-  <?php if ($error): ?>
-    <div class="alert alert-error"><?= h($error) ?></div>
+<?php if (google_enabled()): ?>
+  <?php if ($preview): ?>
+    <span class="btn-google" aria-disabled="true"><?= google_logo_svg() ?> Continue with Google</span>
+  <?php else: ?>
+    <a class="btn-google" href="<?= base_url('auth/google_start.php') ?>" data-google-start>
+      <?= google_logo_svg() ?> Continue with Google
+    </a>
   <?php endif; ?>
+  <p class="auth-fineprint">New here? Continuing with Google creates a boarder account for you.</p>
+  <div class="auth-divider"><span>or sign in with email</span></div>
+<?php endif; ?>
 
-  <form method="post" novalidate>
+<?php if ($error): ?>
+  <div class="alert alert-error"><?= h($error) ?></div>
+<?php endif; ?>
+
+<form method="post" novalidate>
+  <?php /* A disabled fieldset turns the whole form off in preview mode. */ ?>
+  <fieldset class="auth-fields" <?= $preview ? 'disabled' : '' ?>>
     <?= csrf_field() ?>
 
     <label for="login_id">Email address</label>
     <input type="email" id="login_id" name="login_id" value="<?= h($loginId) ?>" autocomplete="username" required
-      autofocus>
+      <?= $preview ? '' : 'autofocus' ?>>
 
     <label for="password">Password</label>
     <input type="password" id="password" name="password" autocomplete="current-password" required>
 
-    <button type="submit" class="btn btn-primary btn-block">Log in</button>
-  </form>
+    <div class="auth-row">
+      <label class="check-inline" for="remember">
+        <input type="checkbox" id="remember" name="remember" value="1" <?= $remember ? 'checked' : '' ?>>
+        Remember me
+      </label>
+      <a href="<?= base_url('auth/forgot_password.php') ?>">Forgot password?</a>
+    </div>
 
-  <div class="auth-switch"><a href="<?= base_url('auth/forgot_password.php') ?>">Forgot your password?</a></div>
-  <div class="auth-switch">New to RoomEase? <a href="<?= base_url('auth/register.php') ?>">Create an account</a></div>
-</div>
+    <button type="submit" class="btn btn-primary btn-block btn-auth">Sign in</button>
+  </fieldset>
+</form>
 
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+<script>
+  // "Remember me" applies to Google sign-in too: it rides along on the link.
+  (function () {
+    var box = document.getElementById('remember');
+    var google = document.querySelector('[data-google-start]');
+    if (!box || !google) return;
+    var base = google.getAttribute('href');
+    function sync() {
+      google.setAttribute('href', base + '?remember=' + (box.checked ? '1' : '0'));
+    }
+    box.addEventListener('change', sync);
+    sync();
+  })();
+</script>
+
+<?php require __DIR__ . '/../includes/auth_footer.php'; ?>

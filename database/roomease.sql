@@ -32,6 +32,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE users (
     user_id         INT AUTO_INCREMENT PRIMARY KEY,
     email           VARCHAR(150) NOT NULL UNIQUE,
+    -- Google's stable account id ("sub") for accounts that sign in with Google.
+    google_id       VARCHAR(64) DEFAULT NULL UNIQUE,
     password_hash   VARCHAR(255) NOT NULL,
     first_name      VARCHAR(100) NOT NULL,
     last_name       VARCHAR(100) NOT NULL,
@@ -217,6 +219,37 @@ CREATE TABLE password_resets (
     KEY idx_reset_user (user_id),
     CONSTRAINT fk_reset_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 11. Table: remember_tokens
+-- "Remember me" devices. The cookie holds selector:validator and only a
+-- SHA-256 hash of the validator is stored. Each row is single use: signing
+-- in from the cookie replaces it (see migration_auth_extras.sql).
+-- ---------------------------------------------------------
+CREATE TABLE remember_tokens (
+    token_id        INT AUTO_INCREMENT PRIMARY KEY,
+    user_id         INT NOT NULL,
+    selector        CHAR(24) NOT NULL,
+    validator_hash  CHAR(64) NOT NULL,
+    expires_at      DATETIME NOT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_remember_selector (selector),
+    KEY idx_remember_user (user_id),
+    KEY idx_remember_expires (expires_at),
+    CONSTRAINT fk_remember_user FOREIGN KEY (user_id)
+        REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 12. Table: site_settings
+-- Settings an administrator changes from the panel, such as the sign-in
+-- pages' background (admin/appearance.php).
+-- ---------------------------------------------------------
+CREATE TABLE site_settings (
+    setting_key     VARCHAR(64) NOT NULL PRIMARY KEY,
+    setting_value   TEXT DEFAULT NULL,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

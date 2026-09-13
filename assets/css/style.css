@@ -783,6 +783,237 @@ input[type=checkbox] {
 }
 
 /* =========================================================
+   Sign-in pages — standalone
+   ---------------------------------------------------------
+   Log in, sign up, forgot and reset password have no site header, band or
+   footer: the brand, a heading, and one card, on the background an
+   administrator picks in Appearance. The body carries that background
+   inline, plus auth-page--light or --dark to say which text colour reads on
+   it.
+   ========================================================= */
+.auth-page {
+  min-height: 100vh;
+  background-color: var(--paper);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.auth-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 48px 16px;
+}
+
+.auth-brand {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+  font-weight: 800;
+  font-size: clamp(2.1rem, 1.7rem + 1.6vw, 2.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--forest);
+}
+
+.auth-brand:hover {
+  text-decoration: none;
+}
+
+.auth-heading {
+  font-family: var(--font-body);
+  font-variation-settings: normal;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+  text-align: center;
+  margin: 12px 0 28px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 40px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 2px 6px rgba(15, 58, 49, .05), 0 28px 60px -30px rgba(15, 58, 49, .45);
+}
+
+.auth-card--wide {
+  max-width: 580px;
+}
+
+.auth-card label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.auth-card input[type=text],
+.auth-card input[type=email],
+.auth-card input[type=password],
+.auth-card input[type=tel] {
+  min-height: 52px;
+  border-color: var(--line);
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.auth-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.auth-legend {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.btn-google:hover {
+  background: var(--paper);
+  border-color: var(--ink-faint);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.btn-google[aria-disabled="true"] {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.auth-fineprint {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 24px;
+}
+
+.auth-row a {
+  font-size: 15px;
+}
+
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.auth-card .check-inline {
+  font-weight: 400;
+}
+
+.check-inline input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.btn-auth {
+  min-height: 54px;
+  border-radius: 12px;
+  font-size: 17px;
+}
+
+.auth-out {
+  margin: 22px 0 0;
+  font-size: 15px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.auth-out--back {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.auth-preview {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--pending-bg);
+  color: var(--pending-fg);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* On a dark colour or a photo, the text outside the card turns white. */
+.auth-page--dark .auth-brand {
+  color: #fff;
+}
+
+.auth-page--dark .auth-heading,
+.auth-page--dark .auth-out {
+  color: rgba(255, 255, 255, .86);
+}
+
+.auth-page--dark .auth-out a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-page--dark :focus-visible {
+  outline-color: var(--marigold);
+}
+
+.auth-page--dark .auth-card :focus-visible {
+  outline-color: var(--forest);
+}
+
+/* =========================================================
    Search bar — sits on the seam on the home and browse pages
    ========================================================= */
 .search-bar {
@@ -2035,6 +2266,20 @@ input[type=checkbox] {
 
   .container {
     padding: 0 16px;
+  }
+
+  .auth-shell {
+    justify-content: flex-start;
+    padding: 36px 12px 28px;
+  }
+
+  .auth-heading {
+    margin-bottom: 22px;
+  }
+
+  .auth-card {
+    padding: 26px 20px;
+    border-radius: 18px;
   }
 
   .nav-tab {
