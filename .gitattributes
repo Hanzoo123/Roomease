@@ -1,0 +1,22 @@
+# Normalise line endings so a checkout on Windows and one on Linux do not
+# show every file as modified. Without this, `git status` reports the whole
+# project as changed the first time it is opened on another machine.
+* text=auto
+
+# Keep shell scripts and SQL as LF regardless of platform.
+*.sh   text eol=lf
+*.sql  text eol=lf
+
+# Never touch binary files.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+*.pdf  binary
+*.docx binary

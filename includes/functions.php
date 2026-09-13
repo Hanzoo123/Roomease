@@ -3,9 +3,18 @@
  * Shared helper functions used across RoomEase.
  */
 
+// Session cookie flags can only be chosen before the session exists, so the
+// hardening file is loaded and applied first. It also sends the response
+// security headers, and defines the login/reset throttle helpers.
+require_once __DIR__ . "/security.php";
+
+configure_session_security();
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+send_security_headers();
 
 /** Escape output for safe HTML display. */
 function h($value)
@@ -116,6 +125,23 @@ function flash_get()
     return $flash;
 }
 
+/**
+ * A client-supplied filename, reduced to something safe to show back.
+ *
+ * These names end up inside error messages, and those messages are rendered as
+ * a flash notification, so the browser must never be handed the raw string.
+ */
+function safe_filename($name)
+{
+    $name = basename((string) $name);
+    $name = preg_replace('/[^A-Za-z0-9._ -]/', '', $name);
+    $name = trim($name);
+    if ($name === '') {
+        return 'that file';
+    }
+    return mb_strimwidth($name, 0, 60, '...');
+}
+
 /** Convert a php.ini shorthand size such as "2M" into bytes. */
 function ini_bytes($value)
 {
@@ -207,10 +233,10 @@ function handle_photo_uploads($fileField, $boardingHouseId)
             continue;
         }
         if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
-            throw new RuntimeException('"' . $name . '" is larger than the ' . format_bytes($maxBytes) . ' limit.');
+            throw new RuntimeException('"' . safe_filename($name) . '" is larger than the ' . format_bytes($maxBytes) . ' limit.');
         }
         if ($error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Upload failed for "' . $name . '". Please try again.');
+            throw new RuntimeException('Upload failed for "' . safe_filename($name) . '". Please try again.');
         }
         if (count($queue) >= $maxFiles) {
             throw new RuntimeException('Please upload at most ' . $maxFiles . ' photos at a time.');
@@ -221,10 +247,10 @@ function handle_photo_uploads($fileField, $boardingHouseId)
         finfo_close($finfo);
 
         if (!isset($allowed[$mime])) {
-            throw new RuntimeException('"' . $name . '" is not a JPG, PNG, or WEBP image.');
+            throw new RuntimeException('"' . safe_filename($name) . '" is not a JPG, PNG, or WEBP image.');
         }
         if ($sizes[$i] > $maxBytes) {
-            throw new RuntimeException('"' . $name . '" is larger than the ' . format_bytes($maxBytes) . ' limit.');
+            throw new RuntimeException('"' . safe_filename($name) . '" is larger than the ' . format_bytes($maxBytes) . ' limit.');
         }
 
         $queue[] = ['tmp' => $tmps[$i], 'ext' => $allowed[$mime]];
@@ -264,66 +290,111 @@ function peso($amount)
     return '₱' . number_format((float) $amount, 2);
 }
 
-/** Amenity checklist offered on the listing form, fetched from DB. */
-function amenity_options()
+/**
+ * Peso with the centavos dropped when the amount is a whole number.
+ *
+ * Rents are whole pesos in practice, so a column of them all ending in ".00"
+ * is two characters of noise on every row of the listing board. peso() keeps
+ * the exact figure for anywhere a centavo could matter; this is for display.
+ */
+function peso_round($amount)
 {
-    global $pdo;
-    try {
-        $stmt = $pdo->query('SELECT amenity_name FROM amenities ORDER BY amenity_id ASC');
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
-    } catch (PDOException $e) {
-        return [
-            'Wi-Fi',
-            'Air Conditioning',
-            'Private Bathroom',
-            'Kitchen Access',
-            'Laundry Area',
-            'Study Table & Chair',
-            'CCTV & 24/7 Security',
-            'Refrigerator Access',
-            'Gated Compound',
-            'Near VSU / Transport Terminal',
-        ];
+    if ($amount === null || $amount === '') {
+        return '—';
     }
-}
-
-/** Utility checklist offered on the listing form, fetched from DB. */
-function utility_options()
-{
-    global $pdo;
-    try {
-        $stmt = $pdo->query('SELECT utility_id, utility_name FROM utilities ORDER BY utility_id ASC');
-        return $stmt->fetchAll();
-    } catch (PDOException $e) {
-        return [
-            ['utility_id' => 1, 'utility_name' => 'Water'],
-            ['utility_id' => 2, 'utility_name' => 'Electricity'],
-            ['utility_id' => 3, 'utility_name' => 'Trash Collection'],
-            ['utility_id' => 4, 'utility_name' => 'Internet / Wi-Fi'],
-            ['utility_id' => 5, 'utility_name' => 'Cooking Gas'],
-        ];
-    }
+    $value = (float) $amount;
+    $decimals = (abs($value - round($value)) < 0.005) ? 0 : 2;
+    return '₱' . number_format($value, $decimals);
 }
 
 /**
- * Room types offered on the listing form and in the browse filter.
- * Both read from here so the two lists can never drift apart.
+ * Read a lookup table, or log why it could not be read and return nothing.
+ *
+ * These three lists used to fall back to a hard-coded copy of the seed data.
+ * That made a missing table invisible: the form still rendered a full set of
+ * checkboxes, the landlord ticked them, and the insert into the junction table
+ * failed silently afterwards. An empty list is worse-looking but honest, and
+ * the callers say so on the page.
  */
-function room_type_options()
+function lookup_options($sql, $mode = PDO::FETCH_COLUMN)
 {
     global $pdo;
     try {
-        $stmt = $pdo->query('SELECT room_type_name FROM room_types ORDER BY room_type_id ASC');
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $pdo->query($sql)->fetchAll($mode);
     } catch (PDOException $e) {
-        return [
-            'Single Room',
-            'Double Sharing',
-            'Bed Spacer',
-            'Dormitory',
-            'Private Room',
-        ];
+        error_log('RoomEase: lookup query failed - ' . $e->getMessage());
+        return [];
     }
+}
+
+/** Amenity checklist offered on the listing form. Empty if unreadable. */
+function amenity_options()
+{
+    return lookup_options('SELECT amenity_name FROM amenities ORDER BY amenity_id ASC');
+}
+
+/** Utility checklist offered on the listing form. Empty if unreadable. */
+function utility_options()
+{
+    return lookup_options(
+        'SELECT utility_id, utility_name FROM utilities ORDER BY utility_id ASC',
+        PDO::FETCH_ASSOC
+    );
+}
+
+/**
+ * Room types offered on the listing form and in the browse filter, as
+ * room_type_id => room_type_name.
+ *
+ * Both read from here so the two lists cannot drift apart, and since
+ * boarding_houses.room_type_id is a foreign key onto this table, a value
+ * that is not in this list can no longer be stored at all.
+ */
+function room_type_options()
+{
+    $rows = lookup_options(
+        'SELECT room_type_id, room_type_name FROM room_types ORDER BY room_type_id ASC',
+        PDO::FETCH_ASSOC
+    );
+
+    $options = [];
+    foreach ($rows as $row) {
+        $options[(int) $row['room_type_id']] = $row['room_type_name'];
+    }
+    return $options;
+}
+
+/**
+ * The SELECT fragment and JOIN that expose a listing's room type name under
+ * the key every page already reads, so display code did not have to change
+ * when the column became a foreign key.
+ */
+const ROOM_TYPE_SELECT = 'rt.room_type_name AS room_type';
+const ROOM_TYPE_JOIN   = 'LEFT JOIN room_types rt ON rt.room_type_id = bh.room_type_id';
+
+/**
+ * The JOIN that hides listings whose landlord is deactivated or archived.
+ *
+ * Browse never used to look at the landlord's account at all, so a
+ * deactivated landlord's listings stayed on the public site. Soft deletion
+ * would have inherited exactly the same hole.
+ */
+const LIVE_LANDLORD_JOIN =
+    'JOIN users lu ON lu.user_id = bh.landlord_id AND lu.is_active = 1 AND lu.deleted_at IS NULL';
+
+/**
+ * The message shown in place of a lookup checklist that came back empty, so a
+ * missing or unimported table is visible on the page instead of silently
+ * costing the landlord their selections.
+ */
+function lookup_unavailable_notice($what, $table)
+{
+    return '<div class="alert alert-warning py-2 px-3 small mb-3">'
+        . '<i class="fas fa-exclamation-triangle mr-1"></i> '
+        . 'No ' . h($what) . ' are available to choose from. The <code>' . h($table)
+        . '</code> table is empty or could not be read &mdash; import <code>database/roomease.sql</code>'
+        . ' and check the PHP error log.'
+        . '</div>';
 }
 
 /**
@@ -517,3 +588,9 @@ function render_pagination($currentPage, $totalPages)
     }
     echo '</div>';
 }
+
+/**
+ * Applied last, once every helper above exists: age the session out, and
+ * re-check the account behind it against the database on every request.
+ */
+enforce_session_policy();

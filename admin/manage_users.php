@@ -5,23 +5,36 @@
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 
-// Ensure user is logged in as administrator
-if (!is_logged_in() || !is_admin()) {
-  redirect('auth/login.php');
-}
+require_login('admin');
 
 $roleFilter = $_GET['role'] ?? '';
-$where = "role != 'administrator'";
+
+// Removed accounts are archived rather than destroyed, so they need somewhere
+// to be seen and restored from. The directory shows live accounts by default.
+$showArchived = ($_GET['view'] ?? '') === 'archived';
+
+$where = "role != 'administrator' AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL');
 $params = [];
 if (in_array($roleFilter, ['landlord', 'boarder'], true)) {
   $where .= ' AND role = ?';
   $params[] = $roleFilter;
 }
 
-// Counts for filter pills
-$totalNonAdmin = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role != 'administrator'")->fetchColumn();
-$totalLandlords = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'landlord'")->fetchColumn();
-$totalBoarders = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'boarder'")->fetchColumn();
+// Counts for filter pills. These count live accounts only, which is what the
+// pills filter; the archived count is shown separately.
+$counts = $pdo->query(
+  "SELECT COUNT(*) AS live_total,
+          SUM(role = 'landlord') AS landlords,
+          SUM(role = 'boarder')  AS boarders
+     FROM users
+    WHERE role != 'administrator' AND deleted_at IS NULL"
+)->fetch();
+$totalNonAdmin  = (int) $counts['live_total'];
+$totalLandlords = (int) $counts['landlords'];
+$totalBoarders  = (int) $counts['boarders'];
+$totalArchived  = (int) $pdo->query(
+  "SELECT COUNT(*) FROM users WHERE role != 'administrator' AND deleted_at IS NOT NULL"
+)->fetchColumn();
 
 // Fetch users for DataTable
 $stmt = $pdo->prepare("SELECT *, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE $where ORDER BY created_at DESC");
@@ -64,22 +77,48 @@ require __DIR__ . '/../includes/panel_sidebar.php';
       <div class="card card-primary card-outline shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
           <h3 class="card-title font-weight-bold">
-            <i class="fas fa-list mr-1"></i> User Directory
+            <i class="fas <?= $showArchived ? 'fa-archive' : 'fa-list' ?> mr-1"></i>
+            <?= $showArchived ? 'Removed Accounts' : 'User Directory' ?>
           </h3>
-          <div class="btn-group mt-2 mt-sm-0" role="group" aria-label="Filter users by role">
-            <a href="manage_users.php" class="btn btn-sm btn-outline-primary <?= $roleFilter === '' ? 'active' : '' ?>">
-              All <span class="badge badge-light ml-1"><?= $totalNonAdmin ?></span>
+          <div class="btn-group mt-2 mt-sm-0" role="group" aria-label="Filter users">
+            <?php $q = $showArchived ? '?view=archived' : ''; $sep = $showArchived ? '&' : '?'; ?>
+            <a href="manage_users.php<?= $q ?>"
+              class="btn btn-sm btn-outline-primary <?= $roleFilter === '' ? 'active' : '' ?>">
+              All <span class="badge badge-light ml-1"><?= $showArchived ? $totalArchived : $totalNonAdmin ?></span>
             </a>
-            <a href="manage_users.php?role=landlord"
+            <a href="manage_users.php<?= $q . $sep ?>role=landlord"
               class="btn btn-sm btn-outline-info <?= $roleFilter === 'landlord' ? 'active' : '' ?>">
               Landlords <span class="badge badge-light ml-1"><?= $totalLandlords ?></span>
             </a>
-            <a href="manage_users.php?role=boarder"
+            <a href="manage_users.php<?= $q . $sep ?>role=boarder"
               class="btn btn-sm btn-outline-secondary <?= $roleFilter === 'boarder' ? 'active' : '' ?>">
               Boarders <span class="badge badge-light ml-1"><?= $totalBoarders ?></span>
             </a>
           </div>
+          <div class="mt-2 mt-sm-0 ml-sm-2">
+            <?php if ($showArchived): ?>
+              <a href="manage_users.php" class="btn btn-sm btn-outline-dark">
+                <i class="fas fa-arrow-left mr-1"></i> Back to active users
+              </a>
+            <?php else: ?>
+              <a href="manage_users.php?view=archived" class="btn btn-sm btn-outline-dark">
+                <i class="fas fa-archive mr-1"></i> Removed
+                <span class="badge badge-light ml-1"><?= $totalArchived ?></span>
+              </a>
+            <?php endif; ?>
+          </div>
         </div>
+
+        <?php if ($showArchived): ?>
+          <div class="card-body pb-0">
+            <div class="alert alert-info mb-0 py-2">
+              <i class="fas fa-info-circle mr-1"></i>
+              These accounts are hidden from the site and cannot sign in, and their listings do not
+              appear in browse. Nothing has been deleted &mdash; restoring an account brings its
+              listings back with it.
+            </div>
+          </div>
+        <?php endif; ?>
 
         <div class="card-body">
           <table id="usersTable" class="table table-bordered table-striped table-hover">
@@ -114,7 +153,12 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                     <?php endif; ?>
                   </td>
                   <td>
-                    <?php if ($u['is_active']): ?>
+                    <?php if ($u['deleted_at'] !== null): ?>
+                      <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed</span>
+                      <div class="text-muted text-sm mt-1">
+                        <?= h(date('M j, Y', strtotime($u['deleted_at']))) ?>
+                      </div>
+                    <?php elseif ($u['is_active']): ?>
                       <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Active</span>
                     <?php else: ?>
                       <span class="badge badge-danger px-2 py-1"><i class="fas fa-ban mr-1"></i> Inactive</span>
@@ -125,32 +169,44 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                   </td>
                   <td>
                     <div class="d-flex align-items-center" style="gap: 5px;">
-                      <!-- Status Toggle Button -->
-                      <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
-                        <input type="hidden" name="action" value="toggle_status">
-                        <?php if ($u['is_active']): ?>
-                          <button type="submit" class="btn btn-xs btn-outline-warning" title="Deactivate Account">
-                            <i class="fas fa-user-slash"></i>
+                      <?php if ($u['deleted_at'] !== null): ?>
+                        <!-- Restore Button -->
+                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
+                          <?= csrf_field() ?>
+                          <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
+                          <input type="hidden" name="action" value="restore">
+                          <button type="submit" class="btn btn-xs btn-outline-success" title="Restore Account">
+                            <i class="fas fa-trash-restore mr-1"></i> Restore
                           </button>
-                        <?php else: ?>
-                          <button type="submit" class="btn btn-xs btn-outline-success" title="Activate Account">
-                            <i class="fas fa-user-check"></i>
-                          </button>
-                        <?php endif; ?>
-                      </form>
+                        </form>
+                      <?php else: ?>
+                        <!-- Status Toggle Button -->
+                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
+                          <?= csrf_field() ?>
+                          <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
+                          <input type="hidden" name="action" value="toggle_status">
+                          <?php if ($u['is_active']): ?>
+                            <button type="submit" class="btn btn-xs btn-outline-warning" title="Deactivate Account">
+                              <i class="fas fa-user-slash"></i>
+                            </button>
+                          <?php else: ?>
+                            <button type="submit" class="btn btn-xs btn-outline-success" title="Activate Account">
+                              <i class="fas fa-user-check"></i>
+                            </button>
+                          <?php endif; ?>
+                        </form>
 
-                      <!-- Delete User Button -->
-                      <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline"
-                        onsubmit="return confirm('Permanently delete <?= h(addslashes($u['full_name'])) ?> and all associated listings? This cannot be undone.');">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
-                        <input type="hidden" name="action" value="delete">
-                        <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete User">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </form>
+                        <!-- Remove (archive) Button -->
+                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline"
+                          onsubmit="return confirm('Remove <?= h(addslashes($u['full_name'])) ?>? Their account and listings will be hidden from the site. Nothing is deleted, and you can restore it from the Removed tab.');">
+                          <?= csrf_field() ?>
+                          <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
+                          <input type="hidden" name="action" value="delete">
+                          <button type="submit" class="btn btn-xs btn-outline-danger" title="Remove User">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </form>
+                      <?php endif; ?>
                     </div>
                   </td>
                 </tr>

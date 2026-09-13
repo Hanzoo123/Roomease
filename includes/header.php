@@ -13,7 +13,10 @@ $flash = flash_get();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= h($pageTitle) ?> · RoomEase</title>
-  <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+  <?php /* filemtime stamp: a stylesheet edit shows up on the next load instead of
+       sitting behind a stale browser cache. */ ?>
+  <link rel="stylesheet"
+    href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../assets/css/style.css') ?: 0 ?>">
 </head>
 
 <body>
@@ -47,7 +50,7 @@ $flash = flash_get();
     </div>
   </div>
 
-  <div class="container" style="padding-top:26px;">
+  <div class="container page-body">
     <?php if ($flash): ?>
       <div class="alert alert-<?= $flash['type'] === 'error' ? 'error' : 'success' ?>">
         <?= h($flash['message']) ?>

@@ -5,10 +5,7 @@
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 
-// Ensure user is logged in as administrator
-if (!is_logged_in() || !is_admin()) {
-  redirect('auth/login.php');
-}
+require_login('admin');
 
 // Fetch counts
 $counts = $pdo->query(

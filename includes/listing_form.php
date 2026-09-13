@@ -14,12 +14,11 @@ $selectedUtils = $selectedUtils ?? [];
 $existingImages = $existingImages ?? [];
 $val = fn($key, $default = '') => h($listing[$key] ?? $default);
 
+// room_type_id is a foreign key onto room_types, so a stored value is always
+// one of these. The old "keep an unrecognised value in the list" fallback is
+// gone with it: the database can no longer hold a room type that is not here.
 $commonRoomTypes = room_type_options();
-// If this listing predates the current vocabulary, keep its stored value in the
-// list so editing another field cannot silently reassign its room type.
-if (!empty($listing['room_type']) && !in_array($listing['room_type'], $commonRoomTypes, true)) {
-  array_unshift($commonRoomTypes, $listing['room_type']);
-}
+$selectedRoomType = isset($listing['room_type_id']) ? (int) $listing['room_type_id'] : null;
 
 $policyPresets = [
   'Included in Rent',
@@ -64,9 +63,12 @@ $policyPresets = [
 <div class="form-row">
   <div class="col-md-6 form-group">
     <label for="room_type">Room type</label>
-    <select class="form-control" id="room_type" name="room_type" required>
-      <?php foreach ($commonRoomTypes as $rt): ?>
-        <option value="<?= h($rt) ?>" <?= ($listing['room_type'] ?? '') === $rt ? 'selected' : '' ?>><?= h($rt) ?></option>
+    <?php if (!$commonRoomTypes): ?>
+      <?= lookup_unavailable_notice('room types', 'room_types') ?>
+    <?php endif; ?>
+    <select class="form-control" id="room_type" name="room_type_id" required>
+      <?php foreach ($commonRoomTypes as $rtId => $rtName): ?>
+        <option value="<?= (int) $rtId ?>" <?= $selectedRoomType === $rtId ? 'selected' : '' ?>><?= h($rtName) ?></option>
       <?php endforeach; ?>
     </select>
   </div>
@@ -113,8 +115,12 @@ $policyPresets = [
 </h5>
 <p class="text-muted small mb-3">Select all amenities currently accessible to boarders.</p>
 
+<?php $amenityChoices = amenity_options(); ?>
+<?php if (!$amenityChoices): ?>
+  <?= lookup_unavailable_notice('amenities', 'amenities') ?>
+<?php endif; ?>
 <div class="row mb-3">
-  <?php foreach (amenity_options() as $i => $a): ?>
+  <?php foreach ($amenityChoices as $i => $a): ?>
     <div class="col-md-4 col-sm-6 mb-2">
       <div class="custom-control custom-checkbox">
         <input type="checkbox" class="custom-control-input" id="amenity_<?= (int) $i ?>" name="amenities[]"
@@ -132,7 +138,12 @@ $policyPresets = [
 </h5>
 <p class="text-muted small mb-3">Tick each utility you provide and describe how it is billed.</p>
 
-<?php foreach (utility_options() as $u):
+<?php $utilityChoices = utility_options(); ?>
+<?php if (!$utilityChoices): ?>
+  <?= lookup_unavailable_notice('utilities', 'utilities') ?>
+<?php endif; ?>
+
+<?php foreach ($utilityChoices as $u):
   $uId = $u['utility_id'];
   $currentPolicy = $selectedUtils[$uId] ?? '';
   $isChecked = isset($selectedUtils[$uId]);

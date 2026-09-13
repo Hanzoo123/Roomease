@@ -6,10 +6,7 @@
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 
-// Ensure user is logged in as administrator
-if (!is_logged_in() || !is_admin()) {
-    redirect('auth/login.php');
-}
+require_login('admin');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('admin/manage_listings.php');
@@ -41,7 +38,10 @@ if ($action === 'approve') {
             SET moderation_status = 'approved', rejection_reason = NULL, moderated_at = NOW()
           WHERE boarding_house_id = ?"
     )->execute([$boardingHouseId]);
-    flash_set('"' . $listing['name'] . '" is now approved and visible to boarders.', 'success');
+    // The name is whatever the landlord typed. The toast escapes its message,
+    // but stripping tags here as well keeps this safe even if that flash is
+    // ever rendered somewhere that does not.
+    flash_set('"' . strip_tags($listing['name']) . '" is now approved and visible to boarders.', 'success');
 
 } elseif ($action === 'reject') {
     $reason = trim($_POST['rejection_reason'] ?? '');
@@ -57,7 +57,7 @@ if ($action === 'approve') {
             SET moderation_status = 'rejected', rejection_reason = ?, moderated_at = NOW()
           WHERE boarding_house_id = ?"
     )->execute([$reason, $boardingHouseId]);
-    flash_set('"' . $listing['name'] . '" was rejected and the reason was sent to the landlord.', 'success');
+    flash_set('"' . strip_tags($listing['name']) . '" was rejected and the reason was sent to the landlord.', 'success');
 
 } elseif ($action === 'delete') {
     $del = $pdo->prepare('DELETE FROM boarding_houses WHERE boarding_house_id = ?');

@@ -5,24 +5,138 @@
    badges; hairline rules stand in for the board's slats.
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+/* Self-hosted so the site renders identically with no network. The peso sign
+   (U+20B1) lives in the latin-ext subset, which is why both subsets ship. */
 
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url('../fonts/ibm-plex-sans-var-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url('../fonts/ibm-plex-sans-var-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/zilla-slab-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/zilla-slab-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/zilla-slab-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/zilla-slab-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/zilla-slab-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/zilla-slab-700-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/ibm-plex-mono-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* One ground (paper), one identity dark (board), one accent (brass). Status
+   colours are functional only and never decorate. Clay and sage were retired
+   as general-purpose hues: five hue families meant nothing drew the eye. */
 :root {
-  --ink: #23302D;
-  --ink-soft: #5B6B65;
-  --paper: #F6F2E9;
+  --paper: #F4F1E8;
   --panel: #FFFFFF;
-  --board: #1C3435;
-  --board-2: #24413F;
-  --brass: #B8863C;
-  --brass-lt: #D9B36C;
-  --clay: #A9573C;
-  --sage: #6E8168;
-  --line: #DED5C2;
-  --danger: #B23A2E;
 
-  --radius: 3px;
-  --shadow: 0 1px 2px rgba(28, 52, 53, 0.06), 0 4px 14px rgba(28, 52, 53, 0.06);
+  --board: #15302E;
+  --board-2: #1E413E;
+  --on-board: #EDE9DD;
+  --on-board-soft: #93A39E;
+
+  --ink: #1F2A28;
+  --ink-soft: #5C6B66;
+  --line: #E0D8C6;
+
+  /* The accent. Rent, primary action, the board's rule, focus. Nothing else. */
+  --brass: #B07C2E;
+  --brass-lt: #D9B36C;
+
+  /* Functional state only */
+  --available: #5F7A63;
+  --unavailable: #8B8378;
+  --danger: #A33B2C;
+
+  /* A board is milled, not soft: corners stay near-square so the geometry
+     agrees with the slab headings. */
+  --radius: 2px;
+
+  /* Spacing scale, ~1.6 growth. Replaces the previous ad-hoc 14/18/22/26. */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 20px;
+  --s5: 32px;
+  --s6: 52px;
+  --s7: 84px;
+
+  --shadow: 0 1px 2px rgba(21, 48, 46, 0.05), 0 4px 14px rgba(21, 48, 46, 0.06);
 }
 
 * {
@@ -39,7 +153,7 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.55;
 }
@@ -125,10 +239,8 @@ a:hover {
 }
 
 .role-tag {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  letter-spacing: 0.01em;
   color: var(--brass-lt) !important;
   border: 1px solid rgba(217, 179, 108, 0.5);
   padding: 3px 8px;
@@ -151,7 +263,7 @@ a:hover {
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-block;
-  font-family: 'Inter', sans-serif;
+  font-family: 'IBM Plex Sans', sans-serif;
   font-weight: 600;
   font-size: 14px;
   padding: 9px 18px;
@@ -226,89 +338,47 @@ a:hover {
   padding: 22px;
 }
 
-/* ---------- Directory listing card ---------- */
-.listing-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-  gap: 18px;
-  margin-top: 18px;
-}
-
-.listing-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
 .listing-photo {
   height: 160px;
   background: #E7E0CE center/cover no-repeat;
   position: relative;
 }
 
-.listing-photo .plate-number {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: var(--board);
-  color: var(--brass-lt);
+/* The heart button owns the photo's top-left corner, so the plate is no longer
+   absolutely positioned there. It reads as part of the nameplate instead. */
+.plate-number {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  letter-spacing: 0.06em;
-  padding: 4px 8px;
-  border-radius: var(--radius);
+  letter-spacing: 0.08em;
+  color: var(--brass-lt);
 }
 
 .listing-photo .status-badge {
   position: absolute;
   top: 10px;
   right: 10px;
-  font-family: 'IBM Plex Mono', monospace;
   font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.01em;
   padding: 4px 8px;
   border-radius: var(--radius);
   color: #fff;
 }
 
 .status-available {
-  background: var(--sage);
+  background: var(--available);
 }
 
 .status-full {
-  background: var(--clay);
+  background: var(--unavailable);
 }
 
 .status-inactive {
   background: #8B8378;
 }
 
-.listing-body {
-  padding: 14px 16px 16px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.listing-body h3 {
-  font-size: 17px;
-  margin-bottom: 2px;
-}
-
-.listing-addr {
-  color: var(--ink-soft);
-  font-size: 13px;
-  margin-bottom: 10px;
-}
-
 .listing-rent {
   font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   color: var(--brass);
   font-weight: 500;
@@ -318,7 +388,7 @@ a:hover {
 .listing-rent span {
   color: var(--ink-soft);
   font-size: 12px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'IBM Plex Sans', sans-serif;
 }
 
 .tag-row {
@@ -334,10 +404,6 @@ a:hover {
   color: var(--ink-soft);
   padding: 3px 8px;
   border-radius: 20px;
-}
-
-.listing-body .btn {
-  margin-top: auto;
 }
 
 /* ---------- Forms ---------- */
@@ -360,7 +426,7 @@ textarea {
   padding: 10px 11px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  font-family: 'Inter', sans-serif;
+  font-family: 'IBM Plex Sans', sans-serif;
   font-size: 14px;
   background: #fff;
   color: var(--ink);
@@ -451,10 +517,8 @@ td {
 }
 
 th {
-  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.01em;
   color: var(--ink-soft);
 }
 
@@ -463,9 +527,7 @@ tr:hover td {
 }
 
 .badge {
-  font-family: 'IBM Plex Mono', monospace;
   font-size: 10.5px;
-  text-transform: uppercase;
   padding: 3px 7px;
   border-radius: var(--radius);
   letter-spacing: 0.05em;
@@ -493,7 +555,7 @@ tr:hover td {
 
 .badge-inactive {
   background: #F1E7E3;
-  color: var(--clay);
+  color: var(--unavailable);
 }
 
 /* ---------- Auth pages ---------- */
@@ -528,15 +590,6 @@ tr:hover td {
   border-bottom: 3px solid var(--brass);
 }
 
-.hero .eyebrow {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--brass-lt);
-  margin-bottom: 10px;
-}
-
 .hero h1 {
   color: #fff;
   font-size: 34px;
@@ -556,6 +609,10 @@ tr:hover td {
   flex-wrap: wrap;
 }
 
+/* Browse filter bar. The mobile rule that collapses this to a single column
+   lives in the media query further down, which is the reason these styles are
+   a class and not inline: an inline grid-template-columns would override the
+   breakpoint and leave the bar four columns wide on a phone. */
 .search-bar {
   background: var(--panel);
   border-radius: var(--radius);
@@ -563,8 +620,8 @@ tr:hover td {
   box-shadow: var(--shadow);
   display: grid;
   grid-template-columns: 2fr 1fr 1fr auto;
-  gap: 10px;
-  margin-top: -30px;
+  align-items: end;
+  gap: 12px;
   position: relative;
   z-index: 2;
   border: 1px solid var(--line);
@@ -591,7 +648,6 @@ tr:hover td {
 }
 
 .count-tag {
-  font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
   color: var(--ink-soft);
 }
@@ -737,4 +793,738 @@ html {
   font: inherit;
   font-size: 14px;
   font-weight: 600;
+}
+
+/* Held down for the moment the toggle is in flight, so a double tap cannot
+   send a save and an unsave at the same time. */
+.save-btn:disabled {
+  opacity: .6;
+  cursor: default;
+}
+
+@keyframes save-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* The round card heart pops on toggle; the wide labelled button does not,
+   because scaling a full-width block button looks like a glitch. */
+.save-btn-pop:not(.save-btn-wide) {
+  animation: save-pop .28s ease;
+}
+
+/* Confirms a tap now that the page no longer reloads to show the flash. */
+.save-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  max-width: min(320px, calc(100vw - 36px));
+  margin: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .16);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: none;
+}
+
+.save-toast.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .save-btn-pop:not(.save-btn-wide) {
+    animation: none;
+  }
+  .save-toast {
+    transition: none;
+  }
+}
+
+/* =========================================================
+   Nameplate: the listing card without a cover photo
+   ---------------------------------------------------------
+   A photo-less listing used to render as a blank tan block, and with no images
+   in the database that was every card on the page. The block now becomes the
+   thing this theme always described: a nameplate on the directory board, with
+   the room type struck in mono over the board's slats. It is deliberately
+   shorter than a real photo so a card without one is mostly information.
+   ========================================================= */
+.listing-photo--empty {
+  height: 104px;
+  background: var(--board);
+  background-image: repeating-linear-gradient(180deg,
+      rgba(246, 242, 233, 0.05) 0 1px,
+      transparent 1px 10px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 14px 12px;
+}
+
+.plate-type {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass-lt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plate-rule {
+  height: 1px;
+  background: rgba(217, 179, 108, 0.38);
+  margin: 7px 0 6px;
+}
+
+.plate-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(246, 242, 233, 0.62);
+  display: flex;
+  gap: 8px;
+}
+
+/* The detail page shows the same plate at a size that holds the column. */
+.listing-photo--detail {
+  height: 280px;
+}
+
+.listing-photo--detail.listing-photo--empty {
+  height: 200px;
+  padding: 0 20px 18px;
+}
+
+.listing-photo--detail .plate-type {
+  font-size: 16px;
+}
+
+/* =========================================================
+   Utility classes replacing inline styles
+   ---------------------------------------------------------
+   These were inline `style=` attributes. Inline styles beat stylesheet media
+   queries, so while they stood the breakpoints below could not do their job —
+   the same bug that once left the filter bar four columns wide on a phone.
+   ========================================================= */
+
+/* Full-bleed hero that still sits inside .container */
+.hero--bleed {
+  margin: -26px calc(-50vw + 50%) 0;
+  padding-left: calc(50vw - 50%);
+  padding-right: calc(50vw - 50%);
+}
+
+.btn-hero-ghost {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.btn-hero-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+}
+
+.section-head--plain {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.section-head--plain h2 {
+  font-size: 26px;
+}
+
+.page-head {
+  margin-bottom: 4px;
+}
+
+.panel-stack {
+  margin-top: 18px;
+}
+
+.panel-stack h3,
+.contact-card h3 {
+  font-size: 16px;
+}
+
+/* Landlord-authored free text: newlines preserved, never rendered as markup. */
+.prose {
+  white-space: pre-line;
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.status-badge--static {
+  position: static;
+}
+
+.listing-rent--lg {
+  font-size: 22px;
+  margin-bottom: 14px;
+}
+
+.back-link {
+  font-size: 13px;
+}
+
+/* =========================================================
+   Contact the landlord — the end of the journey
+   ---------------------------------------------------------
+   This was a two-row spec list showing a phone number with nothing to do about
+   it, which is exactly where a boarder used to leave for Messenger. The number
+   is now the largest thing in the card and it is dialable.
+   ========================================================= */
+.contact-card {
+  margin-top: 16px;
+  border-top: 3px solid var(--brass);
+}
+
+.contact-name {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 0 0 12px;
+}
+
+.contact-phone {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 21px;
+  font-weight: 500;
+  color: var(--board);
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+
+.contact-phone:hover {
+  color: var(--brass);
+  text-decoration: none;
+}
+
+.contact-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.contact-actions .btn {
+  flex: 1 1 auto;
+}
+
+.contact-prompt {
+  border-top: 1px dashed var(--line);
+  margin-top: 14px;
+  padding-top: 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.contact-prompt strong {
+  display: block;
+  color: var(--board);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+}
+
+.contact-prompt ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.contact-prompt li {
+  margin-bottom: 3px;
+}
+
+/* Feedback for the copy-number button, which has no page reload to confirm it */
+.is-copied {
+  background: var(--available) !important;
+  color: #fff !important;
+  border-color: var(--available) !important;
+}
+
+/* =========================================================
+   Filter disclosure (small screens only)
+   ---------------------------------------------------------
+   On a phone the three stacked filter fields pushed the first listing off the
+   screen. Search stays visible; the rest collapse behind a toggle. The checkbox
+   carries no name attribute, so it never reaches the query string.
+   `display: contents` keeps both fields as direct children of the filter grid
+   on desktop, where the bar is unchanged.
+   ========================================================= */
+.filter-fields {
+  display: contents;
+}
+
+.filter-toggle,
+.filter-toggle-label {
+  display: none;
+}
+
+/* =========================================================
+   Breakpoints
+   ---------------------------------------------------------
+   The site previously had exactly one, at 720px, holding four rules.
+   ========================================================= */
+
+/* Tablet and small laptop: the detail page's two columns stop earning their
+   keep well before phone width. */
+@media (max-width: 980px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero h1 {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Reaching a listing in the first screen: the hero loses its descriptive
+     paragraph and its second call to action, both of which repeat information
+     that is a thumb-flick away. */
+  .hero {
+    padding: 30px 0 26px;
+  }
+
+  .hero p {
+    display: none;
+  }
+
+  .hero-actions .btn-hero-ghost {
+    display: none;
+  }
+
+  .search-bar {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .filter-toggle-label {
+    display: block;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    color: var(--board);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    cursor: pointer;
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  .filter-toggle-label::after {
+    content: ' +';
+  }
+
+  .filter-fields {
+    display: none;
+  }
+
+  .filter-toggle:checked ~ .filter-fields {
+    display: block;
+  }
+
+  .filter-toggle:checked ~ .filter-toggle-label::after {
+    content: ' −';
+  }
+
+  .section-head {
+    margin-top: 24px;
+  }
+
+  .contact-phone {
+    font-size: 24px;
+  }
+
+  .contact-actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* Small phones: the card and hero need to give back their remaining padding. */
+@media (max-width: 380px) {
+  .container {
+    padding: 0 14px;
+  }
+
+  .hero h1 {
+    font-size: 23px;
+  }
+
+  .section-head--plain h2 {
+    font-size: 21px;
+  }
+
+  .brand {
+    font-size: 19px;
+  }
+}
+
+/* Remaining former inline styles from the listing detail page */
+.alert--spaced {
+  margin-top: 14px;
+}
+
+.auth-sub--tight {
+  margin-top: 0;
+}
+
+.save-form--block,
+.field-hint--block {
+  margin-bottom: 14px;
+}
+
+.tag-row--spaced {
+  margin-top: 14px;
+}
+
+/* Password-reset pages */
+.alert-note {
+  margin: 8px 0 10px;
+  font-size: 13px;
+}
+
+.reset-link-box {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/* The register page's role chooser. Was an inline two-column grid, which meant
+   it stayed two columns however narrow the screen got. */
+.role-choice {
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 380px) {
+  .role-choice {
+    grid-template-columns: 1fr;
+  }
+}
+
+.page-body {
+  padding-top: 26px;
+}
+
+/* =========================================================
+   THE BOARD — the one bold element
+   ---------------------------------------------------------
+   Listings are rows milled into a single continuous panel, not cards floating
+   on paper. A lobby tenant directory is one board, so this is one board: a
+   brass rule caps it, brass hairlines divide the rows, and rent runs down a
+   single right-hand axis so two listings can be compared by eye.
+
+   It also solves the photo problem structurally rather than cosmetically. The
+   plate at the left of every row is a fixed footprint; when a listing has a
+   cover photo the photo fills that footprint, and when it does not the plate
+   carries the room type instead. Both rows have identical geometry, so a board
+   of listings with no photos still looks composed.
+   ========================================================= */
+.board {
+  background: var(--board);
+  border-top: 3px solid var(--brass);
+  overflow: hidden;
+  margin-top: var(--s4);
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--s3);
+  padding-right: var(--s4);
+  border-bottom: 1px solid rgba(217, 179, 108, 0.16);
+  position: relative;
+}
+
+.board-row:last-child {
+  border-bottom: none;
+}
+
+.board-row:hover {
+  background: var(--board-2);
+}
+
+.board-link {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: var(--s4);
+  align-items: center;
+  padding: var(--s3) 0 var(--s3) var(--s4);
+  color: var(--on-board);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.board-link:hover {
+  text-decoration: none;
+  color: var(--on-board);
+}
+
+/* The plate. Fixed footprint whether it holds a photo or the room type. */
+.plate {
+  height: 62px;
+  border: 1px solid rgba(217, 179, 108, 0.4);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 6px;
+  overflow: hidden;
+}
+
+.plate--photo {
+  border-color: rgba(217, 179, 108, 0.25);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.plate-no {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--brass-lt);
+}
+
+/* Kept uppercase deliberately: this is the engraved plate itself, not a label
+   announcing a section. It is the only uppercase left in the stylesheet. */
+.plate-kind {
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--on-board-soft);
+  text-align: center;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-main {
+  min-width: 0;
+}
+
+.board-name {
+  display: block;
+  font-family: 'Zilla Slab', Georgia, serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--on-board);
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+
+.board-addr {
+  display: block;
+  font-size: 13px;
+  color: var(--on-board-soft);
+  margin: 0;
+}
+
+.board-meta {
+  font-size: 12.5px;
+  color: var(--on-board-soft);
+  margin-top: var(--s1);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+.board-meta .sep {
+  opacity: 0.4;
+}
+
+.state-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+  vertical-align: baseline;
+}
+
+.state-dot--available {
+  background: #7E9B82;
+}
+
+.state-dot--unavailable {
+  background: var(--unavailable);
+}
+
+/* Rent runs down one axis. Tabular figures so the pesos line up. */
+.board-rent {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  color: var(--brass-lt);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.board-rent span {
+  display: block;
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  font-variant-numeric: normal;
+  font-size: 11.5px;
+  color: var(--on-board-soft);
+  margin-top: 1px;
+}
+
+.board-empty {
+  padding: var(--s6) var(--s4);
+  text-align: center;
+  color: var(--on-board-soft);
+  font-size: 14px;
+}
+
+/* The save form sits in the row's flow rather than floating over a photo. */
+.board-row .save-form {
+  margin: 0;
+}
+
+.board-row .save-btn {
+  background: transparent;
+  border-color: rgba(217, 179, 108, 0.32);
+  color: var(--on-board-soft);
+  box-shadow: none;
+}
+
+.board-row .save-btn:hover,
+.board-row .save-btn.is-saved {
+  color: var(--brass-lt);
+  border-color: var(--brass-lt);
+}
+
+.board-row.is-removing {
+  opacity: 0;
+  transform: scale(.98);
+  transition: opacity .2s ease, transform .2s ease;
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .board-link {
+    grid-template-columns: 64px 1fr;
+    gap: var(--s3);
+    padding: var(--s3) 0 var(--s3) var(--s3);
+  }
+
+  .board-row {
+    padding-right: var(--s3);
+  }
+
+  .plate {
+    height: 56px;
+  }
+
+  /* Wrap rather than truncate: "PRIVA…" tells the reader nothing. */
+  .plate-kind {
+    white-space: normal;
+    font-size: 8.5px;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+  }
+
+  .board-rent {
+    grid-column: 2;
+    text-align: left;
+    margin-top: var(--s2);
+    font-size: 15px;
+  }
+
+  .board-rent span {
+    display: inline;
+    margin-left: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-row.is-removing {
+    transition: none;
+  }
+}
+
+/* The board appears exactly once more, as the listing's spec strip. A dark
+   surface means "this is the record" on both pages, which is the whole reason
+   to use it twice rather than decorating with it. */
+.spec-board {
+  background: var(--board);
+  border-top: 3px solid var(--brass);
+  padding: var(--s4);
+  color: var(--on-board);
+}
+
+.spec-board .listing-rent {
+  color: var(--brass-lt);
+}
+
+.spec-board .listing-rent span {
+  color: var(--on-board-soft);
+}
+
+.spec-board .spec-list li {
+  border-bottom-color: rgba(217, 179, 108, 0.16);
+  color: var(--on-board);
+}
+
+.spec-board .spec-list li span:first-child {
+  color: var(--on-board-soft);
+}
+
+.spec-board .tag {
+  border-color: rgba(217, 179, 108, 0.3);
+  color: var(--on-board-soft);
+}
+
+.spec-board .save-btn-wide {
+  background: transparent;
+  border-color: rgba(217, 179, 108, 0.4);
+  color: var(--on-board);
+  box-shadow: none;
+}
+
+.spec-board .save-btn-wide:hover,
+.spec-board .save-btn-wide.is-saved {
+  color: var(--brass-lt);
+  border-color: var(--brass-lt);
+}
+
+.spec-board .field-hint {
+  color: var(--on-board-soft);
+}
+
+.spec-board .field-hint a {
+  color: var(--brass-lt);
+}
+
+/* Every surface that carries the brass frame rule is square-cornered. A milled
+   board has hard corners, and a 3px rule reads as a frame edge only against
+   one. Declared together so the intent lives in a single place. */
+.board,
+.spec-board,
+.contact-card {
+  border-radius: 0;
 }

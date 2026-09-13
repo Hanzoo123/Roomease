@@ -5,10 +5,7 @@
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 
-// Ensure user is logged in as administrator
-if (!is_logged_in() || !is_admin()) {
-  redirect('auth/login.php');
-}
+require_login('admin');
 
 // Optional moderation filter, e.g. ?status=pending for the approval queue.
 $statusFilter = $_GET['status'] ?? '';
@@ -16,11 +13,13 @@ if (!in_array($statusFilter, ['pending', 'approved', 'rejected'], true)) {
   $statusFilter = '';
 }
 
-$sql = "SELECT bh.*,
+$sql = "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
-            u.email AS landlord_email
+            u.email AS landlord_email,
+            u.deleted_at AS landlord_deleted_at
      FROM boarding_houses bh
-     JOIN users u ON u.user_id = bh.landlord_id";
+     JOIN users u ON u.user_id = bh.landlord_id
+     " . ROOM_TYPE_JOIN;
 $params = [];
 if ($statusFilter !== '') {
   $sql .= " WHERE bh.moderation_status = ?";

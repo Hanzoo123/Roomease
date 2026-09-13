@@ -1,0 +1,25 @@
+# Runtime logs written by the app (storage/ also has its own .gitignore).
+storage/*.log
+
+# Landlord-uploaded listing photos. These are user data, not source code:
+# they are recreated per install and would otherwise bloat the repository.
+assets/uploads/boarding_houses/
+!assets/uploads/.htaccess
+
+# Composer, if and when it is added.
+/vendor/
+composer.lock
+
+# Editor and OS noise.
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local environment overrides. Database credentials belong in the
+# ROOMEASE_DB_* environment variables, never in a tracked file.
+.env
+.env.local

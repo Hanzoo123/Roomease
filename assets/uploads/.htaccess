@@ -1,0 +1,40 @@
+# Uploaded files are visitor-supplied content. Serve them, never run them.
+#
+# The upload code already forces the extension from the detected MIME type, so
+# a .php file should never land here in the first place. This is the second
+# lock: even if one somehow did, Apache will refuse to execute or serve it.
+
+Options -Indexes -ExecCGI
+
+# Take PHP off this folder entirely, whichever module is loaded.
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php5.c>
+  php_flag engine off
+</IfModule>
+
+# And for FPM/CGI setups, where the directives above do not apply, refuse to
+# hand the file to any handler at all.
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .pht .phar
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .pht .phar
+
+<FilesMatch "(?i)\.(php|phtml|php[0-9]|phps|pht|phar|cgi|pl|py|sh|asp|aspx|jsp|htaccess)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Uploaded images are never markup; do not let a browser decide otherwise.
+<IfModule mod_headers.c>
+  Header setifempty X-Content-Type-Options "nosniff"
+  Header set Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
+  Header set Content-Disposition "inline"
+</IfModule>

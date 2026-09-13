@@ -9,7 +9,7 @@ $listing = [
     'address'             => '',
     'monthly_rent'        => '',
     'reservation_fee'     => '',
-    'room_type'           => 'Private Room',
+    'room_type_id'        => '',
     'room_capacity'       => 1,
     'availability_status' => 'available',
     'description'         => '',
@@ -58,10 +58,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($listing['availability_status'], ['available', 'unavailable'], true)) {
         $listing['availability_status'] = 'available';
     }
+    // room_type_id is a foreign key, so an invalid value would be rejected by
+    // the database as a fatal error. Checking it here turns that into an
+    // ordinary validation message on the form.
+    if (!isset(room_type_options()[(int) $listing['room_type_id']])) {
+        $errors[] = 'Choose a room type from the list.';
+    }
 
     if (!$errors) {
         $stmt = $pdo->prepare(
-            'INSERT INTO boarding_houses (landlord_id, name, address, monthly_rent, reservation_fee, room_type, room_capacity, availability_status, description, contact_number, house_rules)
+            'INSERT INTO boarding_houses (landlord_id, name, address, monthly_rent, reservation_fee, room_type_id, room_capacity, availability_status, description, contact_number, house_rules)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
@@ -70,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $listing['address'],
             $listing['monthly_rent'],
             $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
-            $listing['room_type'],
+            (int) $listing['room_type_id'],
             (int)$listing['room_capacity'],
             $listing['availability_status'],
             $listing['description'],

@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     verify_csrf();
 
-    foreach (['name', 'address', 'monthly_rent', 'reservation_fee', 'room_type', 'room_capacity',
+    foreach (['name', 'address', 'monthly_rent', 'reservation_fee', 'room_type_id', 'room_capacity',
               'availability_status', 'description', 'contact_number', 'house_rules'] as $key) {
         $listing[$key] = trim($_POST[$key] ?? '');
     }
@@ -85,18 +85,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($listing['availability_status'], ['available', 'unavailable'], true)) {
         $listing['availability_status'] = 'available';
     }
+    // Checked here so an invalid id becomes a form message rather than a
+    // foreign key error from the database.
+    if (!isset(room_type_options()[(int) $listing['room_type_id']])) {
+        $errors[] = 'Choose a room type from the list.';
+    }
 
     if (!$errors) {
         // Update boarding house
         $stmt = $pdo->prepare(
-            'UPDATE boarding_houses SET name=?, address=?, monthly_rent=?, reservation_fee=?, room_type=?,
+            'UPDATE boarding_houses SET name=?, address=?, monthly_rent=?, reservation_fee=?, room_type_id=?,
              room_capacity=?, availability_status=?, description=?, contact_number=?, house_rules=?
              WHERE boarding_house_id=? AND landlord_id=?'
         );
         $stmt->execute([
             $listing['name'], $listing['address'], $listing['monthly_rent'],
             $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
-            $listing['room_type'],
+            (int) $listing['room_type_id'],
             (int)$listing['room_capacity'], $listing['availability_status'],
             $listing['description'], $listing['contact_number'], $listing['house_rules'],
             $boardingHouseId, $_SESSION['user_id'],

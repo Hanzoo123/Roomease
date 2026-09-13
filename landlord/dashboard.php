@@ -25,13 +25,14 @@ $counts = $countStmt->fetch();
 
 // This landlord's listings, with a cover photo and a photo count each.
 $stmt = $pdo->prepare(
-  "SELECT bh.*,
+  "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
           (SELECT COUNT(*) FROM images img
              WHERE img.boarding_house_id = bh.boarding_house_id) AS photo_count,
           (SELECT image_path FROM images img
              WHERE img.boarding_house_id = bh.boarding_house_id
              ORDER BY is_primary DESC, image_id ASC LIMIT 1) AS cover_photo
      FROM boarding_houses bh
+     " . ROOM_TYPE_JOIN . "
     WHERE bh.landlord_id = ?
     ORDER BY bh.created_at DESC"
 );

@@ -38,8 +38,13 @@ CREATE TABLE users (
     phone_number    VARCHAR(30) DEFAULT NULL,
     role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    -- Set when an administrator removes the account. Archiving instead of
+    -- deleting keeps the cascades below from destroying the listings,
+    -- photos and saved copies attached to it.
+    deleted_at      DATETIME NULL DEFAULT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_users_live (deleted_at, is_active, role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
@@ -53,7 +58,7 @@ CREATE TABLE boarding_houses (
     address             TEXT NOT NULL,
     monthly_rent        DECIMAL(10, 2) NOT NULL,
     reservation_fee     DECIMAL(10, 2) DEFAULT NULL,
-    room_type           VARCHAR(50) DEFAULT NULL,
+    room_type_id        INT DEFAULT NULL,
     room_capacity       INT NOT NULL DEFAULT 1,
     availability_status ENUM('available', 'unavailable') NOT NULL DEFAULT 'available',
     moderation_status   ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
@@ -64,6 +69,15 @@ CREATE TABLE boarding_houses (
     house_rules         TEXT DEFAULT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Indexes for the queries the application actually runs. The two status
+    -- columns lead because every browse query fixes both, and the ordering
+    -- column comes last so the same index supplies the sort as well.
+    KEY idx_bh_public_recent   (moderation_status, availability_status, created_at),
+    KEY idx_bh_public_rent     (moderation_status, availability_status, monthly_rent),
+    KEY idx_bh_public_type     (moderation_status, availability_status, room_type_id, created_at),
+    KEY idx_bh_created         (created_at),
+    KEY idx_bh_landlord_recent (landlord_id, created_at),
+    -- fk_bh_room_type is added further down, once room_types exists.
     CONSTRAINT fk_bh_landlord FOREIGN KEY (landlord_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -88,13 +102,23 @@ CREATE TABLE utilities (
 
 -- ---------------------------------------------------------
 -- 5. Table: room_types
--- Controlled vocabulary for boarding_houses.room_type, so the
+-- Controlled vocabulary for boarding_houses.room_type_id, so the
 -- listing form and the browse filter always offer the same values.
 -- ---------------------------------------------------------
 CREATE TABLE room_types (
     room_type_id    INT AUTO_INCREMENT PRIMARY KEY,
     room_type_name  VARCHAR(50) NOT NULL UNIQUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- boarding_houses is declared above this table, so the constraint that ties a
+-- listing's room type to this vocabulary is added here, once it exists.
+--
+-- RESTRICT, not CASCADE: deleting a room type that listings are using should
+-- be refused, never silently delete those listings. This is the one
+-- relationship in the schema that deliberately does not cascade.
+ALTER TABLE boarding_houses
+    ADD CONSTRAINT fk_bh_room_type FOREIGN KEY (room_type_id)
+        REFERENCES room_types(room_type_id) ON DELETE RESTRICT;
 
 -- ---------------------------------------------------------
 -- 6. Table: boarding_house_amenities
@@ -138,6 +162,8 @@ CREATE TABLE images (
     image_path          VARCHAR(255) NOT NULL,
     is_primary          BOOLEAN NOT NULL DEFAULT FALSE,
     uploaded_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Serves the per-listing cover photo lookup in browse and both dashboards.
+    KEY idx_images_cover (boarding_house_id, is_primary, image_id),
     CONSTRAINT fk_images_bh FOREIGN KEY (boarding_house_id)
         REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -153,6 +179,8 @@ CREATE TABLE favorites (
     boarding_house_id   INT NOT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_favorite (user_id, boarding_house_id),
+    -- The saved list is read by user, newest first.
+    KEY idx_fav_user_recent (user_id, created_at),
     CONSTRAINT fk_fav_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_fav_bh FOREIGN KEY (boarding_house_id)
@@ -213,48 +241,23 @@ INSERT INTO room_types (room_type_name) VALUES
 ('Dormitory'),
 ('Private Room');
 
--- 4. Default Users
--- Passwords below are hashed for 'Admin@123' and 'Password@123'
+-- 4. Administrator account
+--
+-- The password hash below is a deliberate placeholder: it is not a valid
+-- bcrypt hash, so password_verify() can never match it and the account
+-- cannot be signed into until a password is set. This replaces the old
+-- seeded password, which was printed in the README and was therefore
+-- public knowledge. Set a real password before first use:
+--
+--   php database/set_admin_password.php "YourStrongPassword"
+--
 INSERT INTO users (user_id, email, password_hash, first_name, last_name, phone_number, role, is_active) VALUES
-(1, 'admin@roomease.local', '$2y$10$dnDMGIJZtl7IoMXgwVtmE.rk3PcAAXOuHXuMCa28LDmRJ6zMpfPAi', 'System', 'Administrator', '09000000000', 'administrator', TRUE),
-(2, 'landlord@roomease.local', '$2y$10$dnDMGIJZtl7IoMXgwVtmE.rk3PcAAXOuHXuMCa28LDmRJ6zMpfPAi', 'Juan', 'Dela Cruz', '09171234567', 'landlord', TRUE),
-(3, 'boarder@roomease.local', '$2y$10$dnDMGIJZtl7IoMXgwVtmE.rk3PcAAXOuHXuMCa28LDmRJ6zMpfPAi', 'Maria', 'Santos', '09281234567', 'boarder', TRUE);
+(1, 'admin@roomease.local', 'LOCKED-run-database/set_admin_password.php', 'System', 'Administrator', '09000000000', 'administrator', TRUE);
 
--- 5. Sample Boarding Houses
-INSERT INTO boarding_houses (boarding_house_id, landlord_id, name, address, monthly_rent, reservation_fee, room_type, room_capacity, availability_status, moderation_status, moderated_at, description, contact_number, house_rules) VALUES
-(1, 2, 'Baybay Greenview Residences', 'Purok 4, Brgy. Pangasugan, Baybay City, Leyte', 3500.00, 1500.00, 'Single Room', 1, 'available', 'approved', NOW(), 'Clean, quiet, and breezy boarding house just 5 minutes walking distance to VSU main campus.', '09171234567', 'No visitors allowed after 9:00 PM.\nKeep common spaces clean.\nNo smoking or alcoholic beverages inside.'),
-(2, 2, 'Sunshine Villa Boarding House', 'Brgy. Guadalupe, Baybay City, Leyte', 2800.00, 1000.00, 'Double Sharing', 2, 'available', 'approved', NOW(), 'Spacious double sharing rooms with study tables and personal storage lockers for college students.', '09171234567', 'Curfew at 10:00 PM.\nConserve water and electricity.\nRespect roommates quiet hours after 10:00 PM.'),
-(3, 2, 'Coastal Breeze Ladies Dorm', 'Brgy. Zone 12, Baybay City, Leyte', 4500.00, 2000.00, 'Private Room', 1, 'available', 'approved', NOW(), 'Exclusive all-female dormitory with fully air-conditioned rooms and 24/7 CCTV surveillance.', '09171234567', 'All-female dormitory, strictly no male visitors inside rooms.\nQuiet hours from 10:00 PM to 6:00 AM.');
-
--- 6. Junction: Boarding House Amenities
-INSERT INTO boarding_house_amenities (boarding_house_id, amenity_id, is_available) VALUES
-(1, 1, TRUE),  -- Wi-Fi
-(1, 3, TRUE),  -- Private Bathroom
-(1, 5, TRUE),  -- Laundry Area
-(1, 6, TRUE),  -- Study Table & Chair
-(1, 10, TRUE), -- Near VSU
-(2, 1, TRUE),  -- Wi-Fi
-(2, 4, TRUE),  -- Kitchen Access
-(2, 6, TRUE),  -- Study Table & Chair
-(2, 9, TRUE),  -- Gated Compound
-(3, 1, TRUE),  -- Wi-Fi
-(3, 2, TRUE),  -- Air Conditioning
-(3, 3, TRUE),  -- Private Bathroom
-(3, 7, TRUE);  -- CCTV
-
--- 7. Junction: Boarding House Utilities
-INSERT INTO boarding_house_utilities (boarding_house_id, utility_id, billing_policy) VALUES
-(1, 1, 'Included in Rent'),
-(1, 2, 'Separate Submeter (₱14/kWh)'),
-(1, 3, 'Included in Rent'),
-(1, 4, 'Free High-speed Wi-Fi'),
-(2, 1, 'Fixed ₱150 per month'),
-(2, 2, 'Split equally among boarders'),
-(2, 3, 'Included in Rent'),
-(3, 1, 'Included in Rent'),
-(3, 2, 'Separate Meter'),
-(3, 3, 'Included in Rent'),
-(3, 4, 'Free fiber connection');
+-- Demo accounts and sample listings are NOT part of this schema. They live in
+-- database/seed_demo.sql, so a real deployment can import the schema without
+-- also creating accounts whose password is published in this repository.
+-- For a walkthrough or a defence demo, import that file as well.
 
 -- Reset auto-increment counter to avoid conflicts
 ALTER TABLE users AUTO_INCREMENT = 10;

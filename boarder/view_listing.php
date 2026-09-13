@@ -5,12 +5,15 @@ require __DIR__ . '/../includes/functions.php';
 $listingId = (int) ($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare(
-  "SELECT bh.*,
+  "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
             u.phone_number AS landlord_phone,
-            u.email AS landlord_email
+            u.email AS landlord_email,
+            u.is_active AS landlord_active,
+            u.deleted_at AS landlord_deleted_at
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
+     " . ROOM_TYPE_JOIN . "
      WHERE bh.boarding_house_id = ?"
 );
 $stmt->execute([$listingId]);
@@ -24,6 +27,13 @@ $isOwner = $listing && is_logged_in() && current_role() === 'landlord'
 $canPreview = $isOwner || is_admin();
 
 if ($listing && $listing['moderation_status'] !== 'approved' && !$canPreview) {
+    $listing = false;
+}
+
+// A listing whose landlord has been deactivated or removed is off the site for
+// everyone except an administrator, who still needs to be able to review it.
+$landlordLive = $listing && $listing['landlord_deleted_at'] === null && (int) $listing['landlord_active'] === 1;
+if ($listing && !$landlordLive && !$isOwner && !is_admin()) {
     $listing = false;
 }
 
@@ -67,10 +77,10 @@ $pageTitle = $listing['name'];
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<a href="<?= base_url('boarder/browse.php') ?>" style="font-size:13px;">&larr; Back to Browse</a>
+<a href="<?= base_url('boarder/browse.php') ?>" class="back-link">&larr; Back to Browse</a>
 
 <?php if ($listing['moderation_status'] !== 'approved'): ?>
-  <div class="alert alert-error" style="margin-top:14px;">
+  <div class="alert alert-error alert--spaced">
     <strong>Preview only.</strong>
     <?php if ($listing['moderation_status'] === 'pending'): ?>
       This listing is waiting for administrator approval, so boarders cannot see it yet.
@@ -83,13 +93,13 @@ require __DIR__ . '/../includes/header.php';
   </div>
 <?php endif; ?>
 
-<div class="section-head" style="border-bottom:none; margin-bottom:0;">
-  <h2 style="font-size:26px;"><?= h($listing['name']) ?></h2>
-  <span class="status-badge <?= $isAvailable ? 'status-available' : 'status-inactive' ?>" style="position:static;">
+<div class="section-head section-head--plain">
+  <h2><?= h($listing['name']) ?></h2>
+  <span class="status-badge status-badge--static <?= $isAvailable ? 'status-available' : 'status-inactive' ?>">
     <?= $isAvailable ? 'Available' : 'Unavailable' ?>
   </span>
 </div>
-<p class="auth-sub" style="margin-top:0;"><?= h($listing['address']) ?></p>
+<p class="auth-sub auth-sub--tight"><?= h($listing['address']) ?></p>
 
 <div class="detail-grid">
   <div class="detail-photos">
@@ -103,46 +113,56 @@ require __DIR__ . '/../includes/header.php';
         </div>
       <?php endif; ?>
     <?php else: ?>
-      <div class="listing-photo" style="height:280px;"></div>
+      <?php /* Same nameplate the browse cards fall back to, at a size that
+               holds the column rather than leaving a blank panel. */ ?>
+      <div class="listing-photo listing-photo--detail listing-photo--empty">
+        <div class="plate-type"><?= h($listing['room_type'] ?: 'Boarding house') ?></div>
+        <div class="plate-rule"></div>
+        <div class="plate-meta">
+          <span class="plate-number">No. <?= str_pad((string) $listingId, 3, '0', STR_PAD_LEFT) ?></span>
+          <span><?= (int) $listing['room_capacity'] ?> pax</span>
+          <span>No photos yet</span>
+        </div>
+      </div>
     <?php endif; ?>
 
     <?php if (!empty($listing['description'])): ?>
-      <div class="panel panel-pad" style="margin-top:18px;">
-        <h3 style="font-size:16px;">About this place</h3>
-        <p style="white-space:pre-line; margin:0; color:var(--ink-soft);"><?= h($listing['description']) ?></p>
+      <div class="panel panel-pad panel-stack">
+        <h3>About this place</h3>
+        <p class="prose"><?= h($listing['description']) ?></p>
       </div>
     <?php endif; ?>
 
     <?php if ($listing['house_rules']): ?>
-      <div class="panel panel-pad" style="margin-top:18px;">
-        <h3 style="font-size:16px;">House Rules</h3>
-        <p style="white-space:pre-line; margin:0; color:var(--ink-soft);"><?= h($listing['house_rules']) ?></p>
+      <div class="panel panel-pad panel-stack">
+        <h3>House Rules</h3>
+        <p class="prose"><?= h($listing['house_rules']) ?></p>
       </div>
     <?php endif; ?>
   </div>
 
   <div>
-    <div class="panel panel-pad">
-      <div class="listing-rent" style="font-size:22px; margin-bottom:14px;"><?= peso($listing['monthly_rent']) ?>
+    <div class="spec-board">
+      <div class="listing-rent listing-rent--lg"><?= peso($listing['monthly_rent']) ?>
         <span>/ month</span></div>
 
       <?php if (can_save_listings()): ?>
-        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" style="margin-bottom:14px;">
+        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form save-form--block">
           <?= csrf_field() ?>
           <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
           <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">
           <input type="hidden" name="return" value="view">
           <button type="submit" class="save-btn save-btn-wide btn-block <?= $isSaved ? 'is-saved' : '' ?>"
-            style="width:100%;">
+            aria-pressed="<?= $isSaved ? 'true' : 'false' ?>">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $isSaved ? 'currentColor' : 'none' ?>"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <?= $isSaved ? 'Saved' : 'Save this listing' ?>
+            <span class="save-btn-text"><?= $isSaved ? 'Saved' : 'Save this listing' ?></span>
           </button>
         </form>
       <?php elseif (!is_logged_in()): ?>
-        <p class="field-hint" style="margin-bottom:14px;">
+        <p class="field-hint field-hint--block">
           <a href="<?= base_url('auth/login.php') ?>">Log in</a> as a boarder to save this listing.
         </p>
       <?php endif; ?>
@@ -158,27 +178,51 @@ require __DIR__ . '/../includes/header.php';
       </ul>
 
       <?php if ($amenities): ?>
-        <div class="tag-row" style="margin-top:14px;">
+        <div class="tag-row tag-row--spaced">
           <?php foreach ($amenities as $a): ?><span class="tag"><?= h($a) ?></span><?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>
 
-    <div class="panel panel-pad" style="margin-top:16px;">
-      <h3 style="font-size:16px;">Contact the Landlord</h3>
-      <ul class="spec-list">
-        <li><span>Name</span><span><?= h($listing['landlord_name']) ?></span></li>
-        <li><span>Listed contact</span><span><?= h($listing['contact_number'] ?: '—') ?></span></li>
-        <?php if (is_logged_in()): ?>
-          <li><span>Phone on file</span><span><?= h($listing['landlord_phone'] ?: '—') ?></span></li>
-        <?php endif; ?>
-      </ul>
-      <?php if (!is_logged_in()): ?>
-        <p class="field-hint" style="margin-top:10px;"><a href="<?= base_url('auth/login.php') ?>">Log in</a> to see the
-          landlord's phone number on file.</p>
+    <?php
+    /* The number the boarder should actually use: the one the landlord put on
+       this listing, falling back to the account phone for signed-in users.
+       This card used to be a two-row spec list with nothing to act on, which
+       is exactly where the journey left RoomEase for Messenger. */
+    $shownPhone = trim((string) $listing['contact_number']);
+    if ($shownPhone === '' && is_logged_in()) {
+        $shownPhone = trim((string) $listing['landlord_phone']);
+    }
+    $dialPhone = preg_replace('/[^0-9+]/', '', $shownPhone);
+    ?>
+    <div class="panel panel-pad contact-card">
+      <h3>Contact the Landlord</h3>
+      <p class="contact-name"><?= h($listing['landlord_name']) ?></p>
+
+      <?php if ($shownPhone !== ''): ?>
+        <a class="contact-phone" href="tel:<?= h($dialPhone) ?>"><?= h($shownPhone) ?></a>
+        <div class="contact-actions">
+          <a class="btn btn-brass" href="tel:<?= h($dialPhone) ?>">Call</a>
+          <button type="button" class="btn btn-ghost js-copy-number" data-number="<?= h($shownPhone) ?>">
+            Copy number
+          </button>
+        </div>
+      <?php elseif (!is_logged_in()): ?>
+        <p class="field-hint">
+          <a href="<?= base_url('auth/login.php') ?>">Log in</a> to see the landlord's phone number on file.
+        </p>
+      <?php else: ?>
+        <p class="field-hint">This landlord has not published a contact number yet.</p>
       <?php endif; ?>
+
+      <div class="contact-prompt">
+        <strong>Worth asking</strong>
+        <ul>
+          <li>Whether the rent already covers water and electricity</li>
+          <li>What the reservation fee holds, and whether it is refundable</li>
+          <li>When the room frees up, and if you can visit before deciding</li>
+        </ul>
+      </div>
     </div>
   </div>
 </div>
-
-<?php require __DIR__ . '/../includes/footer.php'; ?>

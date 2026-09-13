@@ -106,6 +106,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         }
 
+        // A password change invalidates every other copy of this session, so
+        // anyone who had already got hold of the old session id loses it. This
+        // is the whole point of changing the password after a scare.
+        if ($changePassword) {
+            session_regenerate_id(true);
+        }
+
         // Update session info
         $_SESSION['first_name'] = $old['first_name'];
         $_SESSION['last_name']  = $old['last_name'];

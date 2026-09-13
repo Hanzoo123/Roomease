@@ -41,7 +41,11 @@ $flash = flash_get();
         "closeButton": true,
         "progressBar": true,
         "positionClass": "toast-top-right",
-        "timeOut": "5000"
+        "timeOut": "5000",
+        // Flash text can contain data a landlord typed, such as a listing
+        // name. Toastr renders its message as HTML by default, so this must
+        // stay on or that text becomes script in an administrator browser.
+        "escapeHtml": true
       };
       <?php if ($flash['type'] === 'error'): ?>
         toastr.error(<?= json_encode($flash['message']) ?>, 'Error');

@@ -78,7 +78,7 @@ require __DIR__ . '/../includes/header.php';
     <?= csrf_field() ?>
 
     <label>I am a...</label>
-    <div class="checkbox-grid" style="grid-template-columns: 1fr 1fr; margin-bottom:16px;">
+    <div class="checkbox-grid role-choice">
       <label><input type="radio" name="role" value="boarder" <?= $old['role'] === 'boarder' ? 'checked' : '' ?>> Prospective
         Boarder</label>
       <label><input type="radio" name="role" value="landlord" <?= $old['role'] === 'landlord' ? 'checked' : '' ?>>

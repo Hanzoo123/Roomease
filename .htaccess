@@ -1,0 +1,58 @@
+# RoomEase — webroot rules.
+#
+# Everything the browser legitimately needs is a page under /, /auth, /admin,
+# /landlord, /boarder or an asset under /assets. The folders denied below hold
+# code, credentials and schema dumps that are only ever read by PHP itself.
+
+Options -Indexes
+
+# --- Directories that must never be fetched over HTTP ---------------------
+<IfModule mod_alias.c>
+  RedirectMatch 404 (?i)^/(?:.*/)?(config|database|includes|storage)/
+  RedirectMatch 404 (?i)^/(?:.*/)?\.git(/|$)
+  # A second, complete copy of the app checked out inside the webroot would be
+  # servable at its own URL, and would carry none of these fixes.
+  RedirectMatch 404 (?i)^/(?:.*/)?roomease/roomease/
+</IfModule>
+
+# --- File types that are never meant to be downloaded ---------------------
+<FilesMatch "(?i)\.(sql|log|md|ini|json|lock|bak|old|sample|dist|yml|yaml)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<FilesMatch "(?i)^\.">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# --- Headers, as a backstop for anything Apache serves without PHP --------
+# Every PHP page already sets the full set itself, so these use setifempty and
+# deliberately omit "always": on the normal response table mod_headers can see
+# what PHP already sent and leaves it alone, which is what keeps these from
+# arriving twice. Static files, which no PHP touches, get them from here.
+<IfModule mod_headers.c>
+  Header setifempty X-Content-Type-Options "nosniff"
+  Header setifempty X-Frame-Options "SAMEORIGIN"
+  Header setifempty Referrer-Policy "strict-origin-when-cross-origin"
+  Header always unset X-Powered-By
+</IfModule>
+
+<IfModule mod_php.c>
+  php_flag display_errors off
+  php_flag log_errors on
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag display_errors off
+  php_flag log_errors on
+</IfModule>
