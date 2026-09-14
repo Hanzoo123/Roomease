@@ -35,24 +35,40 @@ ON DUPLICATE KEY UPDATE
 -- ---------------------------------------------------------
 -- 2. Sample boarding houses, owned by the demo landlord
 -- ---------------------------------------------------------
-INSERT INTO boarding_houses (boarding_house_id, landlord_id, name, address, monthly_rent, reservation_fee, room_type_id, room_capacity, availability_status, moderation_status, moderated_at, description, contact_number, house_rules) VALUES
-(1, 2, 'Baybay Greenview Residences', 'Purok 4, Brgy. Pangasugan, Baybay City, Leyte', 3500.00, 1500.00, 1, 1, 'available', 'approved', NOW(), 'Clean, quiet, and breezy boarding house just 5 minutes walking distance to VSU main campus.', '09171234567', 'No visitors allowed after 9:00 PM.\nKeep common spaces clean.\nNo smoking or alcoholic beverages inside.'),
-(2, 2, 'Sunshine Villa Boarding House', 'Brgy. Guadalupe, Baybay City, Leyte', 2800.00, 1000.00, 2, 2, 'available', 'approved', NOW(), 'Spacious double sharing rooms with study tables and personal storage lockers for college students.', '09171234567', 'Curfew at 10:00 PM.\nConserve water and electricity.\nRespect roommates quiet hours after 10:00 PM.'),
-(3, 2, 'Coastal Breeze Ladies Dorm', 'Brgy. Zone 12, Baybay City, Leyte', 4500.00, 2000.00, 5, 1, 'available', 'approved', NOW(), 'Exclusive all-female dormitory with fully air-conditioned rooms and 24/7 CCTV surveillance.', '09171234567', 'All-female dormitory, strictly no male visitors inside rooms.\nQuiet hours from 10:00 PM to 6:00 AM.')
+INSERT INTO boarding_houses (boarding_house_id, landlord_id, name, address, reservation_fee, availability_status, moderation_status, moderated_at, description, contact_number, house_rules) VALUES
+(1, 2, 'Baybay Greenview Residences', 'Purok 4, Brgy. Pangasugan, Baybay City, Leyte', 1500.00, 'available', 'approved', NOW(), 'Clean, quiet, and breezy boarding house just 5 minutes walking distance to VSU main campus.', '09171234567', 'No visitors allowed after 9:00 PM.\nKeep common spaces clean.\nNo smoking or alcoholic beverages inside.'),
+(2, 2, 'Sunshine Villa Boarding House', 'Brgy. Guadalupe, Baybay City, Leyte', 1000.00, 'available', 'approved', NOW(), 'Spacious double sharing rooms with study tables and personal storage lockers for college students.', '09171234567', 'Curfew at 10:00 PM.\nConserve water and electricity.\nRespect roommates quiet hours after 10:00 PM.'),
+(3, 2, 'Coastal Breeze Ladies Dorm', 'Brgy. Zone 12, Baybay City, Leyte', 2000.00, 'available', 'approved', NOW(), 'Exclusive all-female dormitory with fully air-conditioned rooms and 24/7 CCTV surveillance.', '09171234567', 'All-female dormitory, strictly no male visitors inside rooms.\nQuiet hours from 10:00 PM to 6:00 AM.')
 ON DUPLICATE KEY UPDATE
     landlord_id         = VALUES(landlord_id),
     name                = VALUES(name),
     address             = VALUES(address),
-    monthly_rent        = VALUES(monthly_rent),
     reservation_fee     = VALUES(reservation_fee),
-    room_type_id        = VALUES(room_type_id),
-    room_capacity       = VALUES(room_capacity),
     availability_status = VALUES(availability_status),
     moderation_status   = VALUES(moderation_status),
     moderated_at        = VALUES(moderated_at),
     description         = VALUES(description),
     contact_number      = VALUES(contact_number),
     house_rules         = VALUES(house_rules);
+
+-- ---------------------------------------------------------
+-- 2b. Rooms in each sample listing
+-- Room types: 1 Single Room, 2 Double Sharing, 3 Bed Spacer,
+--             4 Dormitory, 5 Private Room
+-- Matched on (listing, room name), so a second run updates them.
+-- ---------------------------------------------------------
+INSERT INTO rooms (boarding_house_id, name, room_type_id, monthly_rent, capacity, slots_taken, is_open) VALUES
+(1, 'Room 1', 1, 3500.00, 1, 0, 1),
+(1, 'Room 2', 1, 3500.00, 1, 1, 1),
+(2, 'Room 1', 2, 2800.00, 2, 1, 1),
+(2, 'Room 2', 2, 2800.00, 2, 2, 1),
+(3, 'Room 1', 5, 4500.00, 1, 0, 1)
+ON DUPLICATE KEY UPDATE
+    slots_taken  = VALUES(slots_taken),
+    room_type_id = VALUES(room_type_id),
+    monthly_rent = VALUES(monthly_rent),
+    capacity     = VALUES(capacity),
+    is_open      = VALUES(is_open);
 
 -- ---------------------------------------------------------
 -- 3. Amenities offered by each sample listing

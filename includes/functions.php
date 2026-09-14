@@ -59,11 +59,19 @@ function current_role()
     return $_SESSION['role'] ?? null;
 }
 
-/** Force login; optionally restrict to specific roles. Redirects otherwise. */
+/**
+ * Force login; optionally restrict to specific roles. Redirects otherwise.
+ *
+ * Administrators have their own sign-in page, so a signed-out visitor to a
+ * page only administrators can use is sent there; every other page sends them
+ * to the public login.
+ */
 function require_login($roles = null)
 {
     if (!is_logged_in()) {
-        redirect('auth/login.php');
+        $adminOnly = $roles !== null
+            && !array_diff((array) $roles, ['admin', 'administrator']);
+        redirect($adminOnly ? ADMIN_LOGIN_PATH : 'auth/login.php');
     }
     if ($roles !== null) {
         $roles = (array) $roles;
@@ -79,6 +87,9 @@ function require_login($roles = null)
         }
     }
 }
+
+/** The administrators' sign-in page, relative to the app root. */
+const ADMIN_LOGIN_PATH = 'admin/login.php';
 
 /** Check if current user is an administrator. */
 function is_admin()
@@ -327,28 +338,13 @@ function lookup_options($sql, $mode = PDO::FETCH_COLUMN)
     }
 }
 
-/** Amenity checklist offered on the listing form. Empty if unreadable. */
-function amenity_options()
-{
-    return lookup_options('SELECT amenity_name FROM amenities ORDER BY amenity_id ASC');
-}
-
-/** Utility checklist offered on the listing form. Empty if unreadable. */
-function utility_options()
-{
-    return lookup_options(
-        'SELECT utility_id, utility_name FROM utilities ORDER BY utility_id ASC',
-        PDO::FETCH_ASSOC
-    );
-}
-
 /**
- * Room types offered on the listing form and in the browse filter, as
+ * Room types offered on the room form and in the browse filter, as
  * room_type_id => room_type_name.
  *
  * Both read from here so the two lists cannot drift apart, and since
- * boarding_houses.room_type_id is a foreign key onto this table, a value
- * that is not in this list can no longer be stored at all.
+ * rooms.room_type_id is a foreign key onto this table, a value that is not in
+ * this list can no longer be stored at all.
  */
 function room_type_options()
 {
@@ -365,14 +361,6 @@ function room_type_options()
 }
 
 /**
- * The SELECT fragment and JOIN that expose a listing's room type name under
- * the key every page already reads, so display code did not have to change
- * when the column became a foreign key.
- */
-const ROOM_TYPE_SELECT = 'rt.room_type_name AS room_type';
-const ROOM_TYPE_JOIN   = 'LEFT JOIN room_types rt ON rt.room_type_id = bh.room_type_id';
-
-/**
  * The JOIN that hides listings whose landlord is deactivated or archived.
  *
  * Browse never used to look at the landlord's account at all, so a
@@ -382,42 +370,673 @@ const ROOM_TYPE_JOIN   = 'LEFT JOIN room_types rt ON rt.room_type_id = bh.room_t
 const LIVE_LANDLORD_JOIN =
     'JOIN users lu ON lu.user_id = bh.landlord_id AND lu.is_active = 1 AND lu.deleted_at IS NULL';
 
-/** What else a listing needs to be on the public site. Pair with LIVE_LANDLORD_JOIN. */
-const LIVE_LISTING_WHERE = "bh.availability_status = 'available' AND bh.moderation_status = 'approved'";
+/** A listing's own switches for being on the public site. */
+const LIVE_STATUS_WHERE = "bh.availability_status = 'available' AND bh.moderation_status = 'approved'";
 
 /**
- * How many listings the public site is showing right now. The home page quotes
- * this, so it has to be the real figure browse would return, never a rounded
- * or padded one.
+ * Everything else a listing needs to be on the public site: approved, switched
+ * on, and at least one room. Pair with LIVE_LANDLORD_JOIN.
  */
-function live_listing_count()
+const LIVE_LISTING_WHERE = LIVE_STATUS_WHERE
+    . ' AND EXISTS (SELECT 1 FROM rooms hr WHERE hr.boarding_house_id = bh.boarding_house_id)';
+
+/**
+ * A listing's cover photo: its house cover first, then any house photo, and
+ * only then a room photo, so a listing with only room photos still has one.
+ */
+const COVER_PHOTO_SELECT = '(SELECT img.image_path FROM images img
+       WHERE img.boarding_house_id = bh.boarding_house_id
+       ORDER BY img.room_id IS NULL DESC, img.is_primary DESC, img.image_id ASC
+       LIMIT 1) AS cover_photo';
+
+/* ---------------------------------------------------------------------------
+ * Rooms (database/migration_rooms.sql)
+ *
+ * Rent, room type and capacity belong to each room. Whether a room is
+ * available is never stored: it is open with a slot left, full, or closed.
+ * ------------------------------------------------------------------------ */
+
+/** The room summary columns room_summary_join() provides, for a SELECT list. */
+const ROOM_SUMMARY_COLUMNS = 'rs.room_count, rs.rooms_available, rs.rooms_open,
+       rs.rent_from_available, rs.rent_from_all, rs.room_types';
+
+/**
+ * One row of room figures per listing, joined as `rs`. Pass $inner = true
+ * where a listing with no rooms should drop out of the results.
+ */
+function room_summary_join($inner = false)
+{
+    return ($inner ? 'JOIN' : 'LEFT JOIN') . " (
+        SELECT r.boarding_house_id,
+               COUNT(*) AS room_count,
+               SUM(r.is_open = 1 AND r.slots_taken < r.capacity) AS rooms_available,
+               SUM(r.is_open = 1) AS rooms_open,
+               MIN(CASE WHEN r.is_open = 1 AND r.slots_taken < r.capacity THEN r.monthly_rent END) AS rent_from_available,
+               MIN(r.monthly_rent) AS rent_from_all,
+               GROUP_CONCAT(DISTINCT rt.room_type_name ORDER BY rt.room_type_id SEPARATOR ', ') AS room_types
+          FROM rooms r
+          JOIN room_types rt ON rt.room_type_id = r.room_type_id
+         GROUP BY r.boarding_house_id
+    ) rs ON rs.boarding_house_id = bh.boarding_house_id";
+}
+
+/**
+ * Where a room stands, for any row with capacity, slots_taken and is_open.
+ *
+ * Returns key (available|full|closed), label, pill (public CSS class), badge
+ * (Bootstrap class for the panel), slots_left, and note, the one line a
+ * boarder reads under the room.
+ */
+function room_state(array $room)
+{
+    $capacity = max(1, (int) $room['capacity']);
+    $taken = min($capacity, max(0, (int) $room['slots_taken']));
+    $left = $capacity - $taken;
+
+    if (empty($room['is_open'])) {
+        return ['key' => 'closed', 'label' => 'Not available', 'pill' => 'pill--rejected', 'badge' => 'badge-secondary',
+            'slots_left' => $left, 'note' => 'Not taking tenants right now'];
+    }
+    if ($left === 0) {
+        return ['key' => 'full', 'label' => 'Full', 'pill' => 'pill--unavailable', 'badge' => 'badge-warning',
+            'slots_left' => 0, 'note' => $capacity === 1 ? 'Occupied' : 'Fully occupied'];
+    }
+    return ['key' => 'available', 'label' => 'Available', 'pill' => 'pill--available', 'badge' => 'badge-success',
+        'slots_left' => $left,
+        'note' => $capacity === 1 ? 'Vacant' : $left . ' of ' . $capacity . ' slots left'];
+}
+
+/** Sort order for rooms shown to boarders: available, then full, then closed. */
+function room_state_rank(array $room)
+{
+    return ['available' => 0, 'full' => 1, 'closed' => 2][room_state($room)['key']];
+}
+
+/**
+ * Where a whole listing stands, from the room_summary_join() columns.
+ *
+ * Returns key (available|full|closed|none), label and pill for the badge,
+ * summary ("3 of 5 rooms available"), rent_from, and room_count.
+ */
+function listing_availability(array $listing)
+{
+    $count = (int) ($listing['room_count'] ?? 0);
+    $available = (int) ($listing['rooms_available'] ?? 0);
+    $open = (int) ($listing['rooms_open'] ?? 0);
+    $rentFrom = $listing['rent_from_available'] ?? null;
+    if ($rentFrom === null) {
+        $rentFrom = $listing['rent_from_all'] ?? null;
+    }
+
+    $base = ['room_count' => $count, 'rent_from' => $rentFrom];
+
+    if ($count === 0) {
+        return $base + ['key' => 'none', 'label' => 'No rooms yet', 'pill' => 'pill--unavailable',
+            'summary' => 'No rooms added yet'];
+    }
+    if ($available > 0) {
+        return $base + ['key' => 'available', 'label' => 'Available', 'pill' => 'pill--available',
+            'summary' => $count === 1 ? '1 room, available' : $available . ' of ' . $count . ' rooms available'];
+    }
+    if ($open > 0) {
+        // "All 5 rooms taken" only when every room really is full; with some
+        // closed as well, say how many are available instead.
+        $summary = $count === 1 ? '1 room, occupied'
+            : ($open === $count ? 'All ' . $count . ' rooms taken' : '0 of ' . $count . ' rooms available');
+        return $base + ['key' => 'full', 'label' => 'Fully occupied', 'pill' => 'pill--unavailable',
+            'summary' => $summary];
+    }
+    return $base + ['key' => 'closed', 'label' => 'Not available', 'pill' => 'pill--rejected',
+        'summary' => 'Not taking tenants right now'];
+}
+
+/**
+ * How many listings the public site is showing right now, and how many rooms
+ * in them are available. The home page quotes both, so they have to be the
+ * real figures, never rounded or padded.
+ */
+function live_listing_stats()
 {
     global $pdo;
     try {
-        return (int) $pdo->query(
-            'SELECT COUNT(*) FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' WHERE ' . LIVE_LISTING_WHERE
-        )->fetchColumn();
+        $row = $pdo->query(
+            'SELECT COUNT(*) AS listings, COALESCE(SUM(rs.rooms_available), 0) AS rooms_available
+               FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' ' . room_summary_join(true) . '
+              WHERE ' . LIVE_STATUS_WHERE
+        )->fetch();
+        return ['listings' => (int) $row['listings'], 'rooms_available' => (int) $row['rooms_available']];
     } catch (PDOException $e) {
-        error_log('RoomEase: live listing count failed - ' . $e->getMessage());
-        return 0;
+        error_log('RoomEase: live listing stats failed - ' . $e->getMessage());
+        return ['listings' => 0, 'rooms_available' => 0];
     }
 }
 
 /**
- * Every room type with its number of live listings, in the same order as the
- * browse filter. Types with no listings are kept, with a count of 0.
+ * Every room type with the number of live listings that have an open room of
+ * that type, which is exactly what browse returns for that filter. Types with
+ * none are kept, with a count of 0, in the same order as the browse filter.
  */
 function room_type_counts()
 {
     return lookup_options(
-        'SELECT rt.room_type_id, rt.room_type_name, COUNT(bh.boarding_house_id) AS listings
+        'SELECT rt.room_type_id, rt.room_type_name, COUNT(DISTINCT bh.boarding_house_id) AS listings
            FROM room_types rt
+           LEFT JOIN rooms r ON r.room_type_id = rt.room_type_id AND r.is_open = 1
            LEFT JOIN (boarding_houses bh ' . LIVE_LANDLORD_JOIN . ')
-                  ON bh.room_type_id = rt.room_type_id AND ' . LIVE_LISTING_WHERE . '
+                  ON bh.boarding_house_id = r.boarding_house_id AND ' . LIVE_STATUS_WHERE . '
           GROUP BY rt.room_type_id, rt.room_type_name
           ORDER BY rt.room_type_id ASC',
         PDO::FETCH_ASSOC
     );
+}
+
+/**
+ * A landlord's own room, joined to its listing, or false. Ownership is part of
+ * the query, so a room id from another landlord's listing simply is not found.
+ */
+function find_landlord_room($roomId, $landlordId)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        'SELECT r.*, bh.name AS house_name, bh.landlord_id
+           FROM rooms r
+           JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id
+          WHERE r.room_id = ? AND bh.landlord_id = ?'
+    );
+    $stmt->execute([(int) $roomId, (int) $landlordId]);
+    return $stmt->fetch();
+}
+
+/**
+ * Every listing a landlord owns, newest first, with its room figures and a
+ * photo count each. Shown on the dashboard and on My Boarding Houses.
+ */
+function landlord_listings($landlordId)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ',
+                (SELECT COUNT(*) FROM images img
+                   WHERE img.boarding_house_id = bh.boarding_house_id) AS photo_count
+           FROM boarding_houses bh
+           ' . room_summary_join() . '
+          WHERE bh.landlord_id = ?
+          ORDER BY bh.created_at DESC'
+    );
+    $stmt->execute([(int) $landlordId]);
+    return $stmt->fetchAll();
+}
+
+/** The fields of a room that has not been filled in yet. */
+function blank_room($name = '')
+{
+    return ['name' => $name, 'room_type_id' => '', 'monthly_rent' => '', 'capacity' => '1',
+        'slots_taken' => '0', 'is_open' => true, 'description' => ''];
+}
+
+/**
+ * Read and check one room's fields as submitted, from the room page or from a
+ * row of the Add Listing form. Returns [$room, $errors]: $room keeps what was
+ * typed so the form can be shown again, and $errors are ready to display.
+ * $label, such as "Room 2", starts each message when several rooms are
+ * checked at once. Whether the name is already used is up to the caller,
+ * since that depends on which listing the room belongs to.
+ */
+function room_from_input(array $input, array $roomTypes, $label = '')
+{
+    $text = function ($key) use ($input) {
+        return is_string($input[$key] ?? null) ? trim($input[$key]) : '';
+    };
+    $room = [
+        'name' => normalise_lookup_name($text('name')),
+        'room_type_id' => $text('room_type_id'),
+        'monthly_rent' => $text('monthly_rent'),
+        'capacity' => $text('capacity'),
+        'slots_taken' => $text('slots_taken'),
+        'is_open' => ($input['is_open'] ?? '') === '1',
+        'description' => $text('description'),
+    ];
+    $p = $label !== '' ? $label . ': ' : '';
+    $errors = [];
+
+    if ($room['name'] === '') {
+        $errors[] = $p . 'Give the room a name, such as "Room 1" or "2nd floor front".';
+    } elseif (mb_strlen($room['name']) > 60) {
+        $errors[] = $p . 'Room names must be 60 characters or fewer.';
+    }
+    if (!isset($roomTypes[(int) $room['room_type_id']])) {
+        $errors[] = $p . 'Choose a room type from the list.';
+    }
+    if (!is_numeric($room['monthly_rent']) || (float) $room['monthly_rent'] < 0 || (float) $room['monthly_rent'] > 1000000) {
+        $errors[] = $p . 'Enter a valid monthly rent.';
+    }
+    if (!ctype_digit($room['capacity']) || (int) $room['capacity'] < 1 || (int) $room['capacity'] > 100) {
+        $errors[] = $p . 'Capacity must be between 1 and 100 people.';
+    }
+    if (!ctype_digit($room['slots_taken'])) {
+        $errors[] = $p . 'Slots taken must be a whole number, 0 if the room is empty.';
+    } elseif (ctype_digit($room['capacity']) && (int) $room['slots_taken'] > (int) $room['capacity']) {
+        $errors[] = $p . 'Slots taken cannot be more than the room\'s capacity.';
+    }
+    if (mb_strlen($room['description']) > 500) {
+        $errors[] = $p . 'The room description must be 500 characters or fewer.';
+    }
+
+    return [$room, $errors];
+}
+
+/** The values room_from_input() checked, in the order insert and update use. */
+function room_values(array $room)
+{
+    return [
+        $room['name'], (int) $room['room_type_id'], $room['monthly_rent'], (int) $room['capacity'],
+        (int) $room['slots_taken'], $room['is_open'] ? 1 : 0,
+        $room['description'] !== '' ? $room['description'] : null,
+    ];
+}
+
+/** Add a checked room to a listing. Returns the new room_id. */
+function insert_room($houseId, array $room)
+{
+    global $pdo;
+    $pdo->prepare(
+        'INSERT INTO rooms (name, room_type_id, monthly_rent, capacity, slots_taken, is_open, description, boarding_house_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    )->execute(array_merge(room_values($room), [(int) $houseId]));
+    return (int) $pdo->lastInsertId();
+}
+
+/**
+ * Store the photos uploaded in $fileField as a room's photos. The first one
+ * becomes the room's main photo when it has none. Returns how many were
+ * saved; throws RuntimeException, from handle_photo_uploads(), if a file is
+ * refused.
+ */
+function attach_room_photos($houseId, $roomId, $fileField)
+{
+    global $pdo;
+    $paths = handle_photo_uploads($fileField, (int) $houseId);
+    if (!$paths) {
+        return 0;
+    }
+
+    $hasMain = $pdo->prepare('SELECT COUNT(*) FROM images WHERE room_id = ? AND is_primary = 1');
+    $hasMain->execute([(int) $roomId]);
+    $needsMain = (int) $hasMain->fetchColumn() === 0;
+
+    $insImg = $pdo->prepare(
+        'INSERT INTO images (boarding_house_id, room_id, image_path, is_primary) VALUES (?, ?, ?, ?)'
+    );
+    foreach ($paths as $i => $path) {
+        $insImg->execute([(int) $houseId, (int) $roomId, $path, ($needsMain && $i === 0) ? 1 : 0]);
+    }
+    return count($paths);
+}
+
+/* ---------------------------------------------------------------------------
+ * Utilities and amenities
+ *
+ * Both lists work the same way. An item with a NULL landlord_id was made by
+ * the administrator and every landlord can use it. An item with a landlord_id
+ * was made by that landlord, and only that landlord sees it or can put it on a
+ * listing. Boarders see whatever a listing has, whoever made it.
+ * ------------------------------------------------------------------------ */
+
+/** Table and column names for each kind of list. */
+function lookup_kind($kind)
+{
+    static $kinds = [
+        'utility' => ['table' => 'utilities', 'id' => 'utility_id', 'name' => 'utility_name',
+            'junction' => 'boarding_house_utilities', 'singular' => 'utility', 'plural' => 'utilities',
+            'Singular' => 'Utility', 'Plural' => 'Utilities'],
+        'amenity' => ['table' => 'amenities', 'id' => 'amenity_id', 'name' => 'amenity_name',
+            'junction' => 'boarding_house_amenities', 'singular' => 'amenity', 'plural' => 'amenities',
+            'Singular' => 'Amenity', 'Plural' => 'Amenities'],
+    ];
+    if (!isset($kinds[$kind])) {
+        throw new InvalidArgumentException('Unknown list: ' . $kind);
+    }
+    return $kinds[$kind];
+}
+
+/** A typed item name with its spacing tidied, as it will be stored. */
+function normalise_lookup_name($name)
+{
+    return trim(preg_replace('/\s+/u', ' ', (string) $name));
+}
+
+/**
+ * The items a landlord may put on a listing: the administrator's, then their
+ * own. Each row is ['id', 'name', 'own']. With $landlordId null, only the
+ * administrator's.
+ */
+function lookup_choices($kind, $landlordId = null)
+{
+    global $pdo;
+    $k = lookup_kind($kind);
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT {$k['id']} AS id, {$k['name']} AS name, landlord_id IS NOT NULL AS own
+               FROM {$k['table']}
+              WHERE landlord_id IS NULL OR landlord_id = ?
+              ORDER BY landlord_id IS NOT NULL, (CASE WHEN landlord_id IS NULL THEN {$k['id']} END), {$k['name']}"
+        );
+        $stmt->execute([$landlordId === null ? 0 : (int) $landlordId]);
+        return array_map(function ($row) {
+            return ['id' => (int) $row['id'], 'name' => $row['name'], 'own' => (bool) $row['own']];
+        }, $stmt->fetchAll());
+    } catch (PDOException $e) {
+        error_log('RoomEase: ' . $k['plural'] . ' lookup failed - ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * An existing item whose name clashes with $name, or null. A landlord's item
+ * clashes with the administrator's list and with their own; an administrator
+ * item clashes only with the administrator's list. The column collation
+ * ignores case, so "water" clashes with "Water".
+ */
+function lookup_name_clash($kind, $name, $landlordId = null, $exceptId = null)
+{
+    global $pdo;
+    $k = lookup_kind($kind);
+    $stmt = $pdo->prepare(
+        "SELECT {$k['id']} AS id, {$k['name']} AS name, landlord_id
+           FROM {$k['table']}
+          WHERE {$k['name']} = ?
+            AND (landlord_id IS NULL" . ($landlordId === null ? '' : ' OR landlord_id = ?') . ")
+            AND {$k['id']} <> ?
+          LIMIT 1"
+    );
+    $params = [$name];
+    if ($landlordId !== null) {
+        $params[] = (int) $landlordId;
+    }
+    $params[] = (int) $exceptId;
+    $stmt->execute($params);
+    return $stmt->fetch() ?: null;
+}
+
+/** Why a typed name cannot be used, or null when it can. */
+function lookup_name_problem($kind, $name)
+{
+    $k = lookup_kind($kind);
+    if ($name === '') {
+        return 'Enter a name for the ' . $k['singular'] . '.';
+    }
+    if (mb_strlen($name) > 100) {
+        return $k['Singular'] . ' names must be 100 characters or fewer.';
+    }
+    return null;
+}
+
+/**
+ * Move every landlord's copy of a name onto an administrator item, so no
+ * landlord ends up with the same thing listed twice. Listings keep what they
+ * had: their rows are pointed at the administrator item, and where a listing
+ * already had both, the administrator item's row (and billing policy) stays.
+ */
+function merge_lookup_copies($kind, $globalId)
+{
+    global $pdo;
+    $k = lookup_kind($kind);
+
+    $name = $pdo->prepare("SELECT {$k['name']} FROM {$k['table']} WHERE {$k['id']} = ? AND landlord_id IS NULL");
+    $name->execute([(int) $globalId]);
+    $globalName = $name->fetchColumn();
+    if ($globalName === false) {
+        return 0;
+    }
+
+    $copies = $pdo->prepare(
+        "SELECT {$k['id']} FROM {$k['table']} WHERE {$k['name']} = ? AND landlord_id IS NOT NULL"
+    );
+    $copies->execute([$globalName]);
+
+    $move = $pdo->prepare("UPDATE IGNORE {$k['junction']} SET {$k['id']} = ? WHERE {$k['id']} = ?");
+    $drop = $pdo->prepare("DELETE FROM {$k['table']} WHERE {$k['id']} = ?");
+    $merged = 0;
+    foreach ($copies->fetchAll(PDO::FETCH_COLUMN) as $copyId) {
+        $move->execute([(int) $globalId, (int) $copyId]);
+        $drop->execute([(int) $copyId]);
+        $merged++;
+    }
+    return $merged;
+}
+
+/**
+ * Add an item. Returns [id, error]. With $reuse, a name that already exists
+ * in what the landlord can use returns that item's id instead of an error,
+ * which is what the listing form wants when a landlord types "Water".
+ */
+function create_lookup($kind, $name, $landlordId = null, $reuse = false)
+{
+    global $pdo;
+    $k = lookup_kind($kind);
+    $name = normalise_lookup_name($name);
+
+    if ($problem = lookup_name_problem($kind, $name)) {
+        return [null, $problem];
+    }
+    if ($clash = lookup_name_clash($kind, $name, $landlordId)) {
+        if ($reuse) {
+            return [(int) $clash['id'], null];
+        }
+        return [null, $clash['landlord_id'] === null
+            ? '"' . $clash['name'] . '" is already on the list everyone uses.'
+            : 'You already have "' . $clash['name'] . '".'];
+    }
+
+    $pdo->prepare("INSERT INTO {$k['table']} (landlord_id, {$k['name']}) VALUES (?, ?)")
+        ->execute([$landlordId === null ? null : (int) $landlordId, $name]);
+    $id = (int) $pdo->lastInsertId();
+
+    if ($landlordId === null) {
+        merge_lookup_copies($kind, $id);
+    }
+    return [$id, null];
+}
+
+/** Rename an item. Returns an error message, or null on success. */
+function rename_lookup($kind, $id, $name, $landlordId = null)
+{
+    global $pdo;
+    $k = lookup_kind($kind);
+    $name = normalise_lookup_name($name);
+
+    if ($problem = lookup_name_problem($kind, $name)) {
+        return $problem;
+    }
+    if ($clash = lookup_name_clash($kind, $name, $landlordId, $id)) {
+        return $clash['landlord_id'] === null
+            ? '"' . $clash['name'] . '" is already on the list everyone uses.'
+            : 'You already have "' . $clash['name'] . '".';
+    }
+
+    $owner = $landlordId === null ? 'landlord_id IS NULL' : 'landlord_id = ' . (int) $landlordId;
+    $pdo->prepare("UPDATE {$k['table']} SET {$k['name']} = ? WHERE {$k['id']} = ? AND $owner")
+        ->execute([$name, (int) $id]);
+
+    if ($landlordId === null) {
+        merge_lookup_copies($kind, $id);
+    }
+    return null;
+}
+
+/**
+ * Make a landlord's item available to every landlord. If the administrator
+ * already has one by that name, the landlord's copies are merged into it.
+ * Returns an error message, or null on success.
+ */
+function promote_lookup($kind, $id)
+{
+    global $pdo;
+    $k = lookup_kind($kind);
+
+    $stmt = $pdo->prepare("SELECT {$k['name']} AS name FROM {$k['table']} WHERE {$k['id']} = ? AND landlord_id IS NOT NULL");
+    $stmt->execute([(int) $id]);
+    $item = $stmt->fetch();
+    if (!$item) {
+        return 'That ' . $k['singular'] . ' was not found, or is already available to everyone.';
+    }
+
+    // Joins a transaction the caller already opened rather than nesting one.
+    $ownTransaction = !$pdo->inTransaction();
+    if ($ownTransaction) {
+        $pdo->beginTransaction();
+    }
+    try {
+        $existing = lookup_name_clash($kind, $item['name']);
+        if ($existing) {
+            $globalId = (int) $existing['id'];
+        } else {
+            $pdo->prepare("UPDATE {$k['table']} SET landlord_id = NULL WHERE {$k['id']} = ?")->execute([(int) $id]);
+            $globalId = (int) $id;
+        }
+        merge_lookup_copies($kind, $globalId);
+        if ($ownTransaction) {
+            $pdo->commit();
+        }
+    } catch (PDOException $e) {
+        if ($ownTransaction) {
+            $pdo->rollBack();
+        }
+        error_log('RoomEase: promoting a ' . $k['singular'] . ' failed - ' . $e->getMessage());
+        return 'That ' . $k['singular'] . ' could not be made available to everyone.';
+    }
+    return null;
+}
+
+/** How many listings use each item, as id => count. */
+function lookup_usage_counts($kind)
+{
+    global $pdo;
+    $k = lookup_kind($kind);
+    try {
+        return array_map('intval', $pdo->query(
+            "SELECT {$k['id']}, COUNT(*) FROM {$k['junction']} GROUP BY {$k['id']}"
+        )->fetchAll(PDO::FETCH_KEY_PAIR));
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/**
+ * Read the utilities and amenities part of a submitted listing form.
+ *
+ * Returns ['amenity_ids' => int[], 'utilities' => [id => policy],
+ * 'new_amenities' => string[], 'new_utilities' => [['name', 'policy']],
+ * 'errors' => string[]]. Only items this landlord may use are kept, so a
+ * forged id for another landlord's item is dropped rather than stored.
+ */
+function listing_lookups_from_post(array $post, $landlordId)
+{
+    $allowed = function ($kind) use ($landlordId) {
+        return array_flip(array_column(lookup_choices($kind, $landlordId), 'id'));
+    };
+    $allowedAmenities = $allowed('amenity');
+    $allowedUtilities = $allowed('utility');
+    $errors = [];
+
+    $amenityIds = [];
+    foreach ((array) ($post['amenities'] ?? []) as $id) {
+        if (is_scalar($id) && isset($allowedAmenities[(int) $id])) {
+            $amenityIds[(int) $id] = (int) $id;
+        }
+    }
+
+    $utilities = [];
+    $policies = (array) ($post['billing_policy'] ?? []);
+    foreach ((array) ($post['utilities'] ?? []) as $id) {
+        if (is_scalar($id) && isset($allowedUtilities[(int) $id])) {
+            $policy = is_string($policies[(int) $id] ?? null) ? trim($policies[(int) $id]) : '';
+            $utilities[(int) $id] = mb_substr($policy, 0, 150);
+        }
+    }
+
+    $newAmenities = [];
+    foreach ((array) ($post['new_amenity_name'] ?? []) as $name) {
+        $name = normalise_lookup_name(is_string($name) ? $name : '');
+        if ($name === '') {
+            continue;
+        }
+        if ($problem = lookup_name_problem('amenity', $name)) {
+            $errors[] = $problem;
+            continue;
+        }
+        $newAmenities[mb_strtolower($name)] = $name;
+    }
+
+    $newUtilities = [];
+    $newPolicies = (array) ($post['new_utility_policy'] ?? []);
+    foreach ((array) ($post['new_utility_name'] ?? []) as $i => $name) {
+        $name = normalise_lookup_name(is_string($name) ? $name : '');
+        if ($name === '') {
+            continue;
+        }
+        if ($problem = lookup_name_problem('utility', $name)) {
+            $errors[] = $problem;
+            continue;
+        }
+        $policy = is_string($newPolicies[$i] ?? null) ? trim($newPolicies[$i]) : '';
+        $newUtilities[mb_strtolower($name)] = ['name' => $name, 'policy' => mb_substr($policy, 0, 150)];
+    }
+
+    return [
+        'amenity_ids' => array_values($amenityIds),
+        'utilities' => $utilities,
+        'new_amenities' => array_values($newAmenities),
+        'new_utilities' => array_values($newUtilities),
+        'errors' => $errors,
+    ];
+}
+
+/**
+ * Store a listing's utilities and amenities from listing_lookups_from_post().
+ * Items the landlord typed in are created as theirs first (or matched to one
+ * they can already use). With $replace, the listing's current rows are
+ * cleared first, as an edit does.
+ */
+function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
+{
+    global $pdo;
+    $houseId = (int) $houseId;
+
+    $amenityIds = $lookups['amenity_ids'];
+    foreach ($lookups['new_amenities'] as $name) {
+        [$id] = create_lookup('amenity', $name, $landlordId, true);
+        if ($id) {
+            $amenityIds[] = $id;
+        }
+    }
+
+    $utilities = $lookups['utilities'];
+    foreach ($lookups['new_utilities'] as $new) {
+        [$id] = create_lookup('utility', $new['name'], $landlordId, true);
+        if ($id && !isset($utilities[$id])) {
+            $utilities[$id] = $new['policy'];
+        }
+    }
+
+    if ($replace) {
+        $pdo->prepare('DELETE FROM boarding_house_amenities WHERE boarding_house_id = ?')->execute([$houseId]);
+        $pdo->prepare('DELETE FROM boarding_house_utilities WHERE boarding_house_id = ?')->execute([$houseId]);
+    }
+
+    $insAmen = $pdo->prepare(
+        'INSERT IGNORE INTO boarding_house_amenities (boarding_house_id, amenity_id, is_available) VALUES (?, ?, 1)'
+    );
+    foreach (array_unique($amenityIds) as $id) {
+        $insAmen->execute([$houseId, $id]);
+    }
+
+    $insUtil = $pdo->prepare(
+        'INSERT IGNORE INTO boarding_house_utilities (boarding_house_id, utility_id, billing_policy) VALUES (?, ?, ?)'
+    );
+    foreach ($utilities as $id => $policy) {
+        $insUtil->execute([$houseId, $id, $policy !== '' ? $policy : 'Included in Rent']);
+    }
 }
 
 /* ---------------------------------------------------------------------------
@@ -648,7 +1267,7 @@ function find_valid_reset($token)
 
     $stmt = $pdo->prepare(
         'SELECT pr.reset_id, pr.user_id, pr.expires_at,
-                u.email, u.first_name, u.is_active
+                u.email, u.first_name, u.is_active, u.role
            FROM password_resets pr
            JOIN users u ON u.user_id = pr.user_id
           WHERE pr.token_hash = ?

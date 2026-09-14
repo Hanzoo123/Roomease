@@ -12,9 +12,12 @@ USE roomease;
 -- Disable foreign key checks for clean teardown/rebuild
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS site_settings;
+DROP TABLE IF EXISTS remember_tokens;
 DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS favorites;
 DROP TABLE IF EXISTS images;
+DROP TABLE IF EXISTS rooms;
 DROP TABLE IF EXISTS boarding_house_utilities;
 DROP TABLE IF EXISTS boarding_house_amenities;
 DROP TABLE IF EXISTS utilities;
@@ -51,17 +54,17 @@ CREATE TABLE users (
 
 -- ---------------------------------------------------------
 -- 2. Table: boarding_houses
--- The central table for property listings, managed by landlords.
+-- The central table for property listings, managed by landlords. Rent,
+-- room type and capacity belong to each room (see rooms, below).
+-- availability_status is the whole listing's switch: 'unavailable' hides it
+-- from the public site.
 -- ---------------------------------------------------------
 CREATE TABLE boarding_houses (
     boarding_house_id   INT AUTO_INCREMENT PRIMARY KEY,
     landlord_id         INT NOT NULL,
     name                VARCHAR(150) NOT NULL,
     address             TEXT NOT NULL,
-    monthly_rent        DECIMAL(10, 2) NOT NULL,
     reservation_fee     DECIMAL(10, 2) DEFAULT NULL,
-    room_type_id        INT DEFAULT NULL,
-    room_capacity       INT NOT NULL DEFAULT 1,
     availability_status ENUM('available', 'unavailable') NOT NULL DEFAULT 'available',
     moderation_status   ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
     rejection_reason    VARCHAR(500) DEFAULT NULL,
@@ -87,52 +90,82 @@ CREATE TABLE boarding_houses (
     -- columns lead because every browse query fixes both, and the ordering
     -- column comes last so the same index supplies the sort as well.
     KEY idx_bh_public_recent   (moderation_status, availability_status, created_at),
-    KEY idx_bh_public_rent     (moderation_status, availability_status, monthly_rent),
-    KEY idx_bh_public_type     (moderation_status, availability_status, room_type_id, created_at),
     KEY idx_bh_created         (created_at),
     KEY idx_bh_landlord_recent (landlord_id, created_at),
-    -- fk_bh_room_type is added further down, once room_types exists.
     CONSTRAINT fk_bh_landlord FOREIGN KEY (landlord_id)
         REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
 -- 3. Table: amenities
--- Stores a pre-defined list of possible amenities.
+-- Amenities a listing can offer. landlord_id is NULL for an item the
+-- administrator made, which every landlord can use, and set for an item a
+-- landlord made, which only that landlord sees. Names are unique per owner;
+-- the application checks administrator names, which a unique key on a NULL
+-- landlord_id does not compare.
 -- ---------------------------------------------------------
 CREATE TABLE amenities (
     amenity_id      INT AUTO_INCREMENT PRIMARY KEY,
-    amenity_name    VARCHAR(100) NOT NULL UNIQUE
+    landlord_id     INT DEFAULT NULL,
+    amenity_name    VARCHAR(100) NOT NULL,
+    UNIQUE KEY uq_amenities_owner_name (landlord_id, amenity_name),
+    CONSTRAINT fk_amenities_landlord FOREIGN KEY (landlord_id)
+        REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
 -- 4. Table: utilities
--- Stores a pre-defined list of possible utilities.
+-- Utilities a listing can bill for. Owned the same way as amenities.
 -- ---------------------------------------------------------
 CREATE TABLE utilities (
     utility_id      INT AUTO_INCREMENT PRIMARY KEY,
-    utility_name    VARCHAR(100) NOT NULL UNIQUE
+    landlord_id     INT DEFAULT NULL,
+    utility_name    VARCHAR(100) NOT NULL,
+    UNIQUE KEY uq_utilities_owner_name (landlord_id, utility_name),
+    CONSTRAINT fk_utilities_landlord FOREIGN KEY (landlord_id)
+        REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
 -- 5. Table: room_types
--- Controlled vocabulary for boarding_houses.room_type_id, so the
--- listing form and the browse filter always offer the same values.
+-- Controlled vocabulary for rooms.room_type_id, so the room form and the
+-- browse filter always offer the same values.
 -- ---------------------------------------------------------
 CREATE TABLE room_types (
     room_type_id    INT AUTO_INCREMENT PRIMARY KEY,
     room_type_name  VARCHAR(50) NOT NULL UNIQUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- boarding_houses is declared above this table, so the constraint that ties a
--- listing's room type to this vocabulary is added here, once it exists.
+-- ---------------------------------------------------------
+-- 5b. Table: rooms
+-- The rooms inside a boarding house. Availability is never stored: a room
+-- is "Available" while open with slots left, "Full" when every slot is
+-- taken, and "Not available" when the landlord has closed it.
 --
--- RESTRICT, not CASCADE: deleting a room type that listings are using should
--- be refused, never silently delete those listings. This is the one
--- relationship in the schema that deliberately does not cascade.
-ALTER TABLE boarding_houses
-    ADD CONSTRAINT fk_bh_room_type FOREIGN KEY (room_type_id)
-        REFERENCES room_types(room_type_id) ON DELETE RESTRICT;
+-- RESTRICT on the room type, not CASCADE: deleting a room type that rooms
+-- are using should be refused, never silently delete those rooms.
+-- ---------------------------------------------------------
+CREATE TABLE rooms (
+    room_id             INT AUTO_INCREMENT PRIMARY KEY,
+    boarding_house_id   INT NOT NULL,
+    name                VARCHAR(60) NOT NULL,
+    room_type_id        INT NOT NULL,
+    monthly_rent        DECIMAL(10, 2) NOT NULL,
+    capacity            SMALLINT NOT NULL DEFAULT 1,
+    slots_taken         SMALLINT NOT NULL DEFAULT 0,
+    is_open             TINYINT(1) NOT NULL DEFAULT 1,
+    description         VARCHAR(500) DEFAULT NULL,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_rooms_house_name (boarding_house_id, name),
+    KEY idx_rooms_type_rent (room_type_id, is_open, monthly_rent),
+    CONSTRAINT chk_rooms_capacity CHECK (capacity BETWEEN 1 AND 100),
+    CONSTRAINT chk_rooms_slots CHECK (slots_taken >= 0 AND slots_taken <= capacity),
+    CONSTRAINT fk_rooms_bh FOREIGN KEY (boarding_house_id)
+        REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE,
+    CONSTRAINT fk_rooms_type FOREIGN KEY (room_type_id)
+        REFERENCES room_types(room_type_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
 -- 6. Table: boarding_house_amenities
@@ -168,18 +201,24 @@ CREATE TABLE boarding_house_utilities (
 
 -- ---------------------------------------------------------
 -- 8. Table: images
--- Stores property photographs uploaded by landlords.
+-- Photos uploaded by landlords. room_id is NULL for a photo of the house and
+-- set for a photo of one room. is_primary marks the house's cover among the
+-- house photos, and a room's main photo among that room's photos.
 -- ---------------------------------------------------------
 CREATE TABLE images (
     image_id            INT AUTO_INCREMENT PRIMARY KEY,
     boarding_house_id   INT NOT NULL,
+    room_id             INT DEFAULT NULL,
     image_path          VARCHAR(255) NOT NULL,
     is_primary          BOOLEAN NOT NULL DEFAULT FALSE,
     uploaded_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- Serves the per-listing cover photo lookup in browse and both dashboards.
     KEY idx_images_cover (boarding_house_id, is_primary, image_id),
+    KEY idx_images_room (room_id, is_primary, image_id),
     CONSTRAINT fk_images_bh FOREIGN KEY (boarding_house_id)
-        REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE
+        REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE,
+    CONSTRAINT fk_images_room FOREIGN KEY (room_id)
+        REFERENCES rooms(room_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------

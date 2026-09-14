@@ -62,4 +62,4 @@ if (!password_verify($newPassword, (string) $stored->fetchColumn())) {
 }
 
 echo "Password updated for {$admin['first_name']} {$admin['last_name']} <{$adminEmail}>.\n";
-echo "You can now sign in at auth/login.php.\n";
+echo "You can now sign in at admin/login.php.\n";

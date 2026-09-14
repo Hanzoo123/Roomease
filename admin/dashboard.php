@@ -20,10 +20,11 @@ $counts = $pdo->query(
 // Fetch recently added boarding houses
 $recentListings = $pdo->query(
   "SELECT bh.boarding_house_id, bh.name AS boarding_house_name, bh.address,
-            bh.monthly_rent, bh.availability_status AS status, bh.created_at,
+            bh.availability_status AS status, bh.created_at, " . ROOM_SUMMARY_COLUMNS . ",
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
+     " . room_summary_join() . "
      ORDER BY bh.created_at DESC
      LIMIT 6"
 )->fetchAll();
@@ -161,7 +162,7 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                     <th>Boarding House</th>
                     <th>City</th>
                     <th>Landlord</th>
-                    <th>Rent</th>
+                    <th>Rooms</th>
                     <th>Status</th>
                     <th>Date Posted</th>
                     <th>Action</th>
@@ -179,14 +180,22 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                         </td>
                         <td><?= h($l['address']) ?></td>
                         <td><?= h($l['landlord_name']) ?></td>
-                        <td><span
-                            class="text-success font-weight-bold">&#8369;<?= number_format((float) $l['monthly_rent'], 2) ?></span>
+                        <?php $avail = listing_availability($l); ?>
+                        <td>
+                          <?php if ($avail['room_count'] === 0): ?>
+                            <span class="text-muted">No rooms yet</span>
+                          <?php else: ?>
+                            <span class="text-success font-weight-bold">From &#8369;<?= number_format((float) $avail['rent_from'], 2) ?></span>
+                            <br><small class="text-muted"><?= h($avail['summary']) ?></small>
+                          <?php endif; ?>
                         </td>
                         <td>
-                          <?php if ($l['status'] === 'available'): ?>
+                          <?php if ($l['status'] !== 'available'): ?>
+                            <span class="badge badge-secondary px-2 py-1">Hidden</span>
+                          <?php elseif ($avail['key'] === 'available'): ?>
                             <span class="badge badge-success px-2 py-1">Available</span>
                           <?php else: ?>
-                            <span class="badge badge-secondary px-2 py-1"><?= h(ucfirst($l['status'])) ?></span>
+                            <span class="badge badge-secondary px-2 py-1"><?= h($avail['label']) ?></span>
                           <?php endif; ?>
                         </td>
                         <td class="text-muted text-sm"><?= h(date('M j, Y', strtotime($l['created_at']))) ?></td>

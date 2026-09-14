@@ -63,6 +63,25 @@ photo uploads, search/filter, and account management.
    they need an internet connection. Offline, the rest of the listing page
    works and the map says it could not load.
 
+   **Rooms, room photos, occupancy, and landlord utilities.** A boarding house
+   now has rooms, each with its own type, rent, capacity, slots taken, and
+   photos, and landlords can add their own utilities and amenities. Upgrading
+   an existing database? Run this; it is safe to run twice, and it gives every
+   existing listing a "Room 1" copied from its old rent, room type and capacity:
+   ```
+   mysql -u root -p roomease < database/migration_rooms.sql
+   ```
+   The old house-level rent, room type and capacity columns are left in place
+   and no longer used. Once every listing's rooms look right on the website,
+   remove them (this cannot be undone without a backup):
+   ```
+   mysql -u root -p roomease < database/migration_rooms_cleanup.sql
+   ```
+   A fresh import of `roomease.sql` already has rooms and none of the old
+   columns. The demo seed files add a few listings with several rooms and some
+   tenants, so the rooms section and "Fully occupied" badges have something to
+   show.
+
    For "Remember me", Google sign-in, and the administrator's Appearance page
    (the sign-in pages' background), run this as well; it is safe to run twice:
    ```
@@ -88,7 +107,8 @@ photo uploads, search/filter, and account management.
 
    The script is command-line only, requires at least 8 characters, and
    re-reads the stored hash afterwards to prove the new password actually
-   works before it reports success. Sign in with `admin@roomease.local` and
+   works before it reports success. Sign in at
+   `http://localhost/roomease/admin/login.php` with `admin@roomease.local` and
    the password you just set.
 
 6. **(Optional) Load the demo data.** For a walkthrough or a defence demo:
@@ -119,11 +139,19 @@ photo uploads, search/filter, and account management.
 
 ## Accounts
 
-| Account | Email | Password |
-|---------|-------|----------|
-| Administrator | `admin@roomease.local` | set by you in step 5 |
-| Demo landlord | `landlord@roomease.local` | `Password@123` (only if `seed_demo.sql` was imported) |
-| Demo boarder | `boarder@roomease.local` | `Password@123` (only if `seed_demo.sql` was imported) |
+| Account | Email | Password | Sign in at |
+|---------|-------|----------|------------|
+| Administrator | `admin@roomease.local` | set by you in step 5 | `/admin/login.php` |
+| Demo landlord | `landlord@roomease.local` | `Password@123` (only if `seed_demo.sql` was imported) | `/auth/login.php` |
+| Demo boarder | `boarder@roomease.local` | `Password@123` (only if `seed_demo.sql` was imported) | `/auth/login.php` |
+
+Administrators and everyone else sign in separately. The public login at
+`/auth/login.php` does not accept administrator accounts, and
+`/admin/login.php` accepts only administrator accounts; either answers a wrong
+kind of account with the same "Invalid email or password" as a wrong
+password. Going to `/admin/` while signed out opens the admin sign-in page.
+Administrators reset a forgotten password from the "Forgot password?" link on
+that page, not from the public one.
 
 There is no default administrator password any more. Earlier versions shipped
 one and printed it here, which meant every copy of this repository told a

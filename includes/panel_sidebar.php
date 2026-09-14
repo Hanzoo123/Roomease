@@ -12,11 +12,15 @@ $panelUser   = $_SESSION['full_name'] ?? $panel['badge']['label'];
 // Work out the highlighted item once. Two entries can share a page and differ
 // only by a query string (Manage Listings vs Pending Approvals), so the most
 // specific match wins: an item whose query parameters all match the current
-// request beats the same page listed without them.
+// request beats the same page listed without them. An item's 'also' pages,
+// such as a listing's edit page, highlight it too.
 $activeItem = null;
 $bestScore  = -1;
 foreach ($panel['menu'] as $idx => $item) {
     if (basename(parse_url($item['url'], PHP_URL_PATH)) !== $currentPage) {
+        if ($activeItem === null && in_array($currentPage, $item['also'] ?? [], true)) {
+            $activeItem = $idx;
+        }
         continue;
     }
     $query = parse_url($item['url'], PHP_URL_QUERY);

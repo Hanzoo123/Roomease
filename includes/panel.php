@@ -30,6 +30,7 @@ function panel_config()
                 ['url' => 'admin/manage_users.php',    'icon' => 'fa-users',          'label' => 'Manage Users'],
                 ['url' => 'admin/manage_listings.php', 'icon' => 'fa-home',           'label' => 'Manage Listings'],
                 ['url' => 'admin/manage_listings.php?status=pending', 'icon' => 'fa-clipboard-check', 'label' => 'Pending Approvals'],
+                ['url' => 'admin/extras.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
                 ['url' => 'admin/appearance.php',      'icon' => 'fa-paint-brush',    'label' => 'Appearance'],
             ],
         ];
@@ -46,7 +47,11 @@ function panel_config()
         'home'   => 'landlord/dashboard.php',
         'menu'  => [
             ['url' => 'landlord/dashboard.php',   'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
+            // Editing a listing or one of its rooms stays under this item.
+            ['url' => 'landlord/listings.php',    'icon' => 'fa-home',           'label' => 'My Boarding Houses',
+             'also' => ['edit_listing.php', 'room_form.php']],
             ['url' => 'landlord/add_listing.php', 'icon' => 'fa-plus-square',    'label' => 'Add Listing'],
+            ['url' => 'landlord/extras.php',      'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
             ['url' => 'auth/profile.php',         'icon' => 'fa-user-cog',       'label' => 'My Profile'],
         ],
     ];

@@ -2,23 +2,27 @@
 /**
  * Shared boarding house form fields, styled for the AdminLTE panel.
  * Included by landlord/add_listing.php and landlord/edit_listing.php.
+ *
+ * Rent, room type and capacity belong to each room. A new listing's rooms are
+ * added in this form (includes/room_rows_form.php, when $formRooms is set);
+ * an existing listing's rooms are managed on its Rooms card instead.
+ *
  * Expects:
- *   $listing        - assoc array of existing values, or [] for new listing
- *   $selectedAmens  - array of amenity names currently selected
- *   $selectedUtils  - assoc array of utility_id => billing_policy
- *   $existingImages - array of existing images from images table (for edit mode)
+ *   $listing         - assoc array of existing values, or [] for new listing
+ *   $selectedAmens   - array of amenity_id currently selected
+ *   $selectedUtils   - assoc array of utility_id => billing_policy
+ *   $newAmenityNames - amenity names typed into "Add your own" (redisplay only)
+ *   $newUtilityRows  - [['name', 'policy']] typed into "Add your own" (redisplay only)
+ *   $existingImages  - array of existing house photos (for edit mode)
  */
 $listing = $listing ?? [];
-$selectedAmens = $selectedAmens ?? [];
+$selectedAmens = array_map('intval', $selectedAmens ?? []);
 $selectedUtils = $selectedUtils ?? [];
+$newAmenityNames = $newAmenityNames ?? [];
+$newUtilityRows = $newUtilityRows ?? [];
 $existingImages = $existingImages ?? [];
 $val = fn($key, $default = '') => h($listing[$key] ?? $default);
-
-// room_type_id is a foreign key onto room_types, so a stored value is always
-// one of these. The old "keep an unrecognised value in the list" fallback is
-// gone with it: the database can no longer hold a room type that is not here.
-$commonRoomTypes = room_type_options();
-$selectedRoomType = isset($listing['room_type_id']) ? (int) $listing['room_type_id'] : null;
+$formLandlordId = (int) $_SESSION['user_id'];
 
 $policyPresets = [
   'Included in Rent',
@@ -48,52 +52,29 @@ $policyPresets = [
 
 <div class="form-row">
   <div class="col-md-6 form-group">
-    <label for="monthly_rent">Monthly rent (&#8369;)</label>
-    <input type="number" step="0.01" min="0" class="form-control" id="monthly_rent" name="monthly_rent"
-      value="<?= $val('monthly_rent') ?>" placeholder="e.g. 3500.00" required>
-  </div>
-  <div class="col-md-6 form-group">
     <label for="reservation_fee">Reservation fee (&#8369;)</label>
     <input type="number" step="0.01" min="0" class="form-control" id="reservation_fee" name="reservation_fee"
       value="<?= $val('reservation_fee') ?>" placeholder="e.g. 1500.00">
     <small class="form-text text-muted">Optional &mdash; leave blank if no reservation fee is required.</small>
   </div>
-</div>
-
-<div class="form-row">
-  <div class="col-md-6 form-group">
-    <label for="room_type">Room type</label>
-    <?php if (!$commonRoomTypes): ?>
-      <?= lookup_unavailable_notice('room types', 'room_types') ?>
-    <?php endif; ?>
-    <select class="form-control" id="room_type" name="room_type_id" required>
-      <?php foreach ($commonRoomTypes as $rtId => $rtName): ?>
-        <option value="<?= (int) $rtId ?>" <?= $selectedRoomType === $rtId ? 'selected' : '' ?>><?= h($rtName) ?></option>
-      <?php endforeach; ?>
-    </select>
-  </div>
-  <div class="col-md-6 form-group">
-    <label for="room_capacity">Max occupants (capacity)</label>
-    <input type="number" min="1" class="form-control" id="room_capacity" name="room_capacity"
-      value="<?= $val('room_capacity', 1) ?>" required>
-  </div>
-</div>
-
-<div class="form-row">
   <div class="col-md-6 form-group">
     <label for="contact_number">Landlord contact number</label>
     <input type="text" class="form-control" id="contact_number" name="contact_number"
       value="<?= $val('contact_number') ?>" placeholder="e.g. 09171234567" required>
   </div>
-  <div class="col-md-6 form-group">
-    <label for="availability_status">Availability status</label>
-    <select class="form-control" id="availability_status" name="availability_status">
-      <option value="available" <?= ($listing['availability_status'] ?? 'available') === 'available' ? 'selected' : '' ?>>
-        Available (Open for boarders)</option>
-      <option value="unavailable" <?= ($listing['availability_status'] ?? '') === 'unavailable' ? 'selected' : '' ?>>
-        Unavailable (Fully occupied / closed)</option>
-    </select>
-  </div>
+</div>
+
+<div class="form-group">
+  <label for="availability_status">Show this listing on the website</label>
+  <select class="form-control" id="availability_status" name="availability_status">
+    <option value="available" <?= ($listing['availability_status'] ?? 'available') === 'available' ? 'selected' : '' ?>>
+      Shown (boarders can find it once it is approved)</option>
+    <option value="unavailable" <?= ($listing['availability_status'] ?? '') === 'unavailable' ? 'selected' : '' ?>>
+      Hidden (take the whole listing off the website)</option>
+  </select>
+  <small class="form-text text-muted">
+    To show a room as full or not available, update it on the Rooms card instead.
+  </small>
 </div>
 
 <div class="form-group">
@@ -108,27 +89,52 @@ $policyPresets = [
     placeholder="e.g. Curfew at 10:00 PM, quiet study hours, no outside overnight guests..."><?= $val('house_rules') ?></textarea>
 </div>
 
+<?php if (isset($formRooms)): ?>
+  <?php /* New listings add their rooms right here; existing ones use the Rooms card. */ ?>
+  <?php require __DIR__ . '/room_rows_form.php'; ?>
+<?php endif; ?>
+
 <hr>
 
 <h5 class="font-weight-bold text-primary mb-1">
   <i class="fas fa-concierge-bell mr-1"></i> Amenities Offered
 </h5>
-<p class="text-muted small mb-3">Select all amenities currently accessible to boarders.</p>
+<p class="text-muted small mb-3">
+  Select all amenities currently accessible to boarders. Items marked <span class="badge badge-light border">Yours</span>
+  are ones you added; only you see them here.
+</p>
 
-<?php $amenityChoices = amenity_options(); ?>
+<?php $amenityChoices = lookup_choices('amenity', $formLandlordId); ?>
 <?php if (!$amenityChoices): ?>
   <?= lookup_unavailable_notice('amenities', 'amenities') ?>
 <?php endif; ?>
-<div class="row mb-3">
-  <?php foreach ($amenityChoices as $i => $a): ?>
+<div class="row mb-2">
+  <?php foreach ($amenityChoices as $a): ?>
     <div class="col-md-4 col-sm-6 mb-2">
       <div class="custom-control custom-checkbox">
-        <input type="checkbox" class="custom-control-input" id="amenity_<?= (int) $i ?>" name="amenities[]"
-          value="<?= h($a) ?>" <?= in_array($a, $selectedAmens, true) ? 'checked' : '' ?>>
-        <label class="custom-control-label" for="amenity_<?= (int) $i ?>"><?= h($a) ?></label>
+        <input type="checkbox" class="custom-control-input" id="amenity_<?= $a['id'] ?>" name="amenities[]"
+          value="<?= $a['id'] ?>" <?= in_array($a['id'], $selectedAmens, true) ? 'checked' : '' ?>>
+        <label class="custom-control-label" for="amenity_<?= $a['id'] ?>">
+          <?= h($a['name']) ?>
+          <?php if ($a['own']): ?><span class="badge badge-light border ml-1">Yours</span><?php endif; ?>
+        </label>
       </div>
     </div>
   <?php endforeach; ?>
+</div>
+
+<div class="form-group" data-custom-list>
+  <label class="small font-weight-bold mb-1">Add your own amenity</label>
+  <?php foreach (($newAmenityNames ?: ['']) as $name): ?>
+    <div class="mb-2" data-custom-row>
+      <input type="text" class="form-control form-control-sm" name="new_amenity_name[]" maxlength="100"
+        value="<?= h($name) ?>" placeholder="e.g. Rooftop deck">
+    </div>
+  <?php endforeach; ?>
+  <button type="button" class="btn btn-xs btn-outline-secondary" data-custom-add>
+    <i class="fas fa-plus mr-1"></i> Another amenity
+  </button>
+  <small class="form-text text-muted">Saved to your own list when you save this listing.</small>
 </div>
 
 <hr>
@@ -138,13 +144,13 @@ $policyPresets = [
 </h5>
 <p class="text-muted small mb-3">Tick each utility you provide and describe how it is billed.</p>
 
-<?php $utilityChoices = utility_options(); ?>
+<?php $utilityChoices = lookup_choices('utility', $formLandlordId); ?>
 <?php if (!$utilityChoices): ?>
   <?= lookup_unavailable_notice('utilities', 'utilities') ?>
 <?php endif; ?>
 
 <?php foreach ($utilityChoices as $u):
-  $uId = $u['utility_id'];
+  $uId = $u['id'];
   $currentPolicy = $selectedUtils[$uId] ?? '';
   $isChecked = isset($selectedUtils[$uId]);
   ?>
@@ -153,8 +159,10 @@ $policyPresets = [
       <div class="custom-control custom-checkbox">
         <input type="checkbox" class="custom-control-input" id="utility_<?= (int) $uId ?>" name="utilities[]"
           value="<?= (int) $uId ?>" <?= $isChecked ? 'checked' : '' ?>>
-        <label class="custom-control-label font-weight-bold"
-          for="utility_<?= (int) $uId ?>"><?= h($u['utility_name']) ?></label>
+        <label class="custom-control-label font-weight-bold" for="utility_<?= (int) $uId ?>">
+          <?= h($u['name']) ?>
+          <?php if ($u['own']): ?><span class="badge badge-light border ml-1 font-weight-normal">Yours</span><?php endif; ?>
+        </label>
       </div>
     </div>
     <div class="col-md-8">
@@ -164,6 +172,45 @@ $policyPresets = [
     </div>
   </div>
 <?php endforeach; ?>
+
+<div class="form-group mt-3" data-custom-list>
+  <label class="small font-weight-bold mb-1">Add your own utility</label>
+  <?php foreach (($newUtilityRows ?: [['name' => '', 'policy' => '']]) as $row): ?>
+    <div class="form-row mb-2" data-custom-row>
+      <div class="col-md-4">
+        <input type="text" class="form-control form-control-sm" name="new_utility_name[]" maxlength="100"
+          value="<?= h($row['name']) ?>" placeholder="e.g. Parking fee" aria-label="Utility name">
+      </div>
+      <div class="col-md-8">
+        <input type="text" class="form-control form-control-sm" name="new_utility_policy[]" maxlength="150"
+          value="<?= h($row['policy']) ?>" list="policy-presets" placeholder="How it is billed"
+          aria-label="How it is billed">
+      </div>
+    </div>
+  <?php endforeach; ?>
+  <button type="button" class="btn btn-xs btn-outline-secondary" data-custom-add>
+    <i class="fas fa-plus mr-1"></i> Another utility
+  </button>
+  <small class="form-text text-muted">
+    Saved to your own list and added to this listing when you save. Manage your list under
+    <a href="<?= base_url('landlord/extras.php') ?>">Utilities &amp; Amenities</a>.
+  </small>
+</div>
+
+<script>
+  // "Another utility / amenity": copies the last empty row. Without
+  // JavaScript the single row still works; add more after saving.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-custom-add]');
+    if (!btn) return;
+    var list = btn.closest('[data-custom-list]');
+    var rows = list.querySelectorAll('[data-custom-row]');
+    var copy = rows[rows.length - 1].cloneNode(true);
+    Array.prototype.forEach.call(copy.querySelectorAll('input'), function (input) { input.value = ''; });
+    rows[rows.length - 1].after(copy);
+    copy.querySelector('input').focus();
+  });
+</script>
 <datalist id="policy-presets">
   <?php foreach ($policyPresets as $preset): ?>
     <option value="<?= h($preset) ?>">
@@ -353,17 +400,17 @@ $houseRuleFlags = [
 <hr>
 
 <h5 class="font-weight-bold text-primary mb-1">
-  <i class="fas fa-images mr-1"></i> Property Photographs
+  <i class="fas fa-images mr-1"></i> House Photos
 </h5>
 <p class="text-muted small mb-3">
-  Upload high quality images of the room, facade, or facilities. You can pick several at
-  once &mdash; JPG, PNG or WEBP, up to <?= format_bytes(max_upload_bytes()) ?> each and
+  Photos of the building, entrance, and shared areas. Each room gets its own photos on the room's page.
+  You can pick several at once &mdash; JPG, PNG or WEBP, up to <?= format_bytes(max_upload_bytes()) ?> each and
   <?= max_photos_per_upload() ?> per upload.
   <?php if (empty($existingImages)): ?>The first photo becomes the cover.<?php endif; ?>
 </p>
 
 <div class="form-group">
-  <label for="photos"><?= !empty($listing['boarding_house_id']) ? 'Add more photos' : 'Upload photos' ?></label>
+  <label for="photos"><?= !empty($listing['boarding_house_id']) ? 'Add more house photos' : 'Upload house photos' ?></label>
   <input type="file" class="form-control-file" id="photos" name="photos[]"
     accept="image/jpeg,image/png,image/webp" multiple>
 </div>

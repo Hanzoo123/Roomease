@@ -126,9 +126,17 @@ function client_ip()
  * Tear down the current session and send the visitor to the login page with an
  * explanation. Used when a session ages out or the account behind it stops
  * being valid.
+ *
+ * An administrator goes back to the administrators' sign-in page and everyone
+ * else to the public one. $wasAdmin is taken from the session unless the
+ * caller has already cleared the session and passes it in.
  */
-function force_logout($message)
+function force_logout($message, $wasAdmin = null)
 {
+    if ($wasAdmin === null) {
+        $wasAdmin = is_admin();
+    }
+
     // A remembered device would otherwise sign straight back in on the next
     // request, which is exactly what force_logout exists to prevent.
     forget_remembered_login();
@@ -142,7 +150,7 @@ function force_logout($message)
     session_start();
     session_regenerate_id(true);
     flash_set($message, 'error');
-    redirect('auth/login.php');
+    redirect($wasAdmin ? ADMIN_LOGIN_PATH : 'auth/login.php');
 }
 
 /**
@@ -171,11 +179,12 @@ function enforce_session_policy()
     // A session that has aged out still ends. A remembered device then gets a
     // brand new session from its cookie; anyone else is signed out.
     if ($idle || $aged) {
+        $wasAdmin = is_admin();
         $_SESSION = [];
         if (!restore_remembered_login()) {
             force_logout($idle
                 ? 'You were signed out after 30 minutes of inactivity. Please log in again.'
-                : 'Your session has expired. Please log in again.');
+                : 'Your session has expired. Please log in again.', $wasAdmin);
         }
         $now = time();
     }

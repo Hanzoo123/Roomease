@@ -3,10 +3,11 @@ require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 require_login('landlord');
 
+$landlordId = (int) $_SESSION['user_id'];
 $boardingHouseId = (int) ($_GET['id'] ?? $_POST['boarding_house_id'] ?? 0);
 
 $stmt = $pdo->prepare('SELECT * FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
-$stmt->execute([$boardingHouseId, $_SESSION['user_id']]);
+$stmt->execute([$boardingHouseId, $landlordId]);
 $listing = $stmt->fetch();
 
 if (!$listing) {
@@ -20,17 +21,12 @@ $errors = [];
 $storedModeration = $listing['moderation_status'];
 $storedReason     = $listing['rejection_reason'];
 
-// Load selected amenities
-$amenStmt = $pdo->prepare(
-    'SELECT a.amenity_name
-     FROM boarding_house_amenities bha
-     JOIN amenities a ON bha.amenity_id = a.amenity_id
-     WHERE bha.boarding_house_id = ?'
-);
+// Selected amenities, by id
+$amenStmt = $pdo->prepare('SELECT amenity_id FROM boarding_house_amenities WHERE boarding_house_id = ?');
 $amenStmt->execute([$boardingHouseId]);
-$selectedAmens = $amenStmt->fetchAll(PDO::FETCH_COLUMN);
+$selectedAmens = array_map('intval', $amenStmt->fetchAll(PDO::FETCH_COLUMN));
 
-// Load selected utilities + policies
+// Selected utilities + policies
 $utilStmt = $pdo->prepare(
     'SELECT utility_id, billing_policy
      FROM boarding_house_utilities
@@ -38,11 +34,27 @@ $utilStmt = $pdo->prepare(
 );
 $utilStmt->execute([$boardingHouseId]);
 $selectedUtils = $utilStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+$newAmenityNames = [];
+$newUtilityRows = [];
 
-// Load existing images
-$imgStmt = $pdo->prepare('SELECT * FROM images WHERE boarding_house_id = ? ORDER BY is_primary DESC, image_id ASC');
+// House photos only; each room's photos are managed on its own page.
+$imgStmt = $pdo->prepare(
+    'SELECT * FROM images WHERE boarding_house_id = ? AND room_id IS NULL ORDER BY is_primary DESC, image_id ASC'
+);
 $imgStmt->execute([$boardingHouseId]);
 $existingImages = $imgStmt->fetchAll();
+
+// Rooms, in the order they were added
+$roomStmt = $pdo->prepare(
+    'SELECT r.*, rt.room_type_name,
+            (SELECT COUNT(*) FROM images i WHERE i.room_id = r.room_id) AS photo_count
+       FROM rooms r
+       JOIN room_types rt ON rt.room_type_id = r.room_type_id
+      WHERE r.boarding_house_id = ?
+      ORDER BY r.room_id ASC'
+);
+$roomStmt->execute([$boardingHouseId]);
+$rooms = $roomStmt->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // PHP drops $_POST and $_FILES wholesale when the body exceeds
@@ -55,63 +67,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     verify_csrf();
 
-    foreach (['name', 'address', 'monthly_rent', 'reservation_fee', 'room_type_id', 'room_capacity',
-              'availability_status', 'description', 'contact_number', 'house_rules'] as $key) {
+    foreach (['name', 'address', 'reservation_fee', 'availability_status', 'description', 'contact_number',
+              'house_rules'] as $key) {
         $listing[$key] = trim($_POST[$key] ?? '');
     }
     [$stayTerms, $stayErrors, $stayEcho] = stay_terms_from_post($_POST);
     $listing = array_merge($listing, $stayEcho);
-    $selectedAmens = $_POST['amenities'] ?? [];
-    $rawUtils      = $_POST['utilities'] ?? [];
-    $billingPolicy = $_POST['billing_policy'] ?? [];
 
-    $selectedUtils = [];
-    foreach ($rawUtils as $uId) {
-        $uId = (int)$uId;
-        $selectedUtils[$uId] = trim($billingPolicy[$uId] ?? 'Included in Rent');
-    }
+    $lookups = listing_lookups_from_post($_POST, $landlordId);
+    $selectedAmens = $lookups['amenity_ids'];
+    $selectedUtils = $lookups['utilities'];
+    $newAmenityNames = $lookups['new_amenities'];
+    $newUtilityRows = $lookups['new_utilities'];
 
     if ($listing['name'] === '') $errors[] = 'Boarding house name is required.';
     if ($listing['address'] === '') $errors[] = 'Complete address is required.';
-    if (!is_numeric($listing['monthly_rent']) || (float)$listing['monthly_rent'] < 0) {
-        $errors[] = 'Enter a valid monthly rent amount.';
-    }
     if ($listing['reservation_fee'] !== '' &&
         (!is_numeric($listing['reservation_fee']) || (float)$listing['reservation_fee'] < 0)) {
         $errors[] = 'Reservation fee must be a valid amount, or left blank if none is required.';
-    }
-    if (!ctype_digit((string)$listing['room_capacity']) || (int)$listing['room_capacity'] < 1) {
-        $errors[] = 'Room capacity must be at least 1.';
     }
     if ($listing['contact_number'] === '') $errors[] = 'Contact number is required.';
     if (!in_array($listing['availability_status'], ['available', 'unavailable'], true)) {
         $listing['availability_status'] = 'available';
     }
-    // Checked here so an invalid id becomes a form message rather than a
-    // foreign key error from the database.
-    if (!isset(room_type_options()[(int) $listing['room_type_id']])) {
-        $errors[] = 'Choose a room type from the list.';
-    }
-    $errors = array_merge($errors, $stayErrors);
+    $errors = array_merge($errors, $stayErrors, $lookups['errors']);
 
     if (!$errors) {
-        // Update boarding house
         $stayAssignments = implode(', ', array_map(function ($column) {
             return $column . '=?';
         }, STAY_TERM_COLUMNS));
         $stmt = $pdo->prepare(
-            'UPDATE boarding_houses SET name=?, address=?, monthly_rent=?, reservation_fee=?, room_type_id=?,
-             room_capacity=?, availability_status=?, description=?, contact_number=?, house_rules=?, ' . $stayAssignments . '
+            'UPDATE boarding_houses SET name=?, address=?, reservation_fee=?, availability_status=?, description=?,
+             contact_number=?, house_rules=?, ' . $stayAssignments . '
              WHERE boarding_house_id=? AND landlord_id=?'
         );
         $stmt->execute(array_merge([
-            $listing['name'], $listing['address'], $listing['monthly_rent'],
+            $listing['name'], $listing['address'],
             $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
-            (int) $listing['room_type_id'],
-            (int)$listing['room_capacity'], $listing['availability_status'],
+            $listing['availability_status'],
             $listing['description'], $listing['contact_number'], $listing['house_rules'],
         ], array_values($stayTerms), [
-            $boardingHouseId, $_SESSION['user_id'],
+            $boardingHouseId, $landlordId,
         ]));
 
         // A rejected listing has presumably just been corrected, so put it
@@ -121,37 +117,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "UPDATE boarding_houses
                     SET moderation_status = 'pending', rejection_reason = NULL, moderated_at = NULL
                   WHERE boarding_house_id = ? AND landlord_id = ?"
-            )->execute([$boardingHouseId, $_SESSION['user_id']]);
+            )->execute([$boardingHouseId, $landlordId]);
         }
 
-        // Sync amenities
-        $pdo->prepare('DELETE FROM boarding_house_amenities WHERE boarding_house_id = ?')->execute([$boardingHouseId]);
-        if (!empty($selectedAmens)) {
-            $mapStmt = $pdo->query('SELECT amenity_name, amenity_id FROM amenities');
-            $amenityMap = $mapStmt->fetchAll(PDO::FETCH_KEY_PAIR);
-            $insAmen = $pdo->prepare('INSERT IGNORE INTO boarding_house_amenities (boarding_house_id, amenity_id, is_available) VALUES (?, ?, 1)');
-            foreach ($selectedAmens as $amenName) {
-                if (isset($amenityMap[$amenName])) {
-                    $insAmen->execute([$boardingHouseId, $amenityMap[$amenName]]);
-                }
-            }
-        }
+        save_listing_lookups($boardingHouseId, $landlordId, $lookups, true);
 
-        // Sync utilities
-        $pdo->prepare('DELETE FROM boarding_house_utilities WHERE boarding_house_id = ?')->execute([$boardingHouseId]);
-        if (!empty($selectedUtils)) {
-            $insUtil = $pdo->prepare('INSERT IGNORE INTO boarding_house_utilities (boarding_house_id, utility_id, billing_policy) VALUES (?, ?, ?)');
-            foreach ($selectedUtils as $uId => $policy) {
-                $insUtil->execute([$boardingHouseId, $uId, $policy ?: 'Included in Rent']);
-            }
-        }
-
-        // Handle photo uploads. If the listing has no cover yet, the first
-        // photo in this batch becomes it.
+        // House photos. If the house has no cover yet, the first photo in
+        // this batch becomes it.
         try {
             $paths = handle_photo_uploads('photos', $boardingHouseId);
             if ($paths) {
-                $hasPrimary = $pdo->prepare('SELECT COUNT(*) FROM images WHERE boarding_house_id=? AND is_primary=1');
+                $hasPrimary = $pdo->prepare(
+                    'SELECT COUNT(*) FROM images WHERE boarding_house_id = ? AND room_id IS NULL AND is_primary = 1'
+                );
                 $hasPrimary->execute([$boardingHouseId]);
                 $needsPrimary = (int) $hasPrimary->fetchColumn() === 0;
 
@@ -169,6 +147,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('landlord/dashboard.php');
     }
 }
+
+$summary = listing_availability([
+    'room_count' => count($rooms),
+    'rooms_available' => count(array_filter($rooms, fn($r) => room_state($r)['key'] === 'available')),
+    'rooms_open' => count(array_filter($rooms, fn($r) => !empty($r['is_open']))),
+]);
 
 $pageTitle = 'Edit Listing';
 require __DIR__ . '/../includes/panel_head.php';
@@ -190,6 +174,7 @@ require __DIR__ . '/../includes/panel_sidebar.php';
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="<?= base_url('landlord/dashboard.php') ?>">Home</a></li>
+            <li class="breadcrumb-item"><a href="<?= base_url('landlord/listings.php') ?>">My Boarding Houses</a></li>
             <li class="breadcrumb-item active"><?= h($listing['name']) ?></li>
           </ol>
         </div>
@@ -202,12 +187,134 @@ require __DIR__ . '/../includes/panel_sidebar.php';
   <section class="content">
     <div class="container-fluid">
       <div class="row justify-content-center">
-        <div class="col-lg-9">
+        <div class="col-lg-10">
+
+          <!-- Rooms: first, because slot counts are what changes most often -->
+          <div class="card card-primary card-outline shadow-sm" id="rooms">
+            <div class="card-header d-flex flex-wrap align-items-center" style="gap: 8px;">
+              <h3 class="card-title font-weight-bold mb-0">
+                <i class="fas fa-door-open mr-1"></i> Rooms
+              </h3>
+              <span class="text-muted small" data-rooms-summary><?= h($summary['summary']) ?></span>
+              <a href="<?= base_url('landlord/room_form.php?house=' . $boardingHouseId) ?>" class="btn btn-sm btn-primary ml-auto">
+                <i class="fas fa-plus mr-1"></i> Add room
+              </a>
+            </div>
+
+            <?php if (!$rooms): ?>
+              <div class="card-body text-center py-5">
+                <i class="fas fa-door-closed fa-3x text-secondary mb-3 d-block"></i>
+                <h5 class="font-weight-bold">Add your first room</h5>
+                <p class="text-muted mb-3" style="max-width: 460px; margin: 0 auto;">
+                  Boarders see this listing once it has at least one room<?= $storedModeration === 'approved' ? '' : ' and an administrator approves it' ?>.
+                  Each room has its own type, rent, capacity, and photos.
+                </p>
+                <a href="<?= base_url('landlord/room_form.php?house=' . $boardingHouseId) ?>" class="btn btn-primary">
+                  <i class="fas fa-plus mr-1"></i> Add a room
+                </a>
+              </div>
+            <?php else: ?>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>Room</th>
+                        <th>Type</th>
+                        <th>Rent</th>
+                        <th>Slots taken</th>
+                        <th>Status</th>
+                        <th>Photos</th>
+                        <th class="text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php foreach ($rooms as $room): ?>
+                        <?php $state = room_state($room); ?>
+                        <tr data-room-row="<?= (int) $room['room_id'] ?>">
+                          <td class="font-weight-bold align-middle"><?= h($room['name']) ?></td>
+                          <td class="align-middle"><?= h($room['room_type_name']) ?></td>
+                          <td class="align-middle">&#8369;<?= number_format((float) $room['monthly_rent'], 2) ?></td>
+                          <td class="align-middle">
+                            <div class="d-inline-flex align-items-center" style="gap: 6px;">
+                              <form method="post" action="<?= base_url('landlord/room_action.php') ?>" data-room-action>
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
+                                <input type="hidden" name="action" value="slots">
+                                <input type="hidden" name="delta" value="-1">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" data-slot-minus
+                                  aria-label="One fewer tenant in <?= h($room['name']) ?>"
+                                  <?= (int) $room['slots_taken'] <= 0 ? 'disabled' : '' ?>>
+                                  <i class="fas fa-minus"></i>
+                                </button>
+                              </form>
+                              <span class="font-weight-bold text-nowrap" style="min-width: 48px; text-align: center;"
+                                data-slots-text aria-live="polite">
+                                <?= (int) $room['slots_taken'] ?> / <?= (int) $room['capacity'] ?>
+                              </span>
+                              <form method="post" action="<?= base_url('landlord/room_action.php') ?>" data-room-action>
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
+                                <input type="hidden" name="action" value="slots">
+                                <input type="hidden" name="delta" value="1">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" data-slot-plus
+                                  aria-label="One more tenant in <?= h($room['name']) ?>"
+                                  <?= (int) $room['slots_taken'] >= (int) $room['capacity'] ? 'disabled' : '' ?>>
+                                  <i class="fas fa-plus"></i>
+                                </button>
+                              </form>
+                            </div>
+                          </td>
+                          <td class="align-middle">
+                            <span class="badge <?= $state['badge'] ?> px-2 py-1" data-room-state><?= h($state['label']) ?></span>
+                          </td>
+                          <td class="align-middle">
+                            <a href="<?= base_url('landlord/room_form.php?id=' . (int) $room['room_id']) ?>#photos">
+                              <i class="fas fa-images mr-1"></i><?= (int) $room['photo_count'] ?>
+                            </a>
+                          </td>
+                          <td class="align-middle text-right text-nowrap">
+                            <form method="post" action="<?= base_url('landlord/room_action.php') ?>" class="d-inline" data-room-action>
+                              <?= csrf_field() ?>
+                              <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
+                              <input type="hidden" name="action" value="toggle_open">
+                              <button type="submit" class="btn btn-xs btn-outline-secondary" data-toggle-open
+                                title="<?= $room['is_open'] ? 'Stop taking tenants in this room' : 'Take tenants in this room again' ?>">
+                                <?= $room['is_open'] ? 'Close' : 'Reopen' ?>
+                              </button>
+                            </form>
+                            <a href="<?= base_url('landlord/room_form.php?id=' . (int) $room['room_id']) ?>"
+                              class="btn btn-xs btn-outline-primary" title="Edit room">
+                              <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="post" action="<?= base_url('landlord/room_action.php') ?>" class="d-inline"
+                              data-room-action data-confirm="Delete <?= h($room['name']) ?> and its photos? This cannot be undone.">
+                              <?= csrf_field() ?>
+                              <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
+                              <input type="hidden" name="action" value="delete">
+                              <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete room">
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card-footer small text-muted">
+                <i class="fas fa-info-circle mr-1"></i>
+                Tap <strong>+</strong> when a tenant moves in and <strong>&minus;</strong> when one moves out. It saves
+                straight away. Boarders only see how many slots are left, never who lives there.
+              </div>
+            <?php endif; ?>
+          </div>
 
           <div class="card card-primary card-outline shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title font-weight-bold">
-                <i class="fas fa-clipboard-list mr-1"></i> Listing Details
+                <i class="fas fa-clipboard-list mr-1"></i> House Details
               </h3>
               <a href="<?= base_url('boarder/view_listing.php?id=' . $boardingHouseId) ?>" target="_blank"
                 class="btn btn-sm btn-outline-info ml-auto">
@@ -269,11 +376,11 @@ require __DIR__ . '/../includes/panel_sidebar.php';
             <div class="card card-outline card-secondary shadow-sm">
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
-                  <i class="fas fa-images mr-1"></i> Current Photos
+                  <i class="fas fa-images mr-1"></i> Current House Photos
                 </h3>
               </div>
               <div class="card-body">
-                <p class="text-muted small">The cover photo is the one boarders see on the browse page.</p>
+                <p class="text-muted small">The cover photo is the one boarders see on the listing cards.</p>
                 <div class="row">
                   <?php foreach ($existingImages as $img): ?>
                     <div class="col-md-3 col-sm-4 col-6 mb-3">
@@ -323,3 +430,4 @@ require __DIR__ . '/../includes/panel_sidebar.php';
 <!-- /.content-wrapper -->
 
 <?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/room_actions_js.php'; ?>

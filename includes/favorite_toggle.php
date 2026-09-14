@@ -102,7 +102,10 @@
       e.preventDefault();
       btn.disabled = true;
 
-      fetch(form.action, {
+      // getAttribute, not form.action: the form has a field named "action",
+      // and form.action returns that field instead of the URL, which sent
+      // every tap to a missing page and fell back to a full reload.
+      fetch(form.getAttribute('action'), {
         method: 'POST',
         body: new FormData(form),
         credentials: 'same-origin',

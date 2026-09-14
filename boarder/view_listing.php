@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/icons.php';
 $listingId = (int) ($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare(
-  "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
+  "SELECT bh.*,
             u.first_name AS landlord_first_name,
             u.last_name AS landlord_last_name,
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
@@ -16,7 +16,6 @@ $stmt = $pdo->prepare(
             u.deleted_at AS landlord_deleted_at
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
-     " . ROOM_TYPE_JOIN . "
      WHERE bh.boarding_house_id = ?"
 );
 $stmt->execute([$listingId]);
@@ -43,7 +42,7 @@ if ($listing && !$landlordLive && !$isOwner && !is_admin()) {
 if (!$listing) {
   $pageTitle = 'Listing not found';
   $band = [
-    'back' => ['href' => base_url('boarder/browse.php'), 'label' => 'All rooms'],
+    'back' => ['href' => base_url('boarder/browse.php'), 'label' => 'All boarding houses'],
     'title' => 'Listing not found',
   ];
   require __DIR__ . '/../includes/header.php';
@@ -53,11 +52,47 @@ if (!$listing) {
   exit;
 }
 
+// House photos first (cover, then the rest), then each room's photos.
 $photosStmt = $pdo->prepare(
-  'SELECT * FROM images WHERE boarding_house_id = ? ORDER BY is_primary DESC, image_id ASC'
+  'SELECT * FROM images WHERE boarding_house_id = ?
+    ORDER BY room_id IS NULL DESC, room_id, is_primary DESC, image_id ASC'
 );
 $photosStmt->execute([$listingId]);
-$photos = $photosStmt->fetchAll();
+$housePhotos = [];
+$roomPhotos = [];
+foreach ($photosStmt->fetchAll() as $p) {
+  if ($p['room_id'] === null) {
+    $housePhotos[] = $p;
+  } else {
+    $roomPhotos[(int) $p['room_id']][] = $p;
+  }
+}
+// A listing with only room photos still gets a gallery at the top.
+$photos = $housePhotos ?: array_merge([], ...array_values($roomPhotos));
+
+// Rooms: available first, then full, then closed; in the order added within each.
+$roomStmt = $pdo->prepare(
+  'SELECT r.*, rt.room_type_name
+     FROM rooms r
+     JOIN room_types rt ON rt.room_type_id = r.room_type_id
+    WHERE r.boarding_house_id = ?
+    ORDER BY r.room_id ASC'
+);
+$roomStmt->execute([$listingId]);
+$rooms = $roomStmt->fetchAll();
+usort($rooms, function ($a, $b) {
+  return [room_state_rank($a), (int) $a['room_id']] <=> [room_state_rank($b), (int) $b['room_id']];
+});
+
+$roomTypeCounts = array_count_values(array_column($rooms, 'room_type_name'));
+$availableRooms = array_filter($rooms, fn($r) => room_state($r)['key'] === 'available');
+$avail = listing_availability([
+  'room_count' => count($rooms),
+  'rooms_available' => count($availableRooms),
+  'rooms_open' => count(array_filter($rooms, fn($r) => !empty($r['is_open']))),
+  'rent_from_available' => $availableRooms ? min(array_column($availableRooms, 'monthly_rent')) : null,
+  'rent_from_all' => $rooms ? min(array_column($rooms, 'monthly_rent')) : null,
+]);
 
 $amenStmt = $pdo->prepare(
   'SELECT a.amenity_name
@@ -78,7 +113,6 @@ $utilStmt = $pdo->prepare(
 $utilStmt->execute([$listingId]);
 $utilities = $utilStmt->fetchAll();
 
-$isAvailable = $listing['availability_status'] === 'available';
 $isSaved = can_save_listings()
   && isset(saved_listing_ids($_SESSION['user_id'])[$listingId]);
 
@@ -157,7 +191,19 @@ foreach ($photos as $i => $p) {
   ];
 }
 
+/** One room's photos, shaped for the full-screen viewer. */
+$photoSet = function (array $images, $label) {
+  $set = [];
+  foreach ($images as $i => $p) {
+    $set[] = ['src' => base_url($p['image_path']), 'alt' => 'Photo ' . ($i + 1) . ' of ' . $label];
+  }
+  return $set;
+};
+
 $notice = null;
+if (!$rooms && $canPreview) {
+  $notice = 'This listing has no rooms yet, so boarders cannot see it. Add a room from the landlord panel.';
+}
 if ($listing['moderation_status'] === 'pending') {
   $notice = 'This listing is waiting for administrator approval, so boarders cannot see it yet.';
 } elseif ($listing['moderation_status'] === 'rejected') {
@@ -172,7 +218,7 @@ require __DIR__ . '/../includes/header.php';
 
 <section class="band band--listing">
   <div class="container">
-    <a href="<?= base_url('boarder/browse.php') ?>" class="back-link">&larr; All rooms</a>
+    <a href="<?= base_url('boarder/browse.php') ?>" class="back-link">&larr; All boarding houses</a>
 
     <?php if ($notice): ?>
       <div class="alert alert-error"><strong>Preview only.</strong> <?= h($notice) ?></div>
@@ -182,9 +228,13 @@ require __DIR__ . '/../includes/header.php';
     <p class="listing-addr"><?= icon('pin', 16) ?><?= h($listing['address']) ?></p>
 
     <ul class="listing-tags">
-      <li class="pill <?= $isAvailable ? 'pill--available' : 'pill--unavailable' ?>"><?= $isAvailable ? 'Available' : 'Unavailable' ?></li>
-      <?php if ($listing['room_type']): ?>
-        <li class="tag-light"><?= icon('door', 14) ?><?= h($listing['room_type']) ?></li>
+      <?php if ($listing['availability_status'] !== 'available'): ?>
+        <li class="pill pill--unavailable">Hidden by landlord</li>
+      <?php else: ?>
+        <li class="pill <?= h($avail['pill']) ?>"><?= h($avail['label']) ?></li>
+      <?php endif; ?>
+      <?php if ($rooms): ?>
+        <li class="tag-light"><?= icon('door', 14) ?><?= h($avail['summary']) ?></li>
       <?php endif; ?>
       <?php if ($genderLabel): ?>
         <li class="tag-light"><?= icon('users', 14) ?><?= h($genderLabel) ?></li>
@@ -227,6 +277,75 @@ require __DIR__ . '/../includes/header.php';
           <p class="prose"><?= h($listing['description']) ?></p>
         </section>
       <?php endif; ?>
+
+      <section class="detail-section" id="rooms" data-rooms>
+        <div class="rooms-head">
+          <h2>Rooms</h2>
+          <?php if ($rooms): ?>
+            <span class="rooms-count"><?= h($avail['summary']) ?></span>
+          <?php endif; ?>
+        </div>
+
+        <?php if (!$rooms): ?>
+          <p class="detail-intro">No rooms have been added to this listing yet.</p>
+        <?php else: ?>
+          <?php if (count($roomTypeCounts) > 1): ?>
+            <?php /* Filter chips: shown only when there is more than one type to pick
+                     between. They are buttons that listing.js wires up; without it,
+                     every room simply stays listed. */ ?>
+            <div class="room-filter" role="group" aria-label="Filter rooms by type" data-room-filter hidden>
+              <button type="button" class="chip is-active" data-room-type="" aria-pressed="true">
+                All rooms <span><?= count($rooms) ?></span>
+              </button>
+              <?php foreach ($roomTypeCounts as $typeName => $typeCount): ?>
+                <button type="button" class="chip" data-room-type="<?= h($typeName) ?>" aria-pressed="false">
+                  <?= h($typeName) ?> <span><?= (int) $typeCount ?></span>
+                </button>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+
+          <ul class="room-grid">
+            <?php foreach ($rooms as $room): ?>
+              <?php
+              $state = room_state($room);
+              $capacity = max(1, (int) $room['capacity']);
+              $taken = min($capacity, (int) $room['slots_taken']);
+              $set = $photoSet($roomPhotos[(int) $room['room_id']] ?? [], $room['name']);
+              ?>
+              <li class="room-tile room-tile--<?= h($state['key']) ?>" data-room-type-name="<?= h($room['room_type_name']) ?>">
+                <?php if ($set): ?>
+                  <button type="button" class="room-tile-media" data-photo-set="<?= h(json_encode($set)) ?>"
+                    aria-label="View <?= count($set) ?> photo<?= count($set) === 1 ? '' : 's' ?> of <?= h($room['name']) ?>">
+                    <img src="<?= h($set[0]['src']) ?>" alt="" loading="lazy">
+                    <?php if (count($set) > 1): ?>
+                      <span class="room-tile-count"><?= icon('expand', 12) ?><?= count($set) ?></span>
+                    <?php endif; ?>
+                  </button>
+                <?php else: ?>
+                  <div class="room-tile-media room-tile-media--empty"><?= icon('door', 28) ?></div>
+                <?php endif; ?>
+                <span class="pill pill--on-photo <?= h($state['pill']) ?>"><?= h($state['label']) ?></span>
+
+                <div class="room-tile-body">
+                  <h3><?= h($room['name']) ?></h3>
+                  <p class="room-tile-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></p>
+                  <p class="room-tile-rent"><?= peso_round($room['monthly_rent']) ?> <span>/ month</span></p>
+                  <?php if (!empty($room['description'])): ?>
+                    <p class="room-tile-desc"><?= h($room['description']) ?></p>
+                  <?php endif; ?>
+                  <?php if ($capacity > 1 && $state['key'] !== 'closed'): ?>
+                    <div class="slots" role="img" aria-label="<?= $taken ?> of <?= $capacity ?> slots taken">
+                      <span class="slots-fill" style="width: <?= round($taken / $capacity * 100) ?>%"></span>
+                    </div>
+                  <?php endif; ?>
+                  <p class="room-tile-note room-tile-note--<?= h($state['key']) ?>"><?= h($state['note']) ?></p>
+                </div>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </section>
 
       <?php if ($utilities): ?>
         <section class="detail-section">
@@ -330,7 +449,15 @@ require __DIR__ . '/../includes/header.php';
 
   <aside class="listing-side" aria-label="Quick info">
     <div class="quick-card on-seam">
-      <p class="price"><?= peso_round($listing['monthly_rent']) ?> <span>/ month</span></p>
+      <?php if ($avail['rent_from'] !== null): ?>
+        <p class="price">
+          <?php if (count($rooms) > 1): ?><span class="price-from">From</span><?php endif; ?>
+          <?= peso_round($avail['rent_from']) ?> <span>/ month</span>
+        </p>
+      <?php endif; ?>
+      <?php if ($rooms): ?>
+        <a href="#rooms" class="quick-rooms quick-rooms--<?= h($avail['key']) ?>"><?= h($avail['summary']) ?></a>
+      <?php endif; ?>
 
       <?php if (can_save_listings()): ?>
         <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
@@ -363,8 +490,10 @@ require __DIR__ . '/../includes/header.php';
 
       <ul class="quick-list">
         <li><?= icon('pin', 16) ?><span>Location</span><strong><?= h($listing['address']) ?></strong></li>
-        <li><?= icon('door', 16) ?><span>Room type</span><strong><?= h($listing['room_type'] ?: '—') ?></strong></li>
-        <li><?= icon('users', 16) ?><span>Capacity</span><strong><?= (int) $listing['room_capacity'] ?> <?= (int) $listing['room_capacity'] === 1 ? 'person' : 'people' ?></strong></li>
+        <?php if ($rooms): ?>
+          <li><?= icon('door', 16) ?><span>Room types</span><strong><?= h(implode(', ', array_keys($roomTypeCounts))) ?></strong></li>
+          <li><?= icon('users', 16) ?><span>Rooms</span><strong><?= count($availableRooms) ?> of <?= count($rooms) ?> available</strong></li>
+        <?php endif; ?>
         <li><?= icon('phone', 16) ?><span>Contact</span>
           <strong>
             <?php if ($shownPhone !== ''): ?>
@@ -390,19 +519,15 @@ require __DIR__ . '/../includes/header.php';
   </aside>
 </div>
 
-<?php if (count($galleryPhotos) > 0): ?>
+<?php if ($galleryPhotos || $roomPhotos): ?>
+  <?php /* One viewer for the house gallery and every room's photos. listing.js
+           hides the arrows when the set it is showing has a single photo. */ ?>
   <dialog class="lightbox" aria-label="Photos of <?= h($listing['name']) ?>">
     <div class="lightbox-inner">
       <img class="lightbox-img" src="" alt="">
       <p class="lightbox-count" aria-live="polite"></p>
-      <?php if (count($galleryPhotos) > 1): ?>
-        <button type="button" class="lightbox-btn lightbox-prev" aria-label="Previous photo"><?= icon('chevron-left', 22) ?></button>
-        <button type="button" class="lightbox-btn lightbox-next" aria-label="Next photo"><?= icon('chevron-right', 22) ?></button>
-      <?php else: ?>
-        <?php /* listing.js wires both arrows; with one photo they stay out of view. */ ?>
-        <button type="button" class="lightbox-btn lightbox-prev" hidden></button>
-        <button type="button" class="lightbox-btn lightbox-next" hidden></button>
-      <?php endif; ?>
+      <button type="button" class="lightbox-btn lightbox-prev" aria-label="Previous photo"><?= icon('chevron-left', 22) ?></button>
+      <button type="button" class="lightbox-btn lightbox-next" aria-label="Next photo"><?= icon('chevron-right', 22) ?></button>
       <button type="button" class="lightbox-btn lightbox-close" aria-label="Close"><?= icon('x', 22) ?></button>
     </div>
   </dialog>

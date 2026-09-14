@@ -57,15 +57,21 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// An administrator's link came from the admin sign-in page, so it leads back
+// there; everyone else goes to the public login.
+$forAdmin = $reset && $reset['role'] === 'administrator';
+$loginPath = $forAdmin ? ADMIN_LOGIN_PATH : 'auth/login.php';
+
 $pageTitle = 'Reset password';
 $authHeading = $done ? 'Password changed' : (!$reset ? 'Link no longer valid' : 'Choose a new password');
-$authSwitch = ['text' => 'Remembered your password?', 'href' => base_url('auth/login.php'), 'label' => 'Log in'];
+$authAdmin = $forAdmin;
+$authSwitch = ['text' => 'Remembered your password?', 'href' => base_url($loginPath), 'label' => 'Log in'];
 require __DIR__ . '/../includes/auth_header.php';
 ?>
 
 <?php if ($done): ?>
   <div class="alert alert-success">Your password has been changed. You can log in with it now.</div>
-  <a href="<?= base_url('auth/login.php') ?>" class="btn btn-primary btn-block btn-auth">Go to log in</a>
+  <a href="<?= base_url($loginPath) ?>" class="btn btn-primary btn-block btn-auth">Go to log in</a>
 
 <?php elseif (!$reset): ?>
   <div class="alert alert-error">

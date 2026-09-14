@@ -36,8 +36,13 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Too many failed sign-in attempts. Please try again in "
             . format_wait($retryAfter) . ".";
     } else {
+        // Administrators sign in at admin/login.php. Their accounts are left
+        // out here, so this page answers an admin email exactly as it answers
+        // an unknown one and never reveals that an admin account exists.
         $stmt = $pdo->prepare(
-            "SELECT * FROM users WHERE email = :login_id AND deleted_at IS NULL LIMIT 1"
+            "SELECT * FROM users
+              WHERE email = :login_id AND deleted_at IS NULL AND role <> 'administrator'
+              LIMIT 1"
         );
         $stmt->execute([':login_id' => $loginId]);
         $user = $stmt->fetch();

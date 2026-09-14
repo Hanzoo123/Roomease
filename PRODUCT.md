@@ -64,22 +64,45 @@ inquiry inbox as though it already ships.
   dashboard has to communicate a waiting state and a rejection reason.
 - Search matches listing name and address as a single string. `address` is
   stored as one text field, so there is no separate city or barangay filter.
-- Room type is a foreign key onto `room_types`, so the browse filter and the
-  listing form can never disagree about the available values.
+- A boarding house has rooms (`rooms`). Each room has its own room type
+  (a foreign key onto `room_types`, so the browse filter and the room form can
+  never disagree), rent, capacity, slots taken, and an open/closed switch.
+  "Available", "Full" and "Not available" are worked out from those, never
+  stored. The listing's own `availability_status` is only a show/hide switch
+  for the whole listing.
+- Browse's room-type and budget filters match a room inside a listing: a
+  listing appears when one of its open rooms fits. Listings with a room
+  available sort before fully occupied ones, which are still shown.
+- Boarders only ever see slot counts. There are no tenant records, so no tenant
+  name is stored or shown anywhere.
 
 ## Capabilities and Constraints
 
 **Confirmed functionality**
 
-- Listing CRUD with name, address, rent, reservation fee, room type, capacity,
-  utilities, amenities, house rules, and contact info; multiple photo uploads
-  with a landlord-chosen cover photo.
+- Listing CRUD with name, address, reservation fee, utilities, amenities,
+  house rules, stay terms, map pin, and contact info; house photos with a
+  landlord-chosen cover photo.
+- Rooms inside each listing: add, edit and delete rooms, each with its own
+  photos and main photo; landlords update slots taken with − / + and close or
+  reopen a room without leaving the listing page. A listing is not shown, and
+  cannot be approved, until it has at least one room.
+- Utilities and amenities: the administrator's items are available to every
+  landlord; each landlord can add their own, which only they see, from the
+  listing form or their Utilities & Amenities page. The administrator can make
+  a landlord's item available to everyone, merging same-name copies.
 - Moderation queue: approve or reject with a reason; landlords see the state of
   each of their listings.
 - Browse with keyword search, room-type and maximum-rent filters, and
   server-side pagination; full listing detail; saved-listing shortlist.
 - Administration: platform stats, user activate/deactivate, archive/restore,
   listing removal.
+- Separate sign-in for administrators at `admin/login.php` (fixed dark
+  background, no sign-up, Google, or "Remember me", hidden from search
+  engines). The public login refuses administrator accounts and the admin
+  login accepts only them, each with the generic "Invalid email or password".
+  Administrators reset passwords from their own page, and are sent back to the
+  admin login when they log out or their session ends.
 - Profile editing and password change for all roles; password reset by emailed
   link using single-use, hashed, expiring tokens.
 - Security baseline is complete and is not up for redesign: bcrypt, prepared
@@ -126,8 +149,9 @@ typography seen at the defence.
   from `tile.openstreetmap.org`, which the CSP allows as an image source. An
   offline demo shows every other section and a "map could not load" note.
 - The inquiry inbox (B1), moderation attribution (B2), browse sort options
-  (B3), server-side paging for admin tables (B4), and room-slot tracking (B5)
-  are identified in the improvement plan but not built.
+  (B3), and server-side paging for admin tables (B4) are identified in the
+  improvement plan but not built. Room-slot tracking (B5) is built, as the
+  rooms and slot counts described above.
 
 ## Brand Commitments
 

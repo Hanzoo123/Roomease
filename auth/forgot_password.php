@@ -4,9 +4,17 @@
  *
  * The response is deliberately the same whether or not the address belongs to
  * an account, so this page cannot be used to find out who is registered.
+ *
+ * Administrators and everyone else reset separately: admin/forgot_password.php
+ * sets $resetScope = 'admin' and includes this file. The public page never
+ * sends a link to an administrator account, and the admin page only ever
+ * sends one to an administrator account.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
+
+$resetScope = ($resetScope ?? 'public') === 'admin' ? 'admin' : 'public';
+$loginPath = $resetScope === 'admin' ? ADMIN_LOGIN_PATH : 'auth/login.php';
 
 if (is_logged_in()) {
     redirect('index.php');
@@ -38,7 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Deactivated accounts get no token, but the page says the same thing
         // either way so nothing about the account is revealed.
-        $stmt = $pdo->prepare('SELECT user_id, first_name, is_active FROM users WHERE email = ?');
+        $roleCheck = $resetScope === 'admin' ? "role = 'administrator'" : "role <> 'administrator'";
+        $stmt = $pdo->prepare(
+            "SELECT user_id, first_name, is_active FROM users WHERE email = ? AND deleted_at IS NULL AND $roleCheck"
+        );
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
@@ -57,9 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Forgot password';
-$authHeading = 'Reset your password';
-$authSwitch = ['text' => 'Remembered it?', 'href' => base_url('auth/login.php'), 'label' => 'Log in'];
+$pageTitle = $resetScope === 'admin' ? 'Admin password reset' : 'Forgot password';
+$authHeading = $resetScope === 'admin' ? 'Reset your admin password' : 'Reset your password';
+$authAdmin = $resetScope === 'admin';
+$authSwitch = ['text' => 'Remembered it?', 'href' => base_url($loginPath), 'label' => 'Log in'];
 require __DIR__ . '/../includes/auth_header.php';
 ?>
 

@@ -13,13 +13,13 @@ if (!in_array($statusFilter, ['pending', 'approved', 'rejected'], true)) {
   $statusFilter = '';
 }
 
-$sql = "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
+$sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ",
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
             u.email AS landlord_email,
             u.deleted_at AS landlord_deleted_at
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
-     " . ROOM_TYPE_JOIN;
+     " . room_summary_join();
 $params = [];
 if ($statusFilter !== '') {
   $sql .= " WHERE bh.moderation_status = ?";
@@ -106,10 +106,9 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                 <th>Boarding House</th>
                 <th>Landlord</th>
                 <th>Address</th>
-                <th>Monthly Rent</th>
-                <th>Room Info</th>
+                <th>Rooms</th>
                 <th>Approval</th>
-                <th>Status</th>
+                <th>Website</th>
                 <th>Posted Date</th>
                 <th style="width: 110px;">Actions</th>
               </tr>
@@ -133,23 +132,18 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                     <i class="fas fa-map-marker-alt text-danger mr-1"></i>
                     <?= h($l['address']) ?>
                   </td>
-                  <td>
-                    <span
-                      class="text-success font-weight-bold">&#8369;<?= number_format((float) $l['monthly_rent'], 2) ?></span>
-                    <br>
-                    <small class="text-muted">
-                      <?php if ($l['reservation_fee'] === null || $l['reservation_fee'] === ''): ?>
-                        No reservation fee
-                      <?php else: ?>
-                        Reservation: &#8369;<?= number_format((float) $l['reservation_fee'], 2) ?>
-                      <?php endif; ?>
-                    </small>
-                  </td>
-                  <td>
-                    <span class="badge badge-info"><?= h($l['room_type'] ?? 'N/A') ?></span>
-                    <br>
-                    <small class="text-muted"><i class="fas fa-user-friends mr-1"></i>Cap:
-                      <?= (int) $l['room_capacity'] ?></small>
+                  <?php $avail = listing_availability($l); ?>
+                  <td data-order="<?= (int) $avail['room_count'] ?>">
+                    <?php if ($avail['room_count'] === 0): ?>
+                      <span class="badge badge-warning px-2 py-1">No rooms yet</span>
+                      <br><small class="text-muted">Cannot be approved until it has one</small>
+                    <?php else: ?>
+                      <span class="font-weight-bold"><?= h($avail['summary']) ?></span>
+                      <br>
+                      <small class="text-muted">
+                        From &#8369;<?= number_format((float) $avail['rent_from'], 2) ?> &middot; <?= h($l['room_types']) ?>
+                      </small>
+                    <?php endif; ?>
                   </td>
                   <td>
                     <?= moderation_badge($l['moderation_status']) ?>
@@ -162,10 +156,10 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                   </td>
                   <td>
                     <?php if ($l['availability_status'] === 'available'): ?>
-                      <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Available</span>
+                      <span class="badge badge-success px-2 py-1"><i class="fas fa-eye mr-1"></i> Shown</span>
                     <?php else: ?>
-                      <span class="badge badge-secondary px-2 py-1"><i class="fas fa-times-circle mr-1"></i>
-                        Unavailable</span>
+                      <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i>
+                        Hidden by landlord</span>
                     <?php endif; ?>
                   </td>
                   <td class="text-sm text-muted">
@@ -174,13 +168,15 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                   <td>
                     <div class="d-flex align-items-center flex-wrap" style="gap: 5px;">
                       <?php if ($l['moderation_status'] !== 'approved'): ?>
-                        <!-- Approve Button -->
+                        <!-- Approve Button: only once the listing has a room to show -->
                         <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
                           <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
                           <input type="hidden" name="action" value="approve">
                           <input type="hidden" name="return_status" value="<?= h($statusFilter) ?>">
-                          <button type="submit" class="btn btn-xs btn-outline-success" title="Approve Listing">
+                          <button type="submit" class="btn btn-xs btn-outline-success"
+                            title="<?= $avail['room_count'] === 0 ? 'Needs at least one room before it can be approved' : 'Approve Listing' ?>"
+                            <?= $avail['room_count'] === 0 ? 'disabled' : '' ?>>
                             <i class="fas fa-check"></i>
                           </button>
                         </form>
@@ -277,7 +273,7 @@ require __DIR__ . '/../includes/panel_sidebar.php';
       "responsive": true,
       "lengthChange": true,
       "autoWidth": false,
-      "order": [[7, "desc"]],
+      "order": [[6, "desc"]],
       "pageLength": 10
     });
   });

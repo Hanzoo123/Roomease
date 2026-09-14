@@ -33,6 +33,15 @@ if (!$listing) {
 }
 
 if ($action === 'approve') {
+    // A listing with no rooms has nothing for a boarder to see, and the public
+    // site would not show it anyway, so it is not approved yet.
+    $rooms = $pdo->prepare('SELECT COUNT(*) FROM rooms WHERE boarding_house_id = ?');
+    $rooms->execute([$boardingHouseId]);
+    if ((int) $rooms->fetchColumn() === 0) {
+        flash_set('"' . strip_tags($listing['name']) . '" has no rooms yet. The landlord needs to add at least one before it can be approved.', 'error');
+        redirect($returnTo);
+    }
+
     $pdo->prepare(
         "UPDATE boarding_houses
             SET moderation_status = 'approved', rejection_reason = NULL, moderated_at = NOW()

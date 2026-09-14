@@ -4,10 +4,14 @@
  *
  * The database is needed only to forget this device's "Remember me" token;
  * without that, the cookie would sign the visitor straight back in.
+ *
+ * An administrator lands back on the administrators' sign-in page; everyone
+ * else goes to the home page.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 
+$wasAdmin = is_admin();
 forget_remembered_login();
 
 $_SESSION = [];
@@ -27,4 +31,4 @@ session_destroy();
 
 session_start();
 flash_set('You have been logged out.', 'success');
-redirect('index.php');
+redirect($wasAdmin ? ADMIN_LOGIN_PATH : 'index.php');

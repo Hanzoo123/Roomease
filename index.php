@@ -23,18 +23,19 @@ if (is_logged_in()) {
     }
 }
 
-$liveCount = live_listing_count();
+$stats = live_listing_stats();
+$liveCount = $stats['listings'];
 $typeCounts = room_type_counts();
 
+// Newest listings that have a room available, so the home page leads with
+// places a boarder can actually move into.
 $newestStmt = $pdo->query(
-    "SELECT bh.*, " . ROOM_TYPE_SELECT . ",
-            (SELECT image_path FROM images img WHERE img.boarding_house_id = bh.boarding_house_id
-                ORDER BY is_primary DESC, image_id ASC LIMIT 1) AS cover_photo
+    "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ", " . COVER_PHOTO_SELECT . "
        FROM boarding_houses bh
        " . LIVE_LANDLORD_JOIN . "
-       " . ROOM_TYPE_JOIN . "
-      WHERE " . LIVE_LISTING_WHERE . "
-      ORDER BY bh.created_at DESC
+       " . room_summary_join(true) . "
+      WHERE " . LIVE_STATUS_WHERE . "
+      ORDER BY rs.rooms_available > 0 DESC, bh.created_at DESC
       LIMIT 6"
 );
 $newest = $newestStmt->fetchAll();
@@ -51,8 +52,9 @@ require __DIR__ . '/includes/header.php';
     <h1 class="hero-title">Find your next room <span>in Baybay City</span></h1>
     <p class="hero-lede">
       Compare boarding houses by rent, room type, and what's included.
-      <?php if ($liveCount > 0): ?>
-        <strong><?= $liveCount ?> <?= $liveCount === 1 ? 'room' : 'rooms' ?></strong> open right now.
+      <?php if ($stats['rooms_available'] > 0): ?>
+        <strong><?= $stats['rooms_available'] ?> <?= $stats['rooms_available'] === 1 ? 'room' : 'rooms' ?> available</strong>
+        in <?= $liveCount ?> boarding <?= $liveCount === 1 ? 'house' : 'houses' ?> right now.
       <?php endif; ?>
     </p>
   </div>
@@ -68,14 +70,14 @@ require __DIR__ . '/includes/header.php';
 <section class="section section--after-seam">
   <div class="container">
     <div class="section-head">
-      <h2>Newest rooms</h2>
+      <h2>Newest boarding houses</h2>
       <?php if ($liveCount > count($newest)): ?>
-        <a href="<?= base_url('boarder/browse.php') ?>" class="section-link">See all <?= $liveCount ?> rooms &rarr;</a>
+        <a href="<?= base_url('boarder/browse.php') ?>" class="section-link">See all <?= $liveCount ?> &rarr;</a>
       <?php endif; ?>
     </div>
 
     <?php if (!$newest): ?>
-      <p class="rooms-empty">No rooms are open right now. New listings appear here once an administrator approves them.</p>
+      <p class="rooms-empty">No boarding houses are listed right now. New listings appear here once an administrator approves them.</p>
     <?php else: ?>
       <div class="card-grid">
         <?php foreach ($newest as $l): ?>
@@ -136,7 +138,8 @@ require __DIR__ . '/includes/header.php';
     <div class="container split">
       <div>
         <h2>Have rooms to rent?</h2>
-        <p>List them with photos, rent, utilities, and house rules. Every listing is reviewed before boarders can
+        <p>Add each room with its own rent and photos, and update how many slots are taken as tenants move in
+          and out. Every listing is reviewed before boarders can
           see it, and your dashboard shows where each one stands.</p>
         <a href="<?= base_url('auth/register.php?role=landlord') ?>" class="btn btn-primary">List your property</a>
       </div>
