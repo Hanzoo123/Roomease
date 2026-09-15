@@ -36,6 +36,9 @@ $flash = $authPreview ? null : flash_get();
   <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet"
     href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../assets/css/style.css') ?: 0 ?>">
+  <?php if ($flash): ?>
+    <script src="<?= base_url('assets/js/flash.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/flash.js') ?: 0 ?>" defer></script>
+  <?php endif; ?>
 </head>
 
 <body class="auth-page auth-page--<?= h($background['tone']) ?><?= $authAdmin ? ' auth-page--admin' : '' ?>" style="<?= h($background['style']) ?>">
@@ -53,7 +56,7 @@ $flash = $authPreview ? null : flash_get();
 
     <div class="auth-card<?= $authWide ? ' auth-card--wide' : '' ?>">
       <?php if ($flash): ?>
-        <div class="alert alert-<?= $flash['type'] === 'error' ? 'error' : 'success' ?>" role="status">
+        <div class="alert alert-<?= $flash['type'] === 'error' ? 'error' : 'success' ?>" role="status"<?= $flash['type'] === 'error' ? '' : ' data-autohide' ?>>
           <?= h($flash['message']) ?>
         </div>
       <?php endif; ?>

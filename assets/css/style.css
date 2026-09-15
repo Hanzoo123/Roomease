@@ -201,8 +201,35 @@ a:hover {
 /* =========================================================
    Site header: a white tab hanging from the top of the band
    ========================================================= */
+/* The header stays at the top of the screen. site-header.js slides it away
+   while the page scrolls down and brings it back on the way up. */
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   background: var(--forest);
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Tucks 1px over whatever follows. On screens that scale by a fraction,
+     two forest blocks that merely touch can show a pale hairline between. */
+  margin-bottom: -1px;
+}
+
+/* Past the band, only the white tab shows, hanging from the top edge. The
+   strip around it lets clicks through to the page underneath. */
+.site-header.is-floating {
+  background: transparent;
+  pointer-events: none;
+}
+
+.site-header.is-floating .nav-tab {
+  pointer-events: auto;
+}
+
+/* Far enough up that the tab's shadow goes too. Leaving takes a little less
+   time than arriving, so it gets out of the way. */
+.site-header.is-hidden {
+  transform: translateY(calc(-100% - 40px));
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-tab {
@@ -276,6 +303,13 @@ a:hover {
 }
 
 /* Flash messages sit in the band, just under the tab, so they need no script. */
+.flash-band {
+  position: relative;
+  z-index: 1;
+  background: var(--forest);
+  margin-bottom: -1px; /* no hairline against the band; see .site-header */
+}
+
 .flash-slot {
   padding-top: var(--s4);
 }
@@ -706,6 +740,25 @@ input[type=checkbox] {
 
 .alert--spaced {
   margin-top: var(--s3);
+}
+
+/* A success message leaving (assets/js/flash.js): it fades first, then the
+   space it held folds shut, so the page below closes up without a jump. */
+.is-leaving {
+  height: 0 !important;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    opacity 220ms ease-out,
+    height 320ms cubic-bezier(0.4, 0, 0.2, 1) 160ms,
+    margin 320ms cubic-bezier(0.4, 0, 0.2, 1) 160ms,
+    padding 320ms cubic-bezier(0.4, 0, 0.2, 1) 160ms,
+    border-width 320ms cubic-bezier(0.4, 0, 0.2, 1) 160ms;
 }
 
 .alert-note {
@@ -2532,7 +2585,10 @@ input[type=checkbox] {
      whole card fits on screen. */
   .listing-side {
     position: sticky;
-    top: var(--s4);
+    /* Clear of the header while it is showing; site-header.js keeps the
+       offset at 0 while it is tucked away. */
+    top: calc(var(--header-offset, 0px) + var(--s4));
+    transition: top 340ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
@@ -2746,7 +2802,10 @@ input[type=checkbox] {
   .room-card.is-removing,
   .room-card-media img,
   .gallery-thumb,
-  .btn {
+  .btn,
+  .site-header,
+  .site-header.is-hidden,
+  .listing-side {
     transition: none;
   }
 

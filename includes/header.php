@@ -37,11 +37,15 @@ $navCurrent = function ($path) {
        sitting behind a stale browser cache. */ ?>
   <link rel="stylesheet"
     href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../assets/css/style.css') ?: 0 ?>">
+  <script src="<?= base_url('assets/js/site-header.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/site-header.js') ?: 0 ?>" defer></script>
+  <?php if ($flash): ?>
+    <script src="<?= base_url('assets/js/flash.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/flash.js') ?: 0 ?>" defer></script>
+  <?php endif; ?>
 </head>
 
 <body>
 
-  <header class="site-header">
+  <header class="site-header" data-site-header>
     <div class="container">
       <div class="nav-tab">
         <a href="<?= base_url('index.php') ?>" class="brand">RoomEase</a>
@@ -71,16 +75,22 @@ $navCurrent = function ($path) {
           <?php endif; ?>
         </nav>
       </div>
+    </div>
+  </header>
 
-      <?php if ($flash): ?>
+  <?php /* Outside the header, which stays on screen as the page scrolls: a
+       message should scroll away with the band it sits in. */ ?>
+  <?php if ($flash): ?>
+    <div class="flash-band"<?= $flash['type'] === 'error' ? '' : ' data-autohide' ?>>
+      <div class="container">
         <div class="flash-slot" role="status">
           <div class="alert alert-<?= $flash['type'] === 'error' ? 'error' : 'success' ?>">
             <?= h($flash['message']) ?>
           </div>
         </div>
-      <?php endif; ?>
+      </div>
     </div>
-  </header>
+  <?php endif; ?>
 
 <?php if ($bleed): ?>
   <main class="page">
