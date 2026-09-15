@@ -73,13 +73,17 @@ $authSwitch = ['text' => 'Already have an account?', 'href' => base_url('auth/lo
 require __DIR__ . '/../includes/auth_header.php';
 ?>
 
-<?php if (google_enabled()): ?>
-  <a class="btn-google" href="<?= base_url('auth/google_start.php?from=register') ?>" data-google-start>
-    <?= google_logo_svg() ?> Sign up with Google
-  </a>
-  <p class="auth-fineprint">Your account is created as the role you pick below.</p>
-  <div class="auth-divider"><span>or sign up with email</span></div>
-<?php endif; ?>
+<?php /* Always shown. Until this server has Google credentials, auth/google_start.php
+     brings the visitor back here with a message saying so. */ ?>
+<a class="btn-google" href="<?= base_url('auth/google_start.php?from=register') ?>" data-google-start>
+  <?= google_logo_svg() ?> Sign up with Google
+</a>
+<p class="auth-fineprint">
+  By continuing, you agree to our <a href="<?= base_url('terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+  and <a href="<?= base_url('privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
+  Your account is created as the role you pick below.
+</p>
+<hr class="auth-rule">
 
 <?php if ($errors): ?>
   <div class="alert alert-error">
@@ -129,6 +133,10 @@ require __DIR__ . '/../includes/auth_header.php';
   </div>
 
   <button type="submit" class="btn btn-primary btn-block btn-auth">Create account</button>
+  <p class="auth-fineprint">
+    By creating an account, you agree to our <a href="<?= base_url('terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+    and <a href="<?= base_url('privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
+  </p>
 </form>
 
 <script>

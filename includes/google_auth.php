@@ -11,7 +11,7 @@
  * (ROOMEASE_GOOGLE_CLIENT_ID / ROOMEASE_GOOGLE_CLIENT_SECRET), or from
  * config/google.local.php, which .gitignore excludes; copy
  * config/google.local.example.php to start. With neither, the Google button
- * is simply not shown.
+ * still shows, and auth/google_start.php answers it with "not set up yet".
  */
 
 function google_config()
@@ -211,10 +211,116 @@ function google_id_token_claims($jwt, $clientId)
     return $claims;
 }
 
-/** The Google "G", for the sign-in button. */
-function google_logo_svg()
+/** How long the "One more step" page keeps a new Google account waiting. */
+const GOOGLE_SIGNUP_TTL = 900; // 15 minutes
+
+/** The parts of a Google sign-in a RoomEase account is made from. */
+function google_profile_from_claims(array $claims)
 {
-    return '<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true" focusable="false">'
+    $email = mb_strtolower(trim($claims['email']));
+    $first = trim((string) ($claims['given_name'] ?? ''));
+    $last = trim((string) ($claims['family_name'] ?? ''));
+    if ($first === '') {
+        $first = trim((string) ($claims['name'] ?? '')) ?: strstr($email, '@', true);
+    }
+
+    return ['google_id' => $claims['sub'], 'email' => $email, 'first_name' => $first, 'last_name' => $last];
+}
+
+/**
+ * The RoomEase account a Google sign-in belongs to. Returns [$user, $error]:
+ * $user is null when there is no account yet, and $error is set when there is
+ * one that this Google account must not be let into.
+ *
+ * Matched by Google account id first, then by the email Google has verified.
+ * An account found by email is linked to the Google account on the way.
+ */
+function google_find_account($googleId, $email)
+{
+    global $pdo;
+
+    $byGoogle = $pdo->prepare('SELECT * FROM users WHERE google_id = ? LIMIT 1');
+    $byGoogle->execute([$googleId]);
+    $user = $byGoogle->fetch();
+    if ($user) {
+        return [$user, null];
+    }
+
+    $byEmail = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+    $byEmail->execute([$email]);
+    $user = $byEmail->fetch();
+    if (!$user) {
+        return [null, null];
+    }
+
+    if ($user['google_id'] !== null && $user['google_id'] !== $googleId) {
+        return [null, 'That email address is already linked to a different Google account.'];
+    }
+
+    // Google has verified this address belongs to whoever just signed in,
+    // which is the same proof a password reset email relies on.
+    $pdo->prepare('UPDATE users SET google_id = ? WHERE user_id = ? AND google_id IS NULL')
+        ->execute([$googleId, $user['user_id']]);
+    $user['google_id'] = $googleId;
+
+    return [$user, null];
+}
+
+/**
+ * Create the account for a Google sign-in and return its row. It has no
+ * password anyone knows: its owner signs in with Google, or sets one from
+ * their profile. Throws PDOException if the email was taken in the meantime.
+ */
+function google_create_account(array $profile, $role, $phone = null)
+{
+    global $pdo;
+
+    $pdo->prepare(
+        'INSERT INTO users (role, first_name, last_name, email, google_id, password_hash, phone_number, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1)'
+    )->execute([
+        in_array($role, ['boarder', 'landlord'], true) ? $role : 'boarder',
+        mb_substr($profile['first_name'], 0, 100),
+        mb_substr($profile['last_name'], 0, 100),
+        $profile['email'],
+        $profile['google_id'],
+        password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
+        $phone,
+    ]);
+
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE user_id = ?');
+    $stmt->execute([(int) $pdo->lastInsertId()]);
+    return $stmt->fetch();
+}
+
+/**
+ * Sign in to the account a Google sign-in resolved to and go to its home
+ * page. Deactivated and removed accounts are refused exactly as the password
+ * login refuses them: the reason is returned and nothing else happens.
+ */
+function google_sign_in(array $user, $remember, $created)
+{
+    if (!empty($user['deleted_at'])) {
+        return 'That account has been removed. Please contact support.';
+    }
+    if (empty($user['is_active'])) {
+        return 'Your account is deactivated. Please contact support.';
+    }
+
+    start_user_session($user);
+    if ($remember) {
+        remember_login((int) $user['user_id']);
+    }
+
+    flash_set(($created ? 'Welcome to RoomEase, ' : 'Welcome back, ') . $user['first_name'] . '!', 'success');
+    redirect('index.php');
+}
+
+/** The Google "G", for the sign-in button. */
+function google_logo_svg($size = 20)
+{
+    $size = (int) $size;
+    return '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 48 48" aria-hidden="true" focusable="false">'
         . '<path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/>'
         . '<path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>'
         . '<path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2A11.9 11.9 0 0 1 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>'

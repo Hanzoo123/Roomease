@@ -88,14 +88,27 @@ photo uploads, search/filter, and account management.
    mysql -u root -p roomease < database/migration_auth_extras.sql
    ```
 
-   **Optional: "Continue with Google".** The button stays hidden until
-   credentials are set. In Google Cloud console, create an OAuth client ID of
-   type *Web application* and add the callback as an authorized redirect URI,
-   for example `http://localhost/roomease/auth/google_callback.php`. Then copy
-   `config/google.local.example.php` to `config/google.local.php` (ignored by
-   git) and fill in the client ID and secret, or set the
-   `ROOMEASE_GOOGLE_CLIENT_ID` and `ROOMEASE_GOOGLE_CLIENT_SECRET` environment
-   variables. Google sign-in needs internet; email and password login does not.
+   **Optional: "Continue with Google".** The button always shows on the log
+   in and sign up pages; until credentials are set, clicking it says Google
+   sign-in is not set up yet. The administrator's Appearance page shows whether
+   they are, with these steps and the exact redirect URI to copy.
+   1. In Google Cloud console, create a project and set up the OAuth consent
+      screen (External). While it is in *Testing*, only the Google accounts
+      added under **Test users** can sign in, so add every account you will
+      use.
+   2. Create an OAuth client ID of type *Web application* with the callback as
+      an authorized redirect URI, for example
+      `http://localhost/roomease/auth/google_callback.php`.
+   3. Copy `config/google.local.example.php` to `config/google.local.php`
+      (ignored by git) and fill in the client ID and secret, or set the
+      `ROOMEASE_GOOGLE_CLIENT_ID` and `ROOMEASE_GOOGLE_CLIENT_SECRET`
+      environment variables.
+
+   Someone new who continues with Google from the sign-up page gets the role
+   picked there. From the log-in page they are asked "One more step": boarder
+   or landlord, and an optional phone number. An account made with Google has
+   no password; its owner can set one from their profile, which emails them a
+   link. Google sign-in needs internet; email and password login does not.
 
 5. **Set the administrator password.** The schema seeds the admin account with
    a placeholder that no password can ever match, so the account cannot be

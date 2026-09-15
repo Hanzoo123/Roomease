@@ -105,6 +105,10 @@ inquiry inbox as though it already ships.
   admin login when they log out or their session ends.
 - Profile editing and password change for all roles; password reset by emailed
   link using single-use, hashed, expiring tokens.
+- Plain-language Terms & Conditions (`terms.php`) and Privacy Policy
+  (`privacy.php`), drafted to match what the system actually stores. Linked
+  from the sign-in and sign-up pages ("By continuing, you agree to...") and the
+  footer.
 - Security baseline is complete and is not up for redesign: bcrypt, prepared
   statements throughout, CSRF tokens on every form, hardened sessions
   re-validated against the database each request, sign-in and reset throttling,
@@ -141,8 +145,13 @@ typography seen at the defence.
   today but are not ruled out.
 - **Google sign-in is a second accepted exception.** The user chose it knowing
   it needs internet and Google Cloud OAuth credentials that only they can
-  create. The button is hidden until credentials exist; email and password
-  login, "Remember me", and everything else still work offline.
+  create. The button always shows; until credentials exist, clicking it says
+  Google sign-in is not set up yet. Email and password login, "Remember me",
+  and everything else still work offline. The admin
+  Appearance page shows whether it is set up. Someone new from the log-in page
+  chooses boarder or landlord on a "One more step" page before any account is
+  created; accounts made with Google set a password by an emailed link from
+  their profile.
 - **Maps are an accepted exception to "runs offline".** The user chose to add
   a listing map and a landlord pin picker knowing the tiles need internet.
   Leaflet is self-hosted in `assets/vendor/leaflet`; only the tile images come

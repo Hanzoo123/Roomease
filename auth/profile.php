@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/google_auth.php';
 
 require_login();
 
@@ -24,7 +25,43 @@ $old = [
     'phone_number' => $user['phone_number'] ?? ''
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$googleLinked = !empty($user['google_id']);
+$passwordLink = null;   // shown on the page only when no email could be sent, and only locally
+
+// An account made with Google has a password nobody knows, so "Change
+// password" (which asks for the current one) is no use to it. Its owner gets
+// the same emailed link as "Forgot password", sent to this account's own
+// address. That link is the proof, exactly as it is for a reset.
+$wantsPasswordLink = $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'password_link';
+if ($wantsPasswordLink) {
+    verify_csrf();
+
+    if (!$googleLinked) {
+        redirect('auth/profile.php');
+    }
+
+    $retryAfter = throttle_retry_after('reset', $user['email']);
+    if ($retryAfter > 0) {
+        flash_set('A link was already requested several times. Please try again in ' . format_wait($retryAfter) . '.', 'error');
+        redirect('auth/profile.php');
+    }
+    record_failed_attempt('reset', $user['email']);
+
+    $url = password_reset_url(create_password_reset($user['user_id']));
+    if (send_password_reset_email($user['email'], $user['first_name'], $url)) {
+        flash_set('We emailed a link to ' . $user['email'] . '. Open it to choose your password.', 'success');
+        redirect('auth/profile.php');
+    }
+    // A stock WAMP install has no mail server. As on "Forgot password", the
+    // link is then shown here, but only to someone at this machine.
+    if (!is_local_request()) {
+        flash_set('The email could not be sent. Please try again later.', 'error');
+        redirect('auth/profile.php');
+    }
+    $passwordLink = $url;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$wantsPasswordLink) {
     verify_csrf();
 
     $old['first_name']   = trim($_POST['first_name'] ?? '');
@@ -142,10 +179,12 @@ $usePanel = is_admin() || current_role() === 'landlord';
 $cls = $usePanel
     ? ['row' => 'form-row', 'col' => 'col-md-6 form-group', 'group' => 'form-group',
        'input' => 'form-control', 'hint' => 'form-text text-muted',
-       'alert' => 'alert alert-danger', 'btn' => 'btn btn-primary']
+       'alert' => 'alert alert-danger', 'btn' => 'btn btn-primary',
+       'note' => 'alert alert-light border', 'btn_small' => 'btn btn-sm btn-outline-secondary']
     : ['row' => 'field-row', 'col' => '', 'group' => '',
        'input' => '', 'hint' => 'field-hint',
-       'alert' => 'alert alert-error', 'btn' => 'btn btn-primary btn-block'];
+       'alert' => 'alert alert-error', 'btn' => 'btn btn-primary btn-block',
+       'note' => 'alert alert-success', 'btn_small' => 'btn btn-ghost btn-sm'];
 
 if ($usePanel) {
     require __DIR__ . '/../includes/panel_head.php';
@@ -219,6 +258,12 @@ if ($usePanel) {
   <div class="<?= $cls['group'] ?>">
     <label for="email">Email address</label>
     <input type="email" class="<?= $cls['input'] ?>" id="email" name="email" value="<?= h($old['email']) ?>" required>
+    <?php if ($googleLinked): ?>
+      <?php /* Inline layout: this page renders on both the panel and the public theme. */ ?>
+      <p class="<?= $cls['hint'] ?>" style="display:flex; align-items:center; gap:6px;">
+        <?= google_logo_svg(14) ?> Connected to Google. You can sign in with &ldquo;Continue with Google&rdquo;.
+      </p>
+    <?php endif; ?>
   </div>
 
   <div class="<?= $cls['group'] ?>">
@@ -230,6 +275,26 @@ if ($usePanel) {
   <hr>
 
   <h5 class="font-weight-bold">Change Password</h5>
+
+  <?php if ($passwordLink !== null): ?>
+    <div class="<?= $cls['note'] ?>">
+      <strong>No mail server on this machine,</strong> so here is the link instead. Open it to choose your
+      password. It only appears for someone using the server itself.
+      <div class="reset-link-box"><a href="<?= h($passwordLink) ?>"><?= h($passwordLink) ?></a></div>
+    </div>
+  <?php elseif ($googleLinked): ?>
+    <div class="<?= $cls['note'] ?>">
+      Signed up with Google? Then you have no password yet, and one would let you sign in without Google too.
+      <div style="margin-top:8px;">
+        <?php /* Submits the separate form below the profile form, so pressing Enter in a
+             profile field still saves the profile rather than sending this link. */ ?>
+        <button type="submit" form="password-link-form" class="<?= $cls['btn_small'] ?>">
+          Email me a link to set a password
+        </button>
+      </div>
+    </div>
+  <?php endif; ?>
+
   <p class="<?= $cls['hint'] ?> mb-3">Leave these blank if you do not wish to change your password.</p>
 
   <div class="<?= $cls['group'] ?>">
@@ -255,6 +320,13 @@ if ($usePanel) {
     <i class="fas fa-save mr-1"></i> Save Profile Changes
   </button>
 </form>
+
+<?php if ($googleLinked): ?>
+  <form method="post" id="password-link-form" hidden>
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="password_link">
+  </form>
+<?php endif; ?>
 
 <?php if ($usePanel): ?>
               </div>

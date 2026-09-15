@@ -3,10 +3,12 @@
  * Step 2 of "Continue with Google": Google sends the visitor back here.
  *
  * The account is matched by Google account id first, then by the email Google
- * has verified. A matching RoomEase account is linked to the Google account;
- * with no match a new account is created in the role chosen on the sign-up
- * page (boarder from the login page). Deactivated and removed accounts are
- * refused exactly as the password login refuses them.
+ * has verified; a matching RoomEase account is linked to the Google account.
+ * With no match, someone who came from the sign-up page gets an account in the
+ * role they picked there. Someone who came from the sign-in page has not said
+ * whether they are a boarder or a landlord yet, so they are asked first, on
+ * auth/google_finish.php. Deactivated and removed accounts are refused exactly
+ * as the password login refuses them.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
@@ -16,7 +18,8 @@ require __DIR__ . '/../includes/google_auth.php';
 $pending = $_SESSION['google_oauth'] ?? null;
 unset($_SESSION['google_oauth']);
 
-$back = (is_array($pending) && ($pending['from'] ?? '') === 'register') ? 'auth/register.php' : 'auth/login.php';
+$fromRegister = is_array($pending) && ($pending['from'] ?? '') === 'register';
+$back = $fromRegister ? 'auth/register.php' : 'auth/login.php';
 
 $fail = function ($message) use ($back) {
     flash_set($message, 'error');
@@ -53,70 +56,31 @@ try {
     $fail('Google sign-in could not be completed. Please try again, or use your email and password.');
 }
 
-$googleId = $claims['sub'];
-$email = mb_strtolower(trim($claims['email']));
+$profile = google_profile_from_claims($claims);
+$remember = !empty($pending['remember']);
+
+[$user, $error] = google_find_account($profile['google_id'], $profile['email']);
+if ($error) {
+    $fail($error);
+}
+
 $created = false;
-
-$findByGoogle = $pdo->prepare('SELECT * FROM users WHERE google_id = ? LIMIT 1');
-$findByGoogle->execute([$googleId]);
-$user = $findByGoogle->fetch();
-
 if (!$user) {
-    $findByEmail = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-    $findByEmail->execute([$email]);
-    $user = $findByEmail->fetch();
+    if (!$fromRegister) {
+        // Nothing is created yet: the next page asks for the role first.
+        $_SESSION['google_signup'] = $profile + ['remember' => $remember, 'started_at' => time()];
+        redirect('auth/google_finish.php');
+    }
 
-    if ($user) {
-        if ($user['google_id'] !== null && $user['google_id'] !== $googleId) {
-            $fail('That email address is already linked to a different Google account.');
-        }
-        // Google has verified this address belongs to whoever just signed in,
-        // which is the same proof a password reset email relies on.
-        $pdo->prepare('UPDATE users SET google_id = ? WHERE user_id = ? AND google_id IS NULL')
-            ->execute([$googleId, $user['user_id']]);
+    try {
+        $user = google_create_account($profile, $pending['role']);
+        $created = true;
+    } catch (PDOException $e) {
+        error_log('RoomEase: Google account creation failed - ' . $e->getMessage());
+    }
+    if (!$user) {
+        $fail('Google sign-in could not be completed. Please try again.');
     }
 }
 
-if (!$user) {
-    $first = trim((string) ($claims['given_name'] ?? ''));
-    $last = trim((string) ($claims['family_name'] ?? ''));
-    if ($first === '') {
-        $first = trim((string) ($claims['name'] ?? '')) ?: strstr($email, '@', true);
-    }
-
-    // The account has no password anyone knows. Its owner signs in with
-    // Google, or sets a password through "Forgot password".
-    $pdo->prepare(
-        'INSERT INTO users (role, first_name, last_name, email, google_id, password_hash, phone_number, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, NULL, 1)'
-    )->execute([
-        $pending['role'],
-        mb_substr($first, 0, 100),
-        mb_substr($last, 0, 100),
-        $email,
-        $googleId,
-        password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
-    ]);
-
-    $findByGoogle->execute([$googleId]);
-    $user = $findByGoogle->fetch();
-    $created = true;
-}
-
-if (!$user) {
-    $fail('Google sign-in could not be completed. Please try again.');
-}
-if (!empty($user['deleted_at'])) {
-    $fail('That account has been removed. Please contact support.');
-}
-if (empty($user['is_active'])) {
-    $fail('Your account is deactivated. Please contact support.');
-}
-
-start_user_session($user);
-if (!empty($pending['remember'])) {
-    remember_login((int) $user['user_id']);
-}
-
-flash_set(($created ? 'Welcome to RoomEase, ' : 'Welcome back, ') . $user['first_name'] . '!', 'success');
-redirect('index.php');
+$fail(google_sign_in($user, $remember, $created));

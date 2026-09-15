@@ -538,6 +538,44 @@ a:hover {
   box-shadow: var(--lift);
 }
 
+/* Terms & Conditions and Privacy Policy: one readable column of prose. */
+.legal {
+  max-width: 760px;
+}
+
+.legal > :first-child {
+  margin-top: 0;
+}
+
+.legal h2 {
+  font-size: 1.3rem;
+  margin: var(--s5) 0 var(--s2);
+}
+
+.legal p,
+.legal li {
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+.legal ul {
+  margin: 0 0 var(--s3);
+  padding-left: 1.25em;
+}
+
+.legal li + li {
+  margin-top: 6px;
+}
+
+.legal li strong {
+  color: var(--ink);
+}
+
+.legal .legal-updated {
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+
 /* Landlord-authored free text: newlines preserved, never rendered as markup. */
 .prose {
   white-space: pre-line;
@@ -976,21 +1014,15 @@ input[type=checkbox] {
   text-align: center;
 }
 
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 24px 0;
-  font-size: 13px;
-  color: var(--ink-faint);
+.auth-fineprint a {
+  font-weight: 500;
 }
 
-.auth-divider::before,
-.auth-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--line-strong);
+/* Between the Google button and the email form: a plain rule, no words. */
+.auth-rule {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 24px 0;
 }
 
 .auth-row {

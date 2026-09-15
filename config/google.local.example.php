@@ -11,7 +11,11 @@
  *        http://localhost/roomease/auth/google_callback.php
  *   4. Copy the client ID and client secret below.
  *
- * Leave both empty and the "Continue with Google" button is not shown.
+ * While the OAuth consent screen is in "Testing", only the Google accounts
+ * listed under Test users can sign in.
+ *
+ * Leave both empty and the "Continue with Google" button still shows, but
+ * clicking it says Google sign-in is not set up yet.
  * Environment variables ROOMEASE_GOOGLE_CLIENT_ID and
  * ROOMEASE_GOOGLE_CLIENT_SECRET take priority over this file.
  */

@@ -1,10 +1,14 @@
 <?php
 /**
  * Appearance: the background behind the sign-in pages (log in, sign up,
- * forgot password, reset password). A solid colour or an uploaded photo.
+ * forgot password, reset password), a solid colour or an uploaded photo.
+ * Also shows whether "Continue with Google" is set up on this server, and
+ * what setting it up takes. The credentials themselves are never shown or
+ * entered here: they live in config/google.local.php.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/google_auth.php';
 
 require_login('admin');
 
@@ -119,6 +123,22 @@ if ($settingsReady && $_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('admin/appearance.php');
 }
 
+$google = [
+    'enabled'  => google_enabled(),
+    'redirect' => google_redirect_uri(),
+    'client'   => google_config()['client_id'],
+    'curl'     => function_exists('curl_init'),
+    'column'   => true,
+    'linked'   => 0,
+];
+try {
+    $google['linked'] = (int) $pdo->query(
+        'SELECT COUNT(*) FROM users WHERE google_id IS NOT NULL AND deleted_at IS NULL'
+    )->fetchColumn();
+} catch (PDOException $e) {
+    $google['column'] = false;   // migration_auth_extras.sql not run yet
+}
+
 $presets = [
     '#FAF8F3' => 'Paper',
     '#FFFFFF' => 'White',
@@ -154,15 +174,15 @@ require __DIR__ . '/../includes/panel_sidebar.php';
 
   <section class="content">
     <div class="container-fluid">
-      <?php if (!$settingsReady): ?>
-        <div class="alert alert-warning">
-          <i class="fas fa-exclamation-triangle mr-1"></i>
-          The <code>site_settings</code> table is missing. Import <code>database/migration_auth_extras.sql</code>,
-          then reload this page.
-        </div>
-      <?php else: ?>
         <div class="row">
           <div class="col-lg-5">
+            <?php if (!$settingsReady): ?>
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle mr-1"></i>
+              The <code>site_settings</code> table is missing. Import <code>database/migration_auth_extras.sql</code>,
+              then reload this page.
+            </div>
+            <?php else: ?>
             <div class="card card-primary card-outline shadow-sm">
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
@@ -234,6 +254,78 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                 </div>
               </form>
             </div>
+            <?php endif; ?>
+
+            <div class="card card-outline card-secondary shadow-sm" id="google-sign-in">
+              <div class="card-header d-flex align-items-center">
+                <h3 class="card-title font-weight-bold d-flex align-items-center" style="gap:8px;">
+                  <?= google_logo_svg(16) ?> Google sign-in
+                </h3>
+                <?php if ($google['enabled']): ?>
+                  <span class="badge badge-success ml-auto px-2 py-1"><i class="fas fa-check mr-1"></i> On</span>
+                <?php else: ?>
+                  <span class="badge badge-secondary ml-auto px-2 py-1">Not set up</span>
+                <?php endif; ?>
+              </div>
+              <div class="card-body">
+                <?php if (!$google['curl']): ?>
+                  <div class="alert alert-warning small">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    PHP's <code>curl</code> extension is off, and Google sign-in needs it. Turn on
+                    <code>extension=curl</code> in WAMP's PHP settings, then restart WAMP.
+                  </div>
+                <?php endif; ?>
+                <?php if (!$google['column']): ?>
+                  <div class="alert alert-warning small">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Import <code>database/migration_auth_extras.sql</code> first: accounts have nowhere to store
+                    their Google link yet.
+                  </div>
+                <?php endif; ?>
+
+                <?php if ($google['enabled']): ?>
+                  <p class="small mb-2">
+                    &ldquo;Continue with Google&rdquo; is showing on the log in and sign up pages.
+                    <strong><?= $google['linked'] ?></strong> <?= $google['linked'] === 1 ? 'account is' : 'accounts are' ?>
+                    connected to Google.
+                  </p>
+                  <p class="small text-muted mb-3">
+                    <?php /* Every client ID ends in .apps.googleusercontent.com; its start is what tells them apart. */ ?>
+                    Client ID starting <code><?= h(mb_substr($google['client'], 0, 16)) ?>&hellip;</code>. While the
+                    Google app is in <strong>Testing</strong>, only the accounts listed under <strong>Test users</strong>
+                    in Google Cloud can sign in.
+                  </p>
+                <?php else: ?>
+                  <p class="small text-muted mb-2">
+                    The &ldquo;Continue with Google&rdquo; button shows on the log in and sign up pages, but until
+                    this server has Google credentials, clicking it only says Google sign-in is not set up yet.
+                    Whoever owns the Google account creates them:
+                  </p>
+                  <ol class="small pl-3 mb-3">
+                    <li>In <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud
+                        console</a>, create a project and set up the <strong>OAuth consent screen</strong>
+                      (External).</li>
+                    <li>While it is in <strong>Testing</strong>, add every Google account that should be able to sign
+                      in under <strong>Test users</strong>.</li>
+                    <li>Under <strong>Credentials</strong>, create an <strong>OAuth client ID</strong> of type
+                      <em>Web application</em>, with the redirect URI below.</li>
+                    <li>Copy <code>config/google.local.example.php</code> to <code>config/google.local.php</code>
+                      and paste in the client ID and client secret. Then reload this page.</li>
+                  </ol>
+                <?php endif; ?>
+
+                <label for="google-redirect" class="small font-weight-bold mb-1">Authorized redirect URI</label>
+                <div class="input-group input-group-sm">
+                  <input type="text" id="google-redirect" class="form-control" value="<?= h($google['redirect']) ?>" readonly>
+                  <div class="input-group-append">
+                    <button type="button" class="btn btn-outline-secondary" data-copy="#google-redirect">
+                      <i class="far fa-copy mr-1"></i> <span>Copy</span>
+                    </button>
+                  </div>
+                </div>
+                <small class="form-text text-muted">It must match the one in Google Cloud exactly.</small>
+              </div>
+            </div>
           </div>
 
           <div class="col-lg-7">
@@ -257,12 +349,34 @@ require __DIR__ . '/../includes/panel_sidebar.php';
             </div>
           </div>
         </div>
-      <?php endif; ?>
     </div>
   </section>
 </div>
 
 <script>
+  // Copy the redirect URI, for pasting into Google Cloud console.
+  (function () {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+      btn.addEventListener('click', function () {
+        var input = document.querySelector(btn.getAttribute('data-copy'));
+        var label = btn.querySelector('span');
+        function done(text) {
+          label.textContent = text;
+          setTimeout(function () { label.textContent = 'Copy'; }, 1800);
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(input.value).then(function () { done('Copied'); }, function () {
+            input.select();
+            done('Press Ctrl+C');
+          });
+        } else {
+          input.select();
+          done(document.execCommand && document.execCommand('copy') ? 'Copied' : 'Press Ctrl+C');
+        }
+      });
+    });
+  })();
+
   (function () {
     var form = document.getElementById('appearance-form');
     if (!form) return;

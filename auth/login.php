@@ -75,17 +75,21 @@ $authSwitch = ['text' => 'New to RoomEase?', 'href' => base_url('auth/register.p
 require __DIR__ . '/../includes/auth_header.php';
 ?>
 
-<?php if (google_enabled()): ?>
-  <?php if ($preview): ?>
-    <span class="btn-google" aria-disabled="true"><?= google_logo_svg() ?> Continue with Google</span>
-  <?php else: ?>
-    <a class="btn-google" href="<?= base_url('auth/google_start.php') ?>" data-google-start>
-      <?= google_logo_svg() ?> Continue with Google
-    </a>
-  <?php endif; ?>
-  <p class="auth-fineprint">New here? Continuing with Google creates a boarder account for you.</p>
-  <div class="auth-divider"><span>or sign in with email</span></div>
+<?php /* Always shown. Until this server has Google credentials, auth/google_start.php
+     brings the visitor back here with a message saying so. */ ?>
+<?php if ($preview): ?>
+  <span class="btn-google" aria-disabled="true"><?= google_logo_svg() ?> Continue with Google</span>
+<?php else: ?>
+  <a class="btn-google" href="<?= base_url('auth/google_start.php') ?>" data-google-start>
+    <?= google_logo_svg() ?> Continue with Google
+  </a>
 <?php endif; ?>
+<p class="auth-fineprint">
+  By continuing, you agree to our <a href="<?= base_url('terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+  and <a href="<?= base_url('privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
+  If you're new, you'll choose boarder or landlord next.
+</p>
+<hr class="auth-rule">
 
 <?php if ($error): ?>
   <div class="alert alert-error"><?= h($error) ?></div>

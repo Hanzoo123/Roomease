@@ -10,10 +10,6 @@
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/functions.php';
 
-if (is_logged_in()) {
-    redirect('index.php');
-}
-
 $errors = [];
 $done = false;
 
@@ -24,6 +20,14 @@ $token = $_SERVER['REQUEST_METHOD'] === 'POST'
     : ($_GET['token'] ?? '');
 
 $reset = find_valid_reset($token);
+
+// Someone signed in can use a link for their own account: it is how an
+// account made with Google sets its first password, from the profile page.
+// Anyone signed in with another account's link goes home, as before.
+$signedIn = is_logged_in();
+if ($signedIn && $reset && (int) $reset['user_id'] !== (int) $_SESSION['user_id']) {
+    redirect('index.php');
+}
 
 if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
@@ -51,7 +55,17 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // A new password signs the account out of every remembered device, so
         // whoever prompted the reset loses any "Remember me" cookie they held.
+        $rememberedHere = $signedIn && isset($_COOKIE[REMEMBER_COOKIE]);
         forget_all_remembered_logins($reset['user_id']);
+
+        // Signed in, it counts as a password change: a new session id, and
+        // this device stays remembered if it was (as on the profile page).
+        if ($signedIn) {
+            session_regenerate_id(true);
+            if ($rememberedHere) {
+                remember_login((int) $reset['user_id']);
+            }
+        }
 
         $done = true;
     }
@@ -65,11 +79,15 @@ $loginPath = $forAdmin ? ADMIN_LOGIN_PATH : 'auth/login.php';
 $pageTitle = 'Reset password';
 $authHeading = $done ? 'Password changed' : (!$reset ? 'Link no longer valid' : 'Choose a new password');
 $authAdmin = $forAdmin;
-$authSwitch = ['text' => 'Remembered your password?', 'href' => base_url($loginPath), 'label' => 'Log in'];
+$authSwitch = $signedIn ? null : ['text' => 'Remembered your password?', 'href' => base_url($loginPath), 'label' => 'Log in'];
 require __DIR__ . '/../includes/auth_header.php';
 ?>
 
-<?php if ($done): ?>
+<?php if ($done && $signedIn): ?>
+  <div class="alert alert-success">Your password is saved. You can sign in with it from now on.</div>
+  <a href="<?= base_url('auth/profile.php') ?>" class="btn btn-primary btn-block btn-auth">Back to your profile</a>
+
+<?php elseif ($done): ?>
   <div class="alert alert-success">Your password has been changed. You can log in with it now.</div>
   <a href="<?= base_url($loginPath) ?>" class="btn btn-primary btn-block btn-auth">Go to log in</a>
 
@@ -78,7 +96,11 @@ require __DIR__ . '/../includes/auth_header.php';
     This reset link is invalid, has already been used, or has expired.
     Reset links last <?= password_reset_ttl_minutes() ?> minutes.
   </div>
-  <a href="<?= base_url('auth/forgot_password.php') ?>" class="btn btn-primary btn-block btn-auth">Request a new link</a>
+  <?php if ($signedIn): ?>
+    <a href="<?= base_url('auth/profile.php') ?>" class="btn btn-primary btn-block btn-auth">Get a new link from your profile</a>
+  <?php else: ?>
+    <a href="<?= base_url('auth/forgot_password.php') ?>" class="btn btn-primary btn-block btn-auth">Request a new link</a>
+  <?php endif; ?>
 
 <?php else: ?>
   <p class="auth-sub">Setting a new password for <strong><?= h($reset['email']) ?></strong>.</p>
