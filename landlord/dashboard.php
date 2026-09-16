@@ -64,12 +64,13 @@ require __DIR__ . '/../includes/panel_sidebar.php';
           <div class="small-box bg-info shadow-sm">
             <div class="inner">
               <h3><?= (int) $counts['total'] ?></h3>
+
               <p>My Boarding Houses</p>
             </div>
             <div class="icon">
               <i class="fas fa-home"></i>
             </div>
-            <a href="#myListings" class="small-box-footer">
+            <a href="listings.php" class="small-box-footer">
               View All <i class="fas fa-arrow-circle-right"></i>
             </a>
           </div>
