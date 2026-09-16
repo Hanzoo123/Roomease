@@ -35,9 +35,9 @@ $flash = $authPreview ? null : flash_get();
   <?php endif; ?>
   <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet"
-    href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../assets/css/style.css') ?: 0 ?>">
+    href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/css/style.css') ?: 0 ?>">
   <?php if ($flash): ?>
-    <script src="<?= base_url('assets/js/flash.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/flash.js') ?: 0 ?>" defer></script>
+    <script src="<?= base_url('assets/js/flash.js') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/js/flash.js') ?: 0 ?>" defer></script>
   <?php endif; ?>
 </head>
 

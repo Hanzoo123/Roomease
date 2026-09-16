@@ -10,8 +10,8 @@
  * $_SESSION['google_signup']. It lasts GOOGLE_SIGNUP_TTL and is used once.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/google_auth.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/core/google_auth.php';
 
 if (is_logged_in()) {
     redirect('index.php');
@@ -75,7 +75,7 @@ $pageTitle = 'One more step';
 $authHeading = 'One more step';
 $authWide = true;
 $authSwitch = ['text' => 'Not you?', 'href' => base_url('auth/google_start.php'), 'label' => 'Use a different Google account'];
-require __DIR__ . '/../includes/auth_header.php';
+require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
 
 <p class="auth-sub">
@@ -108,4 +108,4 @@ require __DIR__ . '/../includes/auth_header.php';
   <button type="submit" class="btn btn-primary btn-block btn-auth">Create my account</button>
 </form>
 
-<?php require __DIR__ . '/../includes/auth_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>

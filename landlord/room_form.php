@@ -10,7 +10,7 @@
  * upload folder, tagged with the room's id.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 require_login('landlord');
 
 $landlordId = (int) $_SESSION['user_id'];
@@ -116,9 +116,9 @@ if ($room) {
 }
 
 $pageTitle = $room ? 'Edit Room' : 'Add Room';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
@@ -323,4 +323,4 @@ require __DIR__ . '/../includes/panel_sidebar.php';
   </section>
 </div>
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

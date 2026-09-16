@@ -9,7 +9,7 @@
  * listings that used the copy keep it.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 require_login('admin');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -47,9 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = 'Utilities & Amenities';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
@@ -195,4 +195,4 @@ require __DIR__ . '/../includes/panel_sidebar.php';
   </section>
 </div>
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

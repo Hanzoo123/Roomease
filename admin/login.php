@@ -9,7 +9,7 @@
  * role. No sign-up, Google, or "Remember me" here.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 if (is_logged_in()) {
     redirect(is_admin() ? 'admin/dashboard.php' : 'index.php');
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = 'Admin sign in';
 $authHeading = 'Sign in to the admin panel';
 $authAdmin = true;
-require __DIR__ . '/../includes/auth_header.php';
+require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
 
 <?php if ($error): ?>
@@ -80,4 +80,4 @@ require __DIR__ . '/../includes/auth_header.php';
   <button type="submit" class="btn btn-primary btn-block btn-auth">Sign in</button>
 </form>
 
-<?php require __DIR__ . '/../includes/auth_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>

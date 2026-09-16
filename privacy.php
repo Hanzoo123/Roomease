@@ -8,14 +8,14 @@
  * this page and the date below with it.
  */
 require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/includes/core/functions.php';
 
 $pageTitle = 'Privacy Policy';
 $band = [
   'title' => 'Privacy Policy',
   'lede' => 'What RoomEase keeps about you, why, and who can see it.',
 ];
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/includes/layouts/header.php';
 ?>
 
 <article class="legal panel panel-pad on-seam">
@@ -99,4 +99,4 @@ require __DIR__ . '/includes/header.php';
   <p>This policy may be updated. The date at the top shows when it last changed.</p>
 </article>
 
-<?php require __DIR__ . '/includes/footer.php'; ?>
+<?php require __DIR__ . '/includes/layouts/footer.php'; ?>

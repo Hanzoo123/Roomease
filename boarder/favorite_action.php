@@ -10,7 +10,7 @@
  * paths means the button still works with JavaScript turned off.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $wantsJson = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
 

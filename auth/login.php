@@ -3,8 +3,8 @@
  * RoomEase login — one sign-in for every role, on the standalone sign-in layout.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/google_auth.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/core/google_auth.php';
 
 // An administrator can open ?preview=1 from Appearance to see this page with
 // the chosen background. Anyone else who is logged in goes to their own
@@ -72,7 +72,7 @@ $pageTitle = 'Log in';
 $authHeading = 'Sign in to your account';
 $authPreview = $preview;
 $authSwitch = ['text' => 'New to RoomEase?', 'href' => base_url('auth/register.php'), 'label' => 'Create an account'];
-require __DIR__ . '/../includes/auth_header.php';
+require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
 
 <?php /* Always shown. Until this server has Google credentials, auth/google_start.php
@@ -134,4 +134,4 @@ require __DIR__ . '/../includes/auth_header.php';
   })();
 </script>
 
-<?php require __DIR__ . '/../includes/auth_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>

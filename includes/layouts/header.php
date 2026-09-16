@@ -36,10 +36,10 @@ $navCurrent = function ($path) {
   <?php /* filemtime stamp: a stylesheet edit shows up on the next load instead of
        sitting behind a stale browser cache. */ ?>
   <link rel="stylesheet"
-    href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../assets/css/style.css') ?: 0 ?>">
-  <script src="<?= base_url('assets/js/site-header.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/site-header.js') ?: 0 ?>" defer></script>
+    href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/css/style.css') ?: 0 ?>">
+  <script src="<?= base_url('assets/js/site-header.js') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/js/site-header.js') ?: 0 ?>" defer></script>
   <?php if ($flash): ?>
-    <script src="<?= base_url('assets/js/flash.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/flash.js') ?: 0 ?>" defer></script>
+    <script src="<?= base_url('assets/js/flash.js') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/js/flash.js') ?: 0 ?>" defer></script>
   <?php endif; ?>
 </head>
 

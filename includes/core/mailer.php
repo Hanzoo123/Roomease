@@ -31,7 +31,7 @@ function mail_config()
             'ca_bundle' => '',
         ];
 
-        $local = __DIR__ . '/../config/mail.local.php';
+        $local = __DIR__ . '/../../config/mail.local.php';
         if (is_file($local)) {
             $file = require $local;
             if (is_array($file)) {
@@ -279,7 +279,7 @@ function mail_hostname()
 
 function mail_log($to, $outcome)
 {
-    $logDir = __DIR__ . '/../storage';
+    $logDir = __DIR__ . '/../../storage';
     if (!is_dir($logDir)) {
         @mkdir($logDir, 0755, true);
     }

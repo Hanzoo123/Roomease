@@ -6,7 +6,7 @@
  * listing's Rooms card.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 require_login('landlord');
 
 /** Rooms accepted in one submission; a larger house adds the rest afterwards. */
@@ -179,9 +179,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = 'Add Listing';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <!-- Content Wrapper. Contains page content -->
@@ -238,7 +238,7 @@ require __DIR__ . '/../includes/panel_sidebar.php';
                 <p class="text-muted">Fill in the property details, its rooms, utilities, and house rules for
                   boarders in Baybay City.</p>
                 <?= csrf_field() ?>
-                <?php require __DIR__ . '/../includes/listing_form.php'; ?>
+                <?php require __DIR__ . '/../includes/components/listing_form.php'; ?>
               </div>
               <div class="card-footer d-flex justify-content-between">
                 <a href="<?= base_url('landlord/dashboard.php') ?>" class="btn btn-default">
@@ -259,4 +259,4 @@ require __DIR__ . '/../includes/panel_sidebar.php';
 </div>
 <!-- /.content-wrapper -->
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

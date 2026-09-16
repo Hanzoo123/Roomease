@@ -3,8 +3,8 @@
  * The boarder's shortlist of saved listings.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/listing_card.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/components/listing_card.php';
 require_login('boarder');
 
 $userId = $_SESSION['user_id'];
@@ -30,7 +30,7 @@ $band = [
   'title' => 'Saved boarding houses',
   'lede' => 'Your shortlist to compare. Room availability here is live. Only you can see this list.',
 ];
-require __DIR__ . '/../includes/header.php';
+require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
 <?php if (!$listings): ?>
@@ -51,4 +51,4 @@ require __DIR__ . '/../includes/header.php';
   </p>
 <?php endif; ?>
 
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

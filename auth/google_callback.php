@@ -11,8 +11,8 @@
  * as the password login refuses them.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/google_auth.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/core/google_auth.php';
 
 // The attempt is single use: taken out of the session before anything else.
 $pending = $_SESSION['google_oauth'] ?? null;

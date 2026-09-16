@@ -201,13 +201,20 @@ roomease/
 ├── landlord/                  Dashboard, add/edit/delete listing, photo actions
 ├── boarder/                   Browse/search listings, listing detail, saved listings
 ├── config/db.php              Database connection (PDO)
-├── includes/                  Shared chrome, helpers, and the listing form
-│   ├── functions.php            Helpers; also boots security.php and the session
-│   ├── security.php             Session hardening, headers, login/reset throttling
-│   ├── mailer.php               Sends email through Gmail (reset codes)
-│   ├── header.php / footer.php  Public theme (guests and boarders)
-│   ├── panel*.php               AdminLTE panel shell (admin and landlord)
-│   └── listing_form.php         Shared add/edit listing fields
+├── includes/                  Shared code; never served over HTTP
+│   ├── core/                    Logic loaded by pages, no HTML
+│   │   ├── functions.php          Helpers; also boots security.php and the session
+│   │   ├── security.php           Session hardening, headers, login/reset throttling
+│   │   ├── mailer.php             Sends email through Gmail (reset codes)
+│   │   └── google_auth.php        "Continue with Google"
+│   ├── layouts/                 The outer shell of each kind of page
+│   │   ├── header.php / footer.php            Public theme (guests and boarders)
+│   │   ├── auth_header.php / auth_footer.php  Sign-in pages
+│   │   └── panel*.php                         AdminLTE panel shell (admin and landlord)
+│   ├── components/              Pieces placed inside pages: listing card,
+│   │                            search bar, listing form, room rows, icons
+│   └── scripts/                 PHP files that print a <script> block: password
+│                                toggle, save heart, copy number, show more, room buttons
 ├── assets/css/style.css       Public theme styling
 ├── assets/adminlte/           AdminLTE theme for the management panel
 ├── assets/uploads/            Uploaded listing photos (auto-created per listing)
@@ -218,8 +225,8 @@ roomease/
     └── migration_*.sql          Incremental schema changes (see setup step 4)
 ```
 
-Both role panels render from the same `includes/panel*.php` shell, configured
-per role in `includes/panel.php`. There is exactly one copy of that shell; see
+Both role panels render from the same `includes/layouts/panel*.php` shell,
+configured per role in `includes/layouts/panel.php`. There is exactly one copy of that shell; see
 the cleanup log below for why that is worth saying.
 
 ## What's implemented (from the project scope)
@@ -254,8 +261,8 @@ prepared statements everywhere with no SQL built by concatenation, a CSRF
 token on every form, `h()` escaping on output, and ownership checks written
 into the `WHERE` clause so a landlord can only touch their own listings.
 
-On top of that, `includes/security.php` is required from the top of
-`includes/functions.php`, so every page gets the following without having to
+On top of that, `includes/core/security.php` is required from the top of
+`includes/core/functions.php`, so every page gets the following without having to
 ask for it:
 
 **Sessions**
@@ -321,7 +328,7 @@ ask for it:
   registration is not, so a script can still create accounts without limit.
 - **Drop `'unsafe-inline'` from the script CSP.** The policy currently allows
   it, which permits exactly the kind of inline script an injected payload
-  would use. The inline block in `includes/panel_footer.php` is what makes it
+  would use. The inline block in `includes/layouts/panel_footer.php` is what makes it
   necessary; moving that into a `.js` file or giving it a nonce would let the
   directive be tightened.
 - **Rehash on login.** Calling `password_needs_rehash()` after a successful
@@ -347,7 +354,7 @@ application does for a user; it removes code and data that were misleading,
 duplicated, or unsafe to publish.
 
 **A1 — Deleted two unused copies of the management panel shell (346 lines).**
-The live shell is `includes/panel_head.php`, `panel_navbar.php`,
+The live shell is `includes/layouts/panel_head.php`, `panel_navbar.php`,
 `panel_sidebar.php` and `panel_footer.php`. Two older versions were still on
 disk and loaded by nothing at all: `includes/admin_header.php` with
 `includes/admin_footer.php` (132 lines, where the footer was required only by
@@ -359,7 +366,7 @@ referenced nowhere in the project). Both sets are gone.
 `admin/dashboard.php`, `manage_listings.php`, `manage_users.php`,
 `listing_action.php` and `user_action.php` each carried their own
 `is_logged_in()` / `is_admin()` test and redirect, duplicating a helper that
-already existed in `includes/functions.php`. All five now call
+already existed in `includes/core/functions.php`. All five now call
 `require_login('admin')`. The behaviour is the same; the point is that the
 next admin page added to the project will copy one line instead of four.
 
@@ -446,7 +453,7 @@ Two things also became visible while doing this, both left as they are
 because they are decisions for the project owner rather than cleanup:
 
 - Several files the Security section above describes are **not in version
-  control at all** — `includes/security.php`, every `.htaccess`, and
+  control at all** — `includes/core/security.php`, every `.htaccess`, and
   `database/migration_login_throttle.sql` are untracked. A fresh clone of
   this repository would therefore have none of the session hardening, none
   of the folder protection, and no throttle table. They should be committed.

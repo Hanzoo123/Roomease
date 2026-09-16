@@ -1,10 +1,10 @@
 <?php
 /**
  * RoomEase Landlord Dashboard (AdminLTE Panel)
- * Shares the panel chrome with the admin area; see includes/panel.php.
+ * Shares the panel chrome with the admin area; see includes/layouts/panel.php.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 require_login('landlord');
 
 $landlordId = $_SESSION['user_id'];
@@ -26,9 +26,9 @@ $counts = $countStmt->fetch();
 $listings = landlord_listings($landlordId);
 
 $pageTitle = 'Dashboard';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <!-- Content Wrapper. Contains page content -->
@@ -127,7 +127,7 @@ require __DIR__ . '/../includes/panel_sidebar.php';
       </div>
       <!-- /.row -->
 
-      <?php require __DIR__ . '/../includes/landlord_listings_table.php'; ?>
+      <?php require __DIR__ . '/../includes/components/landlord_listings_table.php'; ?>
 
     </div><!-- /.container-fluid -->
   </section>
@@ -135,4 +135,4 @@ require __DIR__ . '/../includes/panel_sidebar.php';
 </div>
 <!-- /.content-wrapper -->
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

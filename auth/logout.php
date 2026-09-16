@@ -9,7 +9,7 @@
  * else goes to the home page.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $wasAdmin = is_admin();
 forget_remembered_login();

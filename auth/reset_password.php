@@ -9,7 +9,7 @@
  * and every other outstanding reset for that account is discarded.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $errors = [];
 $done = false;
@@ -84,7 +84,7 @@ $pageTitle = 'Reset password';
 $authHeading = $done ? 'Password changed' : (!$reset ? 'Code no longer valid' : 'Choose a new password');
 $authAdmin = $forAdmin;
 $authSwitch = $signedIn ? null : ['text' => 'Remembered your password?', 'href' => base_url($loginPath), 'label' => 'Log in'];
-require __DIR__ . '/../includes/auth_header.php';
+require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
 
 <?php if ($done && $signedIn): ?>
@@ -129,4 +129,4 @@ require __DIR__ . '/../includes/auth_header.php';
   </form>
 <?php endif; ?>
 
-<?php require __DIR__ . '/../includes/auth_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>

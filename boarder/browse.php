@@ -1,8 +1,8 @@
 <?php
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/listing_card.php';
-require __DIR__ . '/../includes/search_bar.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/components/listing_card.php';
+require __DIR__ . '/../includes/components/search_bar.php';
 
 $q = trim($_GET['q'] ?? '');
 // The filter is a room_type_id. An unrecognised value is treated as "no
@@ -90,7 +90,7 @@ $band = [
   'title' => 'Rooms in Baybay City',
   'lede' => 'Every boarding house here is approved. Filter by name, or by the room type and budget you need.',
 ];
-require __DIR__ . '/../includes/header.php';
+require __DIR__ . '/../includes/layouts/header.php';
 
 // The filter bar carries the #listings anchor, so links from the home page
 // land with the search form and the first rooms in view.
@@ -145,5 +145,5 @@ render_search_bar([
   <?php endif; ?>
 <?php endif; ?>
 
-<?php require __DIR__ . '/../includes/show_more.php'; ?>
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/scripts/show_more.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

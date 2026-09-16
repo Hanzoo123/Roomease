@@ -129,9 +129,9 @@ Six rendering paths currently fetch webfonts over the network, so on an offline
 demo they silently fall back to system faces:
 
 - `assets/css/style.css:8` — `@import` of Zilla Slab, Inter, and IBM Plex Mono
-- `includes/panel_head.php:20`, `auth/login.php:83`,
+- `includes/layouts/panel_head.php:20`, `auth/login.php:83`,
   `auth/forgot_password.php:71`, `auth/reset_password.php:65` — Source Sans Pro
-- `includes/security.php:101-102` — the CSP explicitly allows
+- `includes/core/security.php:101-102` — the CSP explicitly allows
   `fonts.googleapis.com` and `fonts.gstatic.com`
 
 Resolving this means self-hosting the faces under `assets/` and tightening the

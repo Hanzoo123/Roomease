@@ -3,7 +3,7 @@
  * RoomEase Admin Dashboard (AdminLTE Theme)
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 require_login('admin');
 
@@ -40,9 +40,9 @@ $recentUsers = $pdo->query(
 )->fetchAll();
 
 $pageTitle = 'Dashboard';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <!-- Content Wrapper. Contains page content -->
@@ -299,4 +299,4 @@ require __DIR__ . '/../includes/panel_sidebar.php';
 </div>
 <!-- /.content-wrapper -->
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

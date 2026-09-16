@@ -2,7 +2,7 @@
 /**
  * Transport- and session-level hardening for RoomEase.
  *
- * This file is required from the very top of includes/functions.php, BEFORE
+ * This file is required from the very top of includes/core/functions.php, BEFORE
  * session_start(), because cookie flags can only be chosen while there is no
  * session yet. Everything here applies itself: no page has to remember to call
  * it, so a new page cannot accidentally opt out of it.

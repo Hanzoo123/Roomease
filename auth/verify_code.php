@@ -12,7 +12,7 @@
  * runs out of tries exactly like a real one.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $state = $_SESSION['password_reset'] ?? null;
 
@@ -105,7 +105,7 @@ $authAdmin = $scope === 'admin';
 $authSwitch = $scope === 'profile'
     ? ['text' => 'Changed your mind?', 'href' => base_url('auth/profile.php'), 'label' => 'Back to your profile']
     : ['text' => 'Remembered it?', 'href' => base_url($scope === 'admin' ? ADMIN_LOGIN_PATH : 'auth/login.php'), 'label' => 'Log in'];
-require __DIR__ . '/../includes/auth_header.php';
+require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
 
   <?php if ($scope === 'profile'): ?>
@@ -183,4 +183,4 @@ require __DIR__ . '/../includes/auth_header.php';
     })();
   </script>
 
-<?php require __DIR__ . '/../includes/auth_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>

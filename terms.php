@@ -7,14 +7,14 @@
  * the date below whenever the wording changes.
  */
 require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/functions.php';
+require __DIR__ . '/includes/core/functions.php';
 
 $pageTitle = 'Terms & Conditions';
 $band = [
   'title' => 'Terms & Conditions',
   'lede' => 'The rules for using RoomEase, in plain language.',
 ];
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/includes/layouts/header.php';
 ?>
 
 <article class="legal panel panel-pad on-seam">
@@ -89,4 +89,4 @@ require __DIR__ . '/includes/header.php';
   <p>If anything here is unclear, contact the RoomEase administrator.</p>
 </article>
 
-<?php require __DIR__ . '/includes/footer.php'; ?>
+<?php require __DIR__ . '/includes/layouts/footer.php'; ?>

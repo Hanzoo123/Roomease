@@ -25,7 +25,7 @@ function google_config()
             'ca_bundle'     => '',
         ];
 
-        $local = __DIR__ . '/../config/google.local.php';
+        $local = __DIR__ . '/../../config/google.local.php';
         if (is_file($local)) {
             $file = require $local;
             if (is_array($file)) {

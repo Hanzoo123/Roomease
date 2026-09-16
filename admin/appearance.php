@@ -7,8 +7,8 @@
  * entered here: they live in config/google.local.php.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/google_auth.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/core/google_auth.php';
 
 require_login('admin');
 
@@ -148,9 +148,9 @@ $presets = [
 ];
 
 $pageTitle = 'Appearance';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
@@ -459,4 +459,4 @@ require __DIR__ . '/../includes/panel_sidebar.php';
   })();
 </script>
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

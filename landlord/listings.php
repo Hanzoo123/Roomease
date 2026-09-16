@@ -4,15 +4,15 @@
  * approval, and actions. The same table sits under the dashboard's figures.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 require_login('landlord');
 
 $listings = landlord_listings($_SESSION['user_id']);
 
 $pageTitle = 'My Boarding Houses';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <!-- Content Wrapper. Contains page content -->
@@ -40,11 +40,11 @@ require __DIR__ . '/../includes/panel_sidebar.php';
   <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
-      <?php require __DIR__ . '/../includes/landlord_listings_table.php'; ?>
+      <?php require __DIR__ . '/../includes/components/landlord_listings_table.php'; ?>
     </div><!-- /.container-fluid -->
   </section>
   <!-- /.content -->
 </div>
 <!-- /.content-wrapper -->
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

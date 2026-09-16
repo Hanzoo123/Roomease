@@ -3,7 +3,7 @@
  * RoomEase Admin - Manage Listings (AdminLTE Theme)
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 require_login('admin');
 
@@ -43,9 +43,9 @@ $tally = $pdo->query(
 )->fetch();
 
 $pageTitle = 'Manage Listings';
-require __DIR__ . '/../includes/panel_head.php';
-require __DIR__ . '/../includes/panel_navbar.php';
-require __DIR__ . '/../includes/panel_sidebar.php';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <!-- Content Wrapper. Contains page content -->
@@ -264,7 +264,7 @@ require __DIR__ . '/../includes/panel_sidebar.php';
   </div>
 </div>
 
-<?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
 
 <!-- Initialize DataTables for listingsTable -->
 <script>

@@ -51,9 +51,9 @@
   </div>
 </footer>
 
-<?php require __DIR__ . '/password_toggle.php'; ?>
-<?php require __DIR__ . '/favorite_toggle.php'; ?>
-<?php require __DIR__ . '/copy_number.php'; ?>
+<?php require __DIR__ . '/../scripts/password_toggle.php'; ?>
+<?php require __DIR__ . '/../scripts/favorite_toggle.php'; ?>
+<?php require __DIR__ . '/../scripts/copy_number.php'; ?>
 
 </body>
 

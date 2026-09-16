@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/../includes/icons.php';
+require __DIR__ . '/../includes/core/functions.php';
+require_once __DIR__ . '/../includes/components/icons.php';
 
 $listingId = (int) ($_GET['id'] ?? 0);
 
@@ -45,10 +45,10 @@ if (!$listing) {
     'back' => ['href' => base_url('boarder/browse.php'), 'label' => 'All boarding houses'],
     'title' => 'Listing not found',
   ];
-  require __DIR__ . '/../includes/header.php';
+  require __DIR__ . '/../includes/layouts/header.php';
   echo '<p class="rooms-empty on-seam">This listing does not exist or has been removed. <a href="'
     . base_url('boarder/browse.php') . '">Browse other rooms</a></p>';
-  require __DIR__ . '/../includes/footer.php';
+  require __DIR__ . '/../includes/layouts/footer.php';
   exit;
 }
 
@@ -213,7 +213,7 @@ if ($listing['moderation_status'] === 'pending') {
 
 $pageTitle = $listing['name'];
 $bleed = true;
-require __DIR__ . '/../includes/header.php';
+require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
 <section class="band band--listing">
@@ -539,4 +539,4 @@ require __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 <script src="<?= base_url('assets/js/listing.js') ?>?v=<?= @filemtime(__DIR__ . '/../assets/js/listing.js') ?: 0 ?>"></script>
 
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

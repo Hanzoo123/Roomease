@@ -4,7 +4,7 @@
  * Included by landlord/add_listing.php and landlord/edit_listing.php.
  *
  * Rent, room type and capacity belong to each room. A new listing's rooms are
- * added in this form (includes/room_rows_form.php, when $formRooms is set);
+ * added in this form (includes/components/room_rows_form.php, when $formRooms is set);
  * an existing listing's rooms are managed on its Rooms card instead.
  *
  * Expects:

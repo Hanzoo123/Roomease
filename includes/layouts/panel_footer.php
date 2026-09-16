@@ -56,7 +56,7 @@ $flash = flash_get();
   </script>
 <?php endif; ?>
 
-<?php require __DIR__ . '/password_toggle.php'; ?>
+<?php require __DIR__ . '/../scripts/password_toggle.php'; ?>
 </body>
 
 </html>

@@ -11,7 +11,7 @@
  * sends one to an administrator account.
  */
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $resetScope = ($resetScope ?? 'public') === 'admin' ? 'admin' : 'public';
 $loginPath = $resetScope === 'admin' ? ADMIN_LOGIN_PATH : 'auth/login.php';
@@ -50,7 +50,7 @@ $pageTitle = $resetScope === 'admin' ? 'Admin password reset' : 'Forgot password
 $authHeading = $resetScope === 'admin' ? 'Reset your admin password' : 'Reset your password';
 $authAdmin = $resetScope === 'admin';
 $authSwitch = ['text' => 'Remembered it?', 'href' => base_url($loginPath), 'label' => 'Log in'];
-require __DIR__ . '/../includes/auth_header.php';
+require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
 
   <p class="auth-sub">Enter the email address on your account and we will email you a 6-digit code to choose a
@@ -67,4 +67,4 @@ require __DIR__ . '/../includes/auth_header.php';
     <button type="submit" class="btn btn-primary btn-block btn-auth">Send code</button>
   </form>
 
-<?php require __DIR__ . '/../includes/auth_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>

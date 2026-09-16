@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/google_auth.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/core/google_auth.php';
 
 require_login();
 
@@ -182,11 +182,11 @@ $cls = $usePanel
        'note' => 'alert alert-success', 'btn_small' => 'btn btn-ghost btn-sm'];
 
 if ($usePanel) {
-    require __DIR__ . '/../includes/panel_head.php';
-    require __DIR__ . '/../includes/panel_navbar.php';
-    require __DIR__ . '/../includes/panel_sidebar.php';
+    require __DIR__ . '/../includes/layouts/panel_head.php';
+    require __DIR__ . '/../includes/layouts/panel_navbar.php';
+    require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 } else {
-    require __DIR__ . '/../includes/header.php';
+    require __DIR__ . '/../includes/layouts/header.php';
 }
 ?>
 
@@ -325,8 +325,8 @@ if ($usePanel) {
       </div>
     </section>
   </div>
-  <?php require __DIR__ . '/../includes/panel_footer.php'; ?>
+  <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
 <?php else: ?>
   </div>
-  <?php require __DIR__ . '/../includes/footer.php'; ?>
+  <?php require __DIR__ . '/../includes/layouts/footer.php'; ?>
 <?php endif; ?>

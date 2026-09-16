@@ -37,9 +37,9 @@ function base_url($path = '')
 {
     static $base = null;
     if ($base === null) {
-        // includes/functions.php is one level deep, so the app root is one up
-        // from wherever this is required from; we instead compute from SCRIPT_NAME's
-        // known app-root marker (the folder that contains index.php).
+        // Worked out from SCRIPT_NAME, the page being served, rather than from
+        // where this file sits: the app root is the folder above auth/,
+        // landlord/, boarder/ or admin/, or the page's own folder otherwise.
         $script = $_SERVER['SCRIPT_NAME'] ?? '';
         $appRoot = preg_replace('#/(auth|landlord|boarder|admin)/[^/]*$#', '', $script);
         if ($appRoot === $script) {
@@ -274,7 +274,7 @@ function handle_photo_uploads($fileField, $boardingHouseId)
         return [];
     }
 
-    $dir = __DIR__ . '/../assets/uploads/boarding_houses/' . $boardingHouseId;
+    $dir = __DIR__ . '/../../assets/uploads/boarding_houses/' . $boardingHouseId;
     if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
         throw new RuntimeException('Could not create the photo folder for this listing.');
     }
@@ -285,7 +285,7 @@ function handle_photo_uploads($fileField, $boardingHouseId)
         if (!move_uploaded_file($item['tmp'], $dir . '/' . $filename)) {
             // Keep the batch all-or-nothing: undo whatever already landed.
             foreach ($stored as $done) {
-                @unlink(__DIR__ . '/../' . $done);
+                @unlink(__DIR__ . '/../../' . $done);
             }
             throw new RuntimeException('Could not save the uploaded photos.');
         }
@@ -1226,7 +1226,7 @@ function can_save_listings()
  *
  * The profile page uses the same steps, so an account made with Google can set
  * its first password; there the scope is 'profile' instead of 'public' or
- * 'admin'. Codes go out through Gmail (includes/mailer.php).
+ * 'admin'. Codes go out through Gmail (includes/core/mailer.php).
  * ------------------------------------------------------------------------ */
 
 /** Wrong guesses one code survives before it stops working. */
@@ -1480,7 +1480,7 @@ function send_password_reset_code($email, $firstName, $code, $scope = 'public')
 
     $sent = send_mail($email, $subject, $text, $html);
 
-    $logDir = __DIR__ . '/../storage';
+    $logDir = __DIR__ . '/../../storage';
     if (!is_dir($logDir)) {
         @mkdir($logDir, 0755, true);
     }
@@ -1569,7 +1569,7 @@ function auth_background()
     $type = site_setting('auth_background_type', 'colour');
     $image = site_setting('auth_background_image');
 
-    if ($type === 'photo' && is_site_upload_path($image) && is_file(__DIR__ . '/../' . $image)) {
+    if ($type === 'photo' && is_site_upload_path($image) && is_file(__DIR__ . '/../../' . $image)) {
         return [
             'style' => "background-image: linear-gradient(rgba(15, 58, 49, .55), rgba(15, 58, 49, .72)), url('"
                 . base_url($image) . "');",

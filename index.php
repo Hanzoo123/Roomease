@@ -10,9 +10,9 @@
  * the "you don't belong on that page" fallback.
  */
 require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/functions.php';
-require __DIR__ . '/includes/listing_card.php';
-require __DIR__ . '/includes/search_bar.php';
+require __DIR__ . '/includes/core/functions.php';
+require __DIR__ . '/includes/components/listing_card.php';
+require __DIR__ . '/includes/components/search_bar.php';
 
 if (is_logged_in()) {
     if (is_admin()) {
@@ -44,7 +44,7 @@ $savedIds = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
 
 $pageTitle = 'Rooms for rent in Baybay City';
 $bleed = true;
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/includes/layouts/header.php';
 ?>
 
 <section class="band band--hero">
@@ -162,4 +162,4 @@ require __DIR__ . '/includes/header.php';
   </section>
 <?php endif; ?>
 
-<?php require __DIR__ . '/includes/footer.php'; ?>
+<?php require __DIR__ . '/includes/layouts/footer.php'; ?>

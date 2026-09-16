@@ -18,7 +18,7 @@ $authSwitch = $authSwitch ?? null;
     <p class="auth-out auth-out--back"><a href="<?= base_url('index.php') ?>">&larr; Back to RoomEase</a></p>
   </main>
 
-  <?php require __DIR__ . '/password_toggle.php'; ?>
+  <?php require __DIR__ . '/../scripts/password_toggle.php'; ?>
 </body>
 
 </html>

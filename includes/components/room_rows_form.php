@@ -1,7 +1,7 @@
 <?php
 /**
  * The Rooms section of the Add Listing form: one card per room, with its own
- * photos, plus "Add another room". Included by includes/listing_form.php when
+ * photos, plus "Add another room". Included by includes/components/listing_form.php when
  * $formRooms is set, which only landlord/add_listing.php does; an existing
  * listing's rooms are managed on its Rooms card instead.
  *

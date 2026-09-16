@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/functions.php';
-require __DIR__ . '/../includes/google_auth.php';
+require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/core/google_auth.php';
 
 if (is_logged_in()) {
   redirect('index.php');
@@ -70,7 +70,7 @@ $pageTitle = 'Sign up';
 $authHeading = 'Create your RoomEase account';
 $authWide = true;
 $authSwitch = ['text' => 'Already have an account?', 'href' => base_url('auth/login.php'), 'label' => 'Log in'];
-require __DIR__ . '/../includes/auth_header.php';
+require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
 
 <?php /* Always shown. Until this server has Google credentials, auth/google_start.php
@@ -156,4 +156,4 @@ require __DIR__ . '/../includes/auth_header.php';
   })();
 </script>
 
-<?php require __DIR__ . '/../includes/auth_footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>
