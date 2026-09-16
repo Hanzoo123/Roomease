@@ -863,14 +863,18 @@ input[type=checkbox] {
   color: var(--ink-soft);
 }
 
-.reset-link-box {
+/* The reset code shown on screen when no email could be sent (local only). */
+.reset-code-box {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: 10px;
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  word-break: break-all;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: .3em;
+  text-align: center;
+  color: var(--ink);
 }
 
 /* =========================================================
@@ -1064,6 +1068,49 @@ input[type=checkbox] {
   min-height: 54px;
   border-radius: 12px;
   font-size: 17px;
+}
+
+/* "Check your email": the code field is the one thing on the page that
+   stands out, set large and spaced like the code in the email. */
+.auth-card input.code-input {
+  min-height: 64px;
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: .45em;
+  text-indent: .45em;
+  text-align: center;
+  color: var(--forest);
+}
+
+.code-resend {
+  margin: 20px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* A form button that reads as an ordinary link. */
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--forest);
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button:disabled {
+  color: var(--ink-faint);
+  text-decoration: none;
+  cursor: default;
 }
 
 .auth-out {

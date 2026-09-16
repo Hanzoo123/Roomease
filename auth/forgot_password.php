@@ -1,13 +1,13 @@
 <?php
 /**
- * Step 1 of the password reset: ask for an email address and issue a token.
+ * Step 1 of the password reset: ask for an email address and send a code.
  *
- * The response is deliberately the same whether or not the address belongs to
- * an account, so this page cannot be used to find out who is registered.
+ * The next page says the same thing whether or not the address belongs to an
+ * account, so this page cannot be used to find out who is registered.
  *
  * Administrators and everyone else reset separately: admin/forgot_password.php
  * sets $resetScope = 'admin' and includes this file. The public page never
- * sends a link to an administrator account, and the admin page only ever
+ * sends a code to an administrator account, and the admin page only ever
  * sends one to an administrator account.
  */
 require __DIR__ . '/../config/db.php';
@@ -21,17 +21,14 @@ if (is_logged_in()) {
 }
 
 $error = '';
-$submitted = false;
 $email = '';
-$localLink = null;   // only ever populated for requests from this machine
-$mailSent = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $email = trim($_POST['email'] ?? '');
 
-    // Issuing a reset sends mail and writes a token, so it is throttled the
-    // same way login is. The limit is counted before the account is looked
+    // Issuing a code sends mail and writes to the database, so it is throttled
+    // the same way login is. The limit is counted before the account is looked
     // up, so a locked-out requester learns nothing about who is registered.
     $retryAfter = $email !== '' ? throttle_retry_after('reset', $email) : 0;
 
@@ -41,30 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Too many reset requests for that address. Please try again in '
             . format_wait($retryAfter) . '.';
     } else {
-        $submitted = true;
         record_failed_attempt('reset', $email);
+        issue_password_reset_code($email, $resetScope);
 
-        // Deactivated accounts get no token, but the page says the same thing
-        // either way so nothing about the account is revealed.
-        $roleCheck = $resetScope === 'admin' ? "role = 'administrator'" : "role <> 'administrator'";
-        $stmt = $pdo->prepare(
-            "SELECT user_id, first_name, is_active FROM users WHERE email = ? AND deleted_at IS NULL AND $roleCheck"
-        );
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
-
-        if ($user && $user['is_active']) {
-            $token = create_password_reset($user['user_id']);
-            $url = password_reset_url($token);
-            $mailSent = send_password_reset_email($email, $user['first_name'], $url);
-
-            // A stock WAMP install has no mail server. Rather than leave the
-            // flow dead, show the link directly, but only to someone sitting at
-            // this machine. A remote visitor never sees it.
-            if (!$mailSent && is_local_request()) {
-                $localLink = $url;
-            }
-        }
+        // Redirecting means a refresh of the next page cannot send another code.
+        redirect('auth/verify_code.php');
     }
 }
 
@@ -75,36 +53,18 @@ $authSwitch = ['text' => 'Remembered it?', 'href' => base_url($loginPath), 'labe
 require __DIR__ . '/../includes/auth_header.php';
 ?>
 
-  <?php if ($submitted): ?>
-    <div class="alert alert-success">
-      If an account exists for <strong><?= h($email) ?></strong>, a reset link has been sent to it.
-      The link is valid for <?= password_reset_ttl_minutes() ?> minutes.
-    </div>
+  <p class="auth-sub">Enter the email address on your account and we will email you a 6-digit code to choose a
+    new password.</p>
 
-    <?php if ($localLink !== null): ?>
-      <div class="alert alert-error">
-        <strong>No mail server on this machine.</strong>
-        <p class="alert-note">This server could not send email, so the link is shown here instead. It only
-          ever appears for someone browsing from the server itself &mdash; a remote visitor sees only the
-          message above.</p>
-        <div class="reset-link-box"><a href="<?= h($localLink) ?>"><?= h($localLink) ?></a></div>
-      </div>
-    <?php endif; ?>
-
-  <?php else: ?>
-    <p class="auth-sub">Enter the email address on your account and we will send you a link to choose a new
-      password.</p>
-
-    <?php if ($error !== ''): ?>
-      <div class="alert alert-error"><?= h($error) ?></div>
-    <?php endif; ?>
-
-    <form method="post" novalidate>
-      <?= csrf_field() ?>
-      <label for="email">Email address</label>
-      <input type="email" id="email" name="email" value="<?= h($email) ?>" autocomplete="username" required autofocus>
-      <button type="submit" class="btn btn-primary btn-block btn-auth">Send reset link</button>
-    </form>
+  <?php if ($error !== ''): ?>
+    <div class="alert alert-error"><?= h($error) ?></div>
   <?php endif; ?>
+
+  <form method="post" novalidate>
+    <?= csrf_field() ?>
+    <label for="email">Email address</label>
+    <input type="email" id="email" name="email" value="<?= h($email) ?>" autocomplete="username" required autofocus>
+    <button type="submit" class="btn btn-primary btn-block btn-auth">Send code</button>
+  </form>
 
 <?php require __DIR__ . '/../includes/auth_footer.php'; ?>

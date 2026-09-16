@@ -108,7 +108,28 @@ photo uploads, search/filter, and account management.
    picked there. From the log-in page they are asked "One more step": boarder
    or landlord, and an optional phone number. An account made with Google has
    no password; its owner can set one from their profile, which emails them a
-   link. Google sign-in needs internet; email and password login does not.
+   code. Google sign-in needs internet; email and password login does not.
+
+   **Password reset codes by email.** "Forgot password?" emails a 6-digit code
+   through Gmail. Upgrading an existing database? Run this; it is safe to run
+   twice:
+   ```
+   mysql -u root -p roomease < database/migration_reset_codes.sql
+   ```
+   Then give RoomEase a Gmail account to send from:
+   1. On that Google account, turn on **2-Step Verification**
+      (<https://myaccount.google.com/security>).
+   2. Create an **App Password** named "RoomEase"
+      (<https://myaccount.google.com/apppasswords>). Gmail does not accept the
+      account's normal password here.
+   3. Copy `config/mail.local.example.php` to `config/mail.local.php` (ignored
+      by git) and fill in the Gmail address and the 16-letter App Password, or
+      set the `ROOMEASE_MAIL_USERNAME` and `ROOMEASE_MAIL_PASSWORD`
+      environment variables.
+
+   Until that is done no email is sent, and someone browsing from the server
+   itself sees the code on screen instead. Every send is logged to
+   `storage/mail.log`, with Gmail's reason when one fails.
 
 5. **Set the administrator password.** The schema seeds the admin account with
    a placeholder that no password can ever match, so the account cannot be
@@ -176,13 +197,14 @@ been changed.
 ```
 roomease/
 ├── admin/                     Admin panel: dashboard, manage users, manage listings
-├── auth/                      Register, login, logout, profile, password reset
+├── auth/                      Register, login, logout, profile, password reset by code
 ├── landlord/                  Dashboard, add/edit/delete listing, photo actions
 ├── boarder/                   Browse/search listings, listing detail, saved listings
 ├── config/db.php              Database connection (PDO)
 ├── includes/                  Shared chrome, helpers, and the listing form
 │   ├── functions.php            Helpers; also boots security.php and the session
 │   ├── security.php             Session hardening, headers, login/reset throttling
+│   ├── mailer.php               Sends email through Gmail (reset codes)
 │   ├── header.php / footer.php  Public theme (guests and boarders)
 │   ├── panel*.php               AdminLTE panel shell (admin and landlord)
 │   └── listing_form.php         Shared add/edit listing fields
@@ -215,7 +237,9 @@ the cleanup log below for why that is worth saying.
   activate/deactivate user accounts, archive and restore them, and remove
   listings.
 - All roles: edit their profile and change their own password.
-- Password reset by emailed link, with single-use, hashed, expiring tokens.
+- Password reset by a 6-digit code emailed through Gmail. Codes are hashed,
+  single use, expire after 10 minutes, and stop working after five wrong
+  guesses.
 - Security: see the section below.
 
 Search matches the listing name and the address as a single string. There is
@@ -255,9 +279,14 @@ ask for it:
   further attempts for fifteen minutes. The per-IP limit is the one that
   catches an attacker trying a single common password across many accounts,
   which no per-account counter would ever notice.
-- Password-reset requests are limited to three per address per window. The
-  limit is applied before the address is looked up, so a throttled requester
-  still learns nothing about who is registered.
+- Password-reset requests are limited to three per address per window, and a
+  new code can be requested at most once a minute. The limit is applied
+  before the address is looked up, so a throttled requester still learns
+  nothing about who is registered.
+- A reset code survives five wrong guesses. It is stored with
+  `password_hash()`, because a fast hash of a 6-digit number would be guessed
+  in moments if the table leaked. The right code is swapped for a token that
+  exists only in that visitor's session, so the token never appears in a URL.
 
 **Output and uploads**
 
@@ -288,9 +317,6 @@ ask for it:
 - **Do not run as MySQL `root` with an empty password** outside local
   development. Create a user with rights on the `roomease` database only, and
   pass it in through the `ROOMEASE_DB_*` environment variables.
-- **Add a real mailer.** `mail()` does nothing on a stock WAMP install, so the
-  reset link is shown on screen for requests from the server itself. That is
-  fine locally and refuses to do so remotely, but a deployment needs SMTP.
 - **Throttle registration.** Sign-in and password reset are rate limited;
   registration is not, so a script can still create accounts without limit.
 - **Drop `'unsafe-inline'` from the script CSP.** The policy currently allows

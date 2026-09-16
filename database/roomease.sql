@@ -242,16 +242,21 @@ CREATE TABLE favorites (
 
 -- ---------------------------------------------------------
 -- 10. Table: password_resets
--- One row per "forgot password" request. Only a SHA-256 hash of the
--- token is stored, so a leaked database still cannot be used to reset
--- anyone's password. Rows are single use (used_at) and short lived
--- (expires_at).
+-- One row per "forgot password" request. The emailed 6-digit code is
+-- stored only as a password_hash() (code_hash) and dies after five wrong
+-- guesses (attempts). The right code is exchanged for a token kept in the
+-- visitor's session, of which only a SHA-256 hash is stored, so a leaked
+-- database still cannot be used to reset anyone's password. Rows are
+-- single use (used_at) and short lived (expires_at).
 -- ---------------------------------------------------------
 CREATE TABLE password_resets (
     reset_id    INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT NOT NULL,
     token_hash  CHAR(64) NOT NULL,
+    code_hash   VARCHAR(255) DEFAULT NULL,
+    attempts    TINYINT UNSIGNED NOT NULL DEFAULT 0,
     expires_at  DATETIME NOT NULL,
+    verified_at DATETIME DEFAULT NULL,
     used_at     DATETIME DEFAULT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_reset_token (token_hash),

@@ -54,7 +54,7 @@ require __DIR__ . '/includes/header.php';
   <ul>
     <li>To run your account and sign you in.</li>
     <li>To show approved listings to people looking for a room.</li>
-    <li>To email you a link when you ask to reset or set a password.</li>
+    <li>To email you a code when you ask to reset or set a password.</li>
     <li>To review listings and keep the site secure.</li>
   </ul>
   <p>RoomEase does not sell your information or use it for advertising.</p>
@@ -66,8 +66,9 @@ require __DIR__ . '/includes/header.php';
       number when a listing has no contact number of its own.</li>
     <li><strong>Administrators</strong> can see account details and all listings, to review and manage the site.</li>
     <li><strong>Your saved listings</strong> are not shown to anyone else.</li>
-    <li><strong>Google</strong> knows you signed in to RoomEase if you choose to continue with Google. Google's own
-      privacy policy applies to that.</li>
+    <li><strong>Google</strong> knows you signed in to RoomEase if you choose to continue with Google. Emails
+      RoomEase sends you, such as password codes, also go out through Google's Gmail. Google's own privacy policy
+      applies to both.</li>
     <li><strong>OpenStreetMap</strong> supplies the map images on listing pages, and receives your IP address when
       they load, as any website does when you load its images.</li>
   </ul>
@@ -76,7 +77,7 @@ require __DIR__ . '/includes/header.php';
   <ul>
     <li>Account and listing details are kept while your account exists. A removed account is archived rather than
       erased straight away.</li>
-    <li>Password reset links stop working after <?= password_reset_ttl_minutes() ?> minutes.</li>
+    <li>Password reset codes stop working after <?= password_reset_ttl_minutes() ?> minutes.</li>
     <li>Records of sign-in attempts are cleared after about a day.</li>
   </ul>
 
@@ -90,7 +91,7 @@ require __DIR__ . '/includes/header.php';
 
   <h2>Keeping it safe</h2>
   <p>
-    Passwords, password reset links, and &ldquo;Remember me&rdquo; cookies are stored only in scrambled form, forms
+    Passwords, password reset codes, and &ldquo;Remember me&rdquo; cookies are stored only in scrambled form, forms
     are protected against being submitted from other sites, and uploaded photos are checked before they are saved.
   </p>
 

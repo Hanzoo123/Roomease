@@ -29,3 +29,6 @@ Desktop.ini
 
 # Google sign-in credentials. Copy config/google.local.example.php to create it.
 config/google.local.php
+
+# Gmail App Password for outgoing email. Copy config/mail.local.example.php to create it.
+config/mail.local.php
