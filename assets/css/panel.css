@@ -46,7 +46,12 @@ body,
 }
 
 /* =========================================================
-   Tokens: the public site's palette (assets/css/style.css)
+   Tokens
+   ---------------------------------------------------------
+   The public site's palette (assets/css/style.css), plus the
+   colours the panel adds: a distinct fill for each kind of
+   figure, and a solid colour for each status. Every fill with
+   white text on it passes WCAG AA for normal text.
    ========================================================= */
 :root {
   --re-paper: #FAF8F3;
@@ -62,15 +67,28 @@ body,
   --re-marigold: #F2A93B;
   --re-marigold-hover: #E39A2A;
   --re-on-marigold: #2A1E08;
-  --re-approved-bg: #E3F0E7;
-  --re-approved-fg: #22613F;
-  --re-pending-bg: #FDF1DC;
-  --re-pending-fg: #7A4E0E;
-  --re-rejected-bg: #F6E4E1;
-  --re-rejected-fg: #8E3325;
   --re-muted-bg: #EEEBE4;
-  --re-muted-fg: #5E5850;
-  --re-danger: #B3402F;
+
+  /* Figures: accounts, residents, listings. */
+  --re-teal: #1B6F87;
+  --re-teal-deep: #155A6E;
+  --re-green: #2E7D4F;
+  --re-green-deep: #256842;
+  --re-terracotta: #B5552B;
+  --re-terracotta-deep: #984622;
+
+  /* Statuses: approved is green, pending marigold, rejected red,
+     removed slate, hidden gray. */
+  --re-red: #C0392B;
+  --re-red-deep: #A33024;
+  --re-amber-text: #8A5A00;
+  --re-slate: #3A4543;
+  --re-gray: #66706D;
+
+  /* The forest sidebar. */
+  --re-sidebar-text: #B9CBC4;
+  --re-sidebar-bright: #F3F1EA;
+  --re-sidebar-line: rgba(255, 255, 255, .12);
 }
 
 .tabular {
@@ -78,8 +96,11 @@ body,
 }
 
 /* =========================================================
-   Stat row: a line of plain figures. One of them may carry
-   stat--attention, the single number that asks for action.
+   Stat row
+   ---------------------------------------------------------
+   Plain white figures (reports), or filled tiles in the manner
+   of AdminLTE's small boxes (dashboards): a colour each, a faded
+   icon in the corner, and a "View" band along the bottom.
    ========================================================= */
 .stat-row {
   display: grid;
@@ -107,8 +128,10 @@ body,
 }
 
 .stat {
+  position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   padding: 16px 18px;
   background: var(--re-panel);
   border: 1px solid var(--re-line);
@@ -124,6 +147,7 @@ a.stat:focus {
 }
 
 .stat-value {
+  position: relative;
   font-size: 2rem;
   font-weight: 600;
   line-height: 1.1;
@@ -131,30 +155,113 @@ a.stat:focus {
 }
 
 .stat-label {
+  position: relative;
   margin-top: 4px;
   font-size: .9rem;
   color: var(--re-ink-soft);
 }
 
+.stat-icon {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 3.2rem;
+  opacity: .22;
+  transition: transform .2s ease;
+}
+
+a.stat:hover .stat-icon {
+  transform: scale(1.08);
+}
+
+.stat-more {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px -18px 0;
+  padding: 6px 18px;
+  font-size: .85rem;
+  background: rgba(0, 0, 0, .12);
+}
+
+.stat--filled {
+  padding-bottom: 0;
+  border: 0;
+  color: #FFFFFF;
+}
+
+.stat--filled .stat-label,
+.stat--filled .stat-more {
+  color: rgba(255, 255, 255, .9);
+}
+
+.stat--teal {
+  background: var(--re-teal);
+}
+
+.stat--green {
+  background: var(--re-green);
+}
+
+.stat--terracotta {
+  background: var(--re-terracotta);
+}
+
+a.stat--teal:hover,
+a.stat--teal:focus {
+  color: #FFFFFF;
+  background: var(--re-teal-deep);
+}
+
+a.stat--green:hover,
+a.stat--green:focus {
+  color: #FFFFFF;
+  background: var(--re-green-deep);
+}
+
+a.stat--terracotta:hover,
+a.stat--terracotta:focus {
+  color: #FFFFFF;
+  background: var(--re-terracotta-deep);
+}
+
+/* What waits on the administrator is always marigold. */
 .stat--attention {
   background: var(--re-marigold);
-  border-color: var(--re-marigold);
   color: var(--re-on-marigold);
 }
 
-.stat--attention .stat-label {
+.stat--attention .stat-label,
+.stat--attention .stat-more {
   color: var(--re-on-marigold);
+}
+
+.stat--attention .stat-more {
+  background: rgba(0, 0, 0, .08);
 }
 
 a.stat--attention:hover,
 a.stat--attention:focus {
-  background: var(--re-marigold-hover);
-  border-color: var(--re-marigold-hover);
   color: var(--re-on-marigold);
+  background: var(--re-marigold-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-icon {
+    transition: none;
+  }
+
+  a.stat:hover .stat-icon {
+    transform: none;
+  }
 }
 
 /* =========================================================
-   Charts, drawn in CSS: 30 thin columns, and labelled bars
+   Charts, drawn in CSS: 30 thin columns, and labelled bars.
+   Accounts are teal and listings terracotta wherever they
+   appear; status bars wear their status colour.
    ========================================================= */
 .spark {
   display: flex;
@@ -170,6 +277,14 @@ a.stat--attention:focus {
   min-width: 2px;
   background: var(--re-forest);
   border-radius: 2px 2px 0 0;
+}
+
+.spark--teal span {
+  background: var(--re-teal);
+}
+
+.spark--terracotta span {
+  background: var(--re-terracotta);
 }
 
 .bars {
@@ -191,7 +306,7 @@ a.stat--attention:focus {
 
 .bar {
   display: block;
-  height: 8px;
+  height: 10px;
   overflow: hidden;
   background: var(--re-muted-bg);
   border-radius: 999px;
@@ -202,6 +317,30 @@ a.stat--attention:focus {
   height: 100%;
   background: var(--re-forest);
   border-radius: 999px;
+}
+
+.bar--teal > span {
+  background: var(--re-teal);
+}
+
+.bar--terracotta > span {
+  background: var(--re-terracotta);
+}
+
+.bar--green > span {
+  background: var(--re-green);
+}
+
+.bar--marigold > span {
+  background: var(--re-marigold);
+}
+
+.bar--red > span {
+  background: var(--re-red);
+}
+
+.bar--slate > span {
+  background: var(--re-slate);
 }
 
 .bar-value {
@@ -316,13 +455,12 @@ a.stat--attention:focus {
 /* =========================================================
    Theme: AdminLTE in RoomEase's colours
    ---------------------------------------------------------
-   One bold element per screen, and quiet everywhere else. On the
-   admin dashboard that element is the "Awaiting approval" figure
-   (.stat--attention above), with the sidebar's pending count as its
-   only echo. Everything below takes AdminLTE's saturated blues,
-   greens and reds down to the public site's palette: white surfaces
-   on paper, forest for links, actions and the current page, and the
-   status tints for badges.
+   As colourful as AdminLTE's defaults, in the brand's own
+   palette instead of Bootstrap's: a forest sidebar with the
+   current page in marigold, filled stat tiles, solid status
+   badges, coloured buttons, and a coloured rule along the top
+   of each card. The page itself stays paper and white, so the
+   colour has something calm to sit on.
    ========================================================= */
 
 body {
@@ -342,17 +480,24 @@ a:hover {
   outline-offset: 2px;
 }
 
-.text-primary,
-.text-info {
+.text-primary {
   color: var(--re-forest) !important;
 }
 
+.text-info {
+  color: var(--re-teal) !important;
+}
+
 .text-success {
-  color: var(--re-approved-fg) !important;
+  color: var(--re-green) !important;
+}
+
+.text-warning {
+  color: var(--re-amber-text) !important;
 }
 
 .text-danger {
-  color: var(--re-danger) !important;
+  color: var(--re-red) !important;
 }
 
 .text-muted {
@@ -377,10 +522,9 @@ a:hover {
   color: var(--re-ink);
 }
 
-/* Headings and card titles carried decorative icons; the words are enough. */
 .content-header h1 > .fas,
 .card-title > .fas {
-  display: none;
+  color: var(--re-forest);
 }
 
 .content-header .breadcrumb {
@@ -407,17 +551,15 @@ a:hover {
 }
 
 /* ---- Sidebar ---- */
-/* The dividing line is a shadow, not a border: a border narrows the sidebar
-   by a pixel, and its content then scrolls sideways. */
-.main-sidebar[class*="sidebar-light-"] {
-  background: var(--re-panel);
-  box-shadow: 1px 0 0 var(--re-line) !important;
+.main-sidebar[class*="sidebar-dark-"] {
+  background: var(--re-forest);
+  box-shadow: none !important;
 }
 
 .main-sidebar .brand-link {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--re-line) !important;
+  border-bottom: 1px solid var(--re-sidebar-line) !important;
 }
 
 .main-sidebar .brand-link:hover {
@@ -447,7 +589,7 @@ a:hover {
   font-size: 1.35rem;
   font-weight: 800;
   line-height: 1;
-  color: var(--re-forest);
+  color: var(--re-marigold);
 }
 
 .main-sidebar .brand-text {
@@ -456,12 +598,12 @@ a:hover {
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: var(--re-forest);
+  color: var(--re-sidebar-bright);
 }
 
 .main-sidebar .user-panel {
   align-items: center;
-  border-bottom: 1px solid var(--re-line) !important;
+  border-bottom: 1px solid var(--re-sidebar-line) !important;
 }
 
 .panel-avatar {
@@ -472,36 +614,38 @@ a:hover {
   height: 34px;
   font-size: .8rem;
   font-weight: 600;
-  color: var(--re-forest);
-  background: var(--re-leaf);
+  color: var(--re-on-marigold);
+  background: var(--re-marigold);
   border-radius: 50%;
 }
 
-.main-sidebar .panel-user {
+.main-sidebar .user-panel .panel-user {
   max-width: 160px;
   font-weight: 600;
-  color: var(--re-ink);
+  color: var(--re-sidebar-bright);
 }
 
 .panel-role {
-  color: var(--re-ink-soft);
+  color: var(--re-sidebar-text);
 }
 
-.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link {
-  color: var(--re-ink-soft);
+.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link {
+  color: var(--re-sidebar-text);
   border-radius: 8px;
 }
 
-.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link:hover {
-  color: var(--re-ink);
-  background: var(--re-paper);
+.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:hover,
+.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:focus {
+  color: var(--re-sidebar-bright);
+  background: rgba(255, 255, 255, .08);
 }
 
-.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link.active,
-.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link.active:hover {
+.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link.active,
+.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link.active:hover,
+.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link.active:focus {
   font-weight: 600;
-  color: var(--re-forest);
-  background: var(--re-leaf);
+  color: var(--re-on-marigold);
+  background: var(--re-marigold);
   box-shadow: none;
 }
 
@@ -517,9 +661,14 @@ a:hover {
   border-radius: 999px;
 }
 
+.nav-link.active .nav-count {
+  color: var(--re-marigold);
+  background: var(--re-on-marigold);
+}
+
 .nav-divider {
   margin: .5rem;
-  border-top: 1px solid var(--re-line);
+  border-top: 1px solid var(--re-sidebar-line);
 }
 
 /* ---- Cards ---- */
@@ -530,9 +679,29 @@ a:hover {
   box-shadow: none !important;
 }
 
-.card.card-outline,
-.card[class*="card-"].card-outline {
-  border-top: 1px solid var(--re-line);
+/* A coloured rule along the top, as AdminLTE's outline cards have. */
+.card.card-outline {
+  border-top: 3px solid var(--re-forest);
+}
+
+.card.card-info.card-outline {
+  border-top-color: var(--re-teal);
+}
+
+.card.card-success.card-outline {
+  border-top-color: var(--re-green);
+}
+
+.card.card-warning.card-outline {
+  border-top-color: var(--re-marigold);
+}
+
+.card.card-danger.card-outline {
+  border-top-color: var(--re-red);
+}
+
+.card.card-secondary.card-outline {
+  border-top-color: var(--re-gray);
 }
 
 .card > .card-header,
@@ -565,13 +734,33 @@ a:hover {
   border-color: var(--re-line);
 }
 
-/* The landlord dashboard's figures: plain, like the admin stat row. */
-.small-box[class*="bg-"] {
-  color: var(--re-ink) !important;
-  background: var(--re-panel) !important;
-  border: 1px solid var(--re-line);
+/* The landlord dashboard's small boxes, in the same fills as the admin
+   dashboard's tiles. */
+.small-box {
+  overflow: hidden;
   border-radius: 12px;
   box-shadow: none !important;
+}
+
+.small-box.bg-info {
+  color: #FFFFFF !important;
+  background-color: var(--re-teal) !important;
+}
+
+.small-box.bg-success,
+.small-box.bg-olive {
+  color: #FFFFFF !important;
+  background-color: var(--re-green) !important;
+}
+
+.small-box.bg-danger {
+  color: #FFFFFF !important;
+  background-color: var(--re-red) !important;
+}
+
+.small-box.bg-warning {
+  color: var(--re-on-marigold) !important;
+  background-color: var(--re-marigold) !important;
 }
 
 .small-box h3 {
@@ -581,22 +770,27 @@ a:hover {
 }
 
 .small-box p {
-  color: var(--re-ink-soft);
+  color: rgba(255, 255, 255, .9);
 }
 
-.small-box .icon {
-  display: none;
+.small-box.bg-warning p {
+  color: var(--re-on-marigold);
 }
 
 .small-box > .small-box-footer {
-  color: var(--re-forest) !important;
-  background: transparent !important;
-  border-top: 1px solid var(--re-line);
-  border-radius: 0 0 12px 12px;
+  color: rgba(255, 255, 255, .92) !important;
+  background: rgba(0, 0, 0, .12) !important;
 }
 
 .small-box > .small-box-footer:hover {
-  background: var(--re-paper) !important;
+  color: #FFFFFF !important;
+  background: rgba(0, 0, 0, .2) !important;
+}
+
+.small-box.bg-warning > .small-box-footer,
+.small-box.bg-warning > .small-box-footer:hover {
+  color: var(--re-on-marigold) !important;
+  background: rgba(0, 0, 0, .08) !important;
 }
 
 /* ---- Buttons ---- */
@@ -604,56 +798,71 @@ a:hover {
   border-radius: 8px;
 }
 
-.btn-primary,
-.btn-success {
+.btn:focus,
+.btn.focus {
+  box-shadow: 0 0 0 3px rgba(24, 74, 63, .2);
+}
+
+.btn-primary {
   color: #FFFFFF;
   background-color: var(--re-forest);
   border-color: var(--re-forest);
 }
 
 .btn-primary:hover,
-.btn-success:hover,
-.btn-primary:not(:disabled):not(.disabled):active,
-.btn-success:not(:disabled):not(.disabled):active {
+.btn-primary:not(:disabled):not(.disabled):active {
   color: #FFFFFF;
   background-color: var(--re-forest-deep);
   border-color: var(--re-forest-deep);
 }
 
-.btn:focus,
-.btn.focus {
-  box-shadow: 0 0 0 3px rgba(24, 74, 63, .18);
+.btn-success {
+  color: #FFFFFF;
+  background-color: var(--re-green);
+  border-color: var(--re-green);
 }
 
-.btn-primary:disabled,
-.btn-success:disabled {
+.btn-success:hover,
+.btn-success:not(:disabled):not(.disabled):active {
   color: #FFFFFF;
-  background-color: var(--re-ink-faint);
-  border-color: var(--re-ink-faint);
+  background-color: var(--re-green-deep);
+  border-color: var(--re-green-deep);
+}
+
+.btn-info {
+  color: #FFFFFF;
+  background-color: var(--re-teal);
+  border-color: var(--re-teal);
+}
+
+.btn-info:hover {
+  color: #FFFFFF;
+  background-color: var(--re-teal-deep);
+  border-color: var(--re-teal-deep);
 }
 
 .btn-warning {
   color: #FFFFFF;
-  background-color: var(--re-pending-fg);
-  border-color: var(--re-pending-fg);
+  background-color: var(--re-amber-text);
+  border-color: var(--re-amber-text);
 }
 
 .btn-warning:hover {
   color: #FFFFFF;
-  background-color: #5F3C0A;
-  border-color: #5F3C0A;
+  background-color: #704900;
+  border-color: #704900;
 }
 
 .btn-danger {
   color: #FFFFFF;
-  background-color: var(--re-danger);
-  border-color: var(--re-danger);
+  background-color: var(--re-red);
+  border-color: var(--re-red);
 }
 
 .btn-danger:hover {
   color: #FFFFFF;
-  background-color: var(--re-rejected-fg);
-  border-color: var(--re-rejected-fg);
+  background-color: var(--re-red-deep);
+  border-color: var(--re-red-deep);
 }
 
 .btn-outline-primary,
@@ -665,55 +874,75 @@ a:hover {
 .btn-outline-dark,
 .btn-default {
   background-color: var(--re-panel);
-  border-color: var(--re-line-strong);
 }
 
-.btn-outline-primary,
-.btn-outline-info {
+.btn-outline-primary {
   color: var(--re-forest);
+  border-color: var(--re-forest);
+}
+
+.btn-outline-info {
+  color: var(--re-teal);
+  border-color: var(--re-teal);
 }
 
 .btn-outline-success {
-  color: var(--re-approved-fg);
+  color: var(--re-green);
+  border-color: var(--re-green);
 }
 
 .btn-outline-warning {
-  color: var(--re-pending-fg);
+  color: var(--re-amber-text);
+  border-color: var(--re-amber-text);
 }
 
 .btn-outline-danger {
-  color: var(--re-danger);
+  color: var(--re-red);
+  border-color: var(--re-red);
 }
 
 .btn-outline-secondary,
 .btn-outline-dark,
 .btn-default {
   color: var(--re-ink-soft);
+  border-color: var(--re-line-strong);
 }
 
+/* Hovering fills an outline button with its colour, and so does being the
+   chosen tab in a row of filters. */
 .btn-outline-primary:hover,
-.btn-outline-info:hover {
-  color: var(--re-forest);
-  background-color: var(--re-leaf);
+.btn-outline-primary:not(:disabled):not(.disabled).active {
+  color: #FFFFFF;
+  background-color: var(--re-forest);
   border-color: var(--re-forest);
 }
 
-.btn-outline-success:hover {
-  color: var(--re-approved-fg);
-  background-color: var(--re-approved-bg);
-  border-color: var(--re-approved-fg);
+.btn-outline-info:hover,
+.btn-outline-info:not(:disabled):not(.disabled).active {
+  color: #FFFFFF;
+  background-color: var(--re-teal);
+  border-color: var(--re-teal);
 }
 
-.btn-outline-warning:hover {
-  color: var(--re-pending-fg);
-  background-color: var(--re-pending-bg);
-  border-color: var(--re-pending-fg);
+.btn-outline-success:hover,
+.btn-outline-success:not(:disabled):not(.disabled).active {
+  color: #FFFFFF;
+  background-color: var(--re-green);
+  border-color: var(--re-green);
 }
 
-.btn-outline-danger:hover {
-  color: var(--re-rejected-fg);
-  background-color: var(--re-rejected-bg);
-  border-color: var(--re-danger);
+.btn-outline-warning:hover,
+.btn-outline-warning:not(:disabled):not(.disabled).active {
+  color: var(--re-on-marigold);
+  background-color: var(--re-marigold);
+  border-color: var(--re-marigold);
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:not(:disabled):not(.disabled).active {
+  color: #FFFFFF;
+  background-color: var(--re-red);
+  border-color: var(--re-red);
 }
 
 .btn-outline-secondary:hover,
@@ -724,58 +953,66 @@ a:hover {
   border-color: var(--re-ink-faint);
 }
 
-/* The chosen tab in a row of filter buttons. */
-.btn-group > .btn.active,
-.btn[class*="btn-outline-"]:not(:disabled):not(.disabled).active {
+.btn-outline-secondary:not(:disabled):not(.disabled).active,
+.btn-outline-dark:not(:disabled):not(.disabled).active {
   color: #FFFFFF;
-  background-color: var(--re-forest);
-  border-color: var(--re-forest);
+  background-color: var(--re-slate);
+  border-color: var(--re-slate);
+}
+
+.btn[class*="btn-outline-"].active,
+.btn[class*="btn-outline-"]:hover {
   box-shadow: none;
 }
 
-.btn.active .badge-light {
-  color: var(--re-forest);
+.btn.active .badge-light,
+.btn:hover .badge-light {
+  color: var(--re-ink);
 }
 
 .btn-link {
   color: var(--re-forest);
 }
 
-/* ---- Badges ---- */
+/* ---- Badges: a solid colour for each status ---- */
 .badge {
   font-weight: 600;
   border-radius: 6px;
 }
 
 .badge-success {
-  color: var(--re-approved-fg);
-  background-color: var(--re-approved-bg);
+  color: #FFFFFF;
+  background-color: var(--re-green);
 }
 
 .badge-warning {
-  color: var(--re-pending-fg);
-  background-color: var(--re-pending-bg);
+  color: var(--re-on-marigold);
+  background-color: var(--re-marigold);
 }
 
 .badge-danger {
-  color: var(--re-rejected-fg);
-  background-color: var(--re-rejected-bg);
+  color: #FFFFFF;
+  background-color: var(--re-red);
 }
 
-.badge-info,
+.badge-info {
+  color: #FFFFFF;
+  background-color: var(--re-teal);
+}
+
 .badge-primary {
-  color: var(--re-forest);
-  background-color: var(--re-leaf);
+  color: #FFFFFF;
+  background-color: var(--re-forest);
 }
 
 .badge-secondary {
-  color: var(--re-muted-fg);
-  background-color: var(--re-muted-bg);
+  color: #FFFFFF;
+  background-color: var(--re-gray);
 }
 
 .badge-dark {
-  color: #F3F1EA;
-  background-color: #3A4543;
+  color: #FFFFFF;
+  background-color: var(--re-slate);
 }
 
 .badge-light {
@@ -793,7 +1030,7 @@ a:hover {
   font-weight: 600;
   color: var(--re-ink-soft);
   border-top: 0;
-  border-bottom: 1px solid var(--re-line);
+  border-bottom: 2px solid var(--re-line);
 }
 
 .table td,
@@ -805,12 +1042,12 @@ a:hover {
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
-  background-color: transparent;
+  background-color: rgba(24, 74, 63, .03);
 }
 
 .table-hover tbody tr:hover {
   color: var(--re-ink);
-  background-color: var(--re-paper);
+  background-color: var(--re-leaf);
 }
 
 .page-link {
@@ -860,24 +1097,28 @@ a:hover {
   color: var(--re-forest);
   background-color: var(--re-leaf);
   border-color: transparent;
+  border-left: 4px solid var(--re-teal);
 }
 
 .alert-success {
-  color: var(--re-approved-fg);
-  background-color: var(--re-approved-bg);
+  color: #22613F;
+  background-color: #E3F0E7;
   border-color: transparent;
+  border-left: 4px solid var(--re-green);
 }
 
 .alert-warning {
-  color: var(--re-pending-fg);
-  background-color: var(--re-pending-bg);
+  color: #7A4E0E;
+  background-color: #FDF1DC;
   border-color: transparent;
+  border-left: 4px solid var(--re-marigold);
 }
 
 .alert-danger {
-  color: var(--re-rejected-fg);
-  background-color: var(--re-rejected-bg);
+  color: #8E3325;
+  background-color: #F6E4E1;
   border-color: transparent;
+  border-left: 4px solid var(--re-red);
 }
 
 .alert-light {
@@ -903,11 +1144,11 @@ a:hover {
 }
 
 #toast-container > .toast-success {
-  background-color: var(--re-forest);
+  background-color: var(--re-green);
 }
 
 #toast-container > .toast-error {
-  background-color: var(--re-rejected-fg);
+  background-color: var(--re-red);
 }
 
 #toast-container > div {

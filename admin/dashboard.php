@@ -80,12 +80,12 @@ $recentUsers = $pdo->query(
 )->fetchAll();
 
 /** A row of 30 thin columns, one per day, scaled to the busiest day. */
-function spark(array $days, $column, $label)
+function spark(array $days, $column, $label, $tone)
 {
   $values = array_column($days, $column);
   $max = max(1, max($values));
   $total = array_sum($values);
-  $html = '<div class="spark" role="img" aria-label="' . h($label . ' per day over the last 30 days: ' . $total . ' in total') . '">';
+  $html = '<div class="spark spark--' . $tone . '" role="img" aria-label="' . h($label . ' per day over the last 30 days: ' . $total . ' in total') . '">';
   foreach ($days as $date => $counts) {
     $value = $counts[$column];
     $html .= '<span style="height:' . ($value ? max(8, round(100 * $value / $max)) : 0) . '%" title="'
@@ -105,7 +105,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">Dashboard</h1>
+          <h1 class="m-0 font-weight-bold"><i class="fas fa-tachometer-alt text-primary mr-2"></i>Dashboard</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
@@ -120,29 +120,37 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
     <div class="container-fluid">
 
       <div class="stat-row">
-        <a class="stat" href="<?= base_url('admin/manage_users.php?role=landlord') ?>">
+        <a class="stat stat--filled stat--teal" href="<?= base_url('admin/manage_users.php?role=landlord') ?>">
+          <i class="fas fa-user-tie stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['landlords'] ?></span>
           <span class="stat-label">Landlords</span>
+          <span class="stat-more">View landlords <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
-        <a class="stat" href="<?= base_url('admin/manage_users.php?role=boarder') ?>">
+        <a class="stat stat--filled stat--green" href="<?= base_url('admin/manage_users.php?role=boarder') ?>">
+          <i class="fas fa-users stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['boarders'] ?></span>
           <span class="stat-label">Boarders</span>
+          <span class="stat-more">View boarders <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
-        <a class="stat" href="<?= base_url('admin/manage_listings.php') ?>">
+        <a class="stat stat--filled stat--terracotta" href="<?= base_url('admin/manage_listings.php') ?>">
+          <i class="fas fa-home stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['listings'] ?></span>
           <span class="stat-label">Listings &middot; <?= (int) $live['listings'] ?> on the site</span>
+          <span class="stat-more">View listings <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
-        <a class="stat stat--attention" href="<?= base_url('admin/manage_listings.php?status=pending') ?>">
+        <a class="stat stat--filled stat--attention" href="<?= base_url('admin/manage_listings.php?status=pending') ?>">
+          <i class="fas fa-clipboard-check stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['pending'] ?></span>
           <span class="stat-label">Awaiting approval</span>
+          <span class="stat-more">Review queue <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
       </div>
 
       <div class="row">
         <div class="col-lg-8">
-          <div class="card shadow-sm">
+          <div class="card card-warning card-outline shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">Needs your review</h3>
+              <h3 class="card-title font-weight-bold"><i class="fas fa-clipboard-check mr-1"></i> Needs your review</h3>
               <div class="card-tools">
                 <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>" class="btn btn-tool">All pending</a>
               </div>
@@ -171,9 +179,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <?php endif; ?>
           </div>
 
-          <div class="card shadow-sm">
+          <div class="card card-primary card-outline shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">Last 30 days</h3>
+              <h3 class="card-title font-weight-bold"><i class="fas fa-chart-bar mr-1"></i> Last 30 days</h3>
               <div class="card-tools">
                 <a href="<?= base_url('admin/reports.php') ?>" class="btn btn-tool">Reports</a>
               </div>
@@ -185,14 +193,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                     <span class="text-muted">New accounts</span>
                     <strong class="tabular"><?= array_sum(array_column($days, 'accounts')) ?></strong>
                   </div>
-                  <?= spark($days, 'accounts', 'New accounts') ?>
+                  <?= spark($days, 'accounts', 'New accounts', 'teal') ?>
                 </div>
                 <div class="col-md-6">
                   <div class="d-flex justify-content-between align-items-baseline">
                     <span class="text-muted">New listings</span>
                     <strong class="tabular"><?= array_sum(array_column($days, 'listings')) ?></strong>
                   </div>
-                  <?= spark($days, 'listings', 'New listings') ?>
+                  <?= spark($days, 'listings', 'New listings', 'terracotta') ?>
                 </div>
               </div>
               <p class="text-muted small mb-0 mt-3">
@@ -203,9 +211,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
 
         <div class="col-lg-4">
-          <div class="card shadow-sm">
+          <div class="card card-info card-outline shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">Recent activity</h3>
+              <h3 class="card-title font-weight-bold"><i class="fas fa-history mr-1"></i> Recent activity</h3>
               <div class="card-tools">
                 <a href="<?= base_url('admin/activity.php') ?>" class="btn btn-tool">Full log</a>
               </div>
@@ -235,9 +243,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             </div>
           </div>
 
-          <div class="card shadow-sm">
+          <div class="card card-success card-outline shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">New accounts</h3>
+              <h3 class="card-title font-weight-bold"><i class="fas fa-user-plus mr-1"></i> New accounts</h3>
               <div class="card-tools">
                 <a href="<?= base_url('admin/manage_users.php') ?>" class="btn btn-tool">All users</a>
               </div>

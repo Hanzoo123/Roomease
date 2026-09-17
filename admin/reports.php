@@ -131,14 +131,14 @@ $rentRows = [
 ];
 
 /** One labelled horizontal bar per row, scaled to the largest value. */
-function bar_rows(array $rows)
+function bar_rows(array $rows, $tone = '')
 {
   $max = max(1, max(array_map('intval', array_column($rows, 'value')) ?: [0]));
   $html = '<div class="bars">';
   foreach ($rows as $row) {
     $value = (int) $row['value'];
     $html .= '<div class="bar-row"><span class="bar-label">' . h($row['label']) . '</span>'
-      . '<span class="bar" aria-hidden="true"><span style="width:' . round(100 * $value / $max, 1) . '%"></span></span>'
+      . '<span class="bar bar--' . h($row['tone'] ?? $tone) . '" aria-hidden="true"><span style="width:' . round(100 * $value / $max, 1) . '%"></span></span>'
       . '<span class="bar-value">' . $value . '</span></div>';
   }
   return $html . '</div>';
@@ -210,13 +210,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <tr>
                   <td class="font-weight-bold"><?= h(date('F Y', strtotime($key . '-01'))) ?></td>
                   <td class="bar-cell">
-                    <span class="bar" aria-hidden="true"><span style="width:<?= round(100 * $accountsTotal / $maxAccounts, 1) ?>%"></span></span>
+                    <span class="bar bar--teal" aria-hidden="true"><span style="width:<?= round(100 * $accountsTotal / $maxAccounts, 1) ?>%"></span></span>
                     <span class="bar-value"><?= $accountsTotal ?></span>
                   </td>
                   <td class="text-right tabular"><?= $r['landlords'] ?></td>
                   <td class="text-right tabular"><?= $r['boarders'] ?></td>
                   <td class="bar-cell">
-                    <span class="bar" aria-hidden="true"><span style="width:<?= round(100 * $r['listings'] / $maxListings, 1) ?>%"></span></span>
+                    <span class="bar bar--terracotta" aria-hidden="true"><span style="width:<?= round(100 * $r['listings'] / $maxListings, 1) ?>%"></span></span>
                     <span class="bar-value"><?= $r['listings'] ?></span>
                   </td>
                   <td class="text-right tabular"><?= $r['approved'] ?></td>
@@ -243,10 +243,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <div class="card-header"><h3 class="card-title font-weight-bold">Listings by status</h3></div>
             <div class="card-body">
               <?= bar_rows([
-                ['label' => 'Pending', 'value' => $statusCounts['pending']],
-                ['label' => 'Approved', 'value' => $statusCounts['approved']],
-                ['label' => 'Rejected', 'value' => $statusCounts['rejected']],
-                ['label' => 'Removed', 'value' => $statusCounts['removed']],
+                ['label' => 'Pending', 'value' => $statusCounts['pending'], 'tone' => 'marigold'],
+                ['label' => 'Approved', 'value' => $statusCounts['approved'], 'tone' => 'green'],
+                ['label' => 'Rejected', 'value' => $statusCounts['rejected'], 'tone' => 'red'],
+                ['label' => 'Removed', 'value' => $statusCounts['removed'], 'tone' => 'slate'],
               ]) ?>
             </div>
           </div>
@@ -254,13 +254,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         <div class="col-lg-4">
           <div class="card shadow-sm">
             <div class="card-header"><h3 class="card-title font-weight-bold">Open rooms by type</h3></div>
-            <div class="card-body"><?= bar_rows($roomTypes) ?></div>
+            <div class="card-body"><?= bar_rows($roomTypes, 'terracotta') ?></div>
           </div>
         </div>
         <div class="col-lg-4">
           <div class="card shadow-sm">
             <div class="card-header"><h3 class="card-title font-weight-bold">Open rooms by monthly rent</h3></div>
-            <div class="card-body"><?= bar_rows($rentRows) ?></div>
+            <div class="card-body"><?= bar_rows($rentRows, 'terracotta') ?></div>
           </div>
         </div>
       </div>
