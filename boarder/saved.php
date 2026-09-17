@@ -19,7 +19,7 @@ $stmt = $pdo->prepare(
      JOIN boarding_houses bh ON bh.boarding_house_id = f.boarding_house_id
      " . LIVE_LANDLORD_JOIN . "
      " . room_summary_join() . "
-    WHERE f.user_id = ? AND bh.moderation_status = 'approved'
+    WHERE f.user_id = ? AND bh.moderation_status = 'approved' AND bh.deleted_at IS NULL
     ORDER BY f.created_at DESC"
 );
 $stmt->execute([$userId]);

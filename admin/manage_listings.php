@@ -1,49 +1,58 @@
 <?php
 /**
  * RoomEase Admin - Manage Listings (AdminLTE Theme)
+ *
+ * Every listing by approval status, plus a Removed tab for the listings an
+ * administrator archived, where they can be restored.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
 
 require_login('admin');
 
+// Removed listings are archived, not deleted, and live in their own tab.
+$showRemoved = ($_GET['view'] ?? '') === 'removed';
+
 // Optional moderation filter, e.g. ?status=pending for the approval queue.
 $statusFilter = $_GET['status'] ?? '';
-if (!in_array($statusFilter, ['pending', 'approved', 'rejected'], true)) {
+if ($showRemoved || !in_array($statusFilter, ['pending', 'approved', 'rejected'], true)) {
   $statusFilter = '';
 }
 
-$sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ",
-            CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
-            u.email AS landlord_email,
-            u.is_active AS landlord_active,
-            u.deleted_at AS landlord_deleted_at
-     FROM boarding_houses bh
-     JOIN users u ON u.user_id = bh.landlord_id
-     " . room_summary_join();
+$where = ['bh.deleted_at IS ' . ($showRemoved ? 'NOT NULL' : 'NULL')];
 $params = [];
 if ($statusFilter !== '') {
-  $sql .= " WHERE bh.moderation_status = ?";
+  $where[] = 'bh.moderation_status = ?';
   $params[] = $statusFilter;
 }
-$sql .= " ORDER BY bh.created_at DESC";
 
-$stmt = $pdo->prepare($sql);
+$stmt = $pdo->prepare(
+  "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ",
+          CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
+          u.email AS landlord_email,
+          u.is_active AS landlord_active,
+          u.deleted_at AS landlord_deleted_at
+     FROM boarding_houses bh
+     JOIN users u ON u.user_id = bh.landlord_id
+     " . room_summary_join() . "
+    WHERE " . implode(' AND ', $where) . "
+    ORDER BY " . ($showRemoved ? 'bh.deleted_at DESC' : 'bh.created_at DESC')
+);
 $stmt->execute($params);
 $listings = $stmt->fetchAll();
 
-$totalCount = count($listings);
-
-// Counts for the filter tabs.
+// Counts for the filter tabs. The approval tabs count listings still on the
+// books; removed ones are counted separately.
 $tally = $pdo->query(
-  "SELECT COUNT(*) AS all_listings,
-          SUM(moderation_status = 'pending')  AS pending,
-          SUM(moderation_status = 'approved') AS approved,
-          SUM(moderation_status = 'rejected') AS rejected
+  "SELECT SUM(deleted_at IS NULL) AS all_listings,
+          SUM(deleted_at IS NULL AND moderation_status = 'pending')  AS pending,
+          SUM(deleted_at IS NULL AND moderation_status = 'approved') AS approved,
+          SUM(deleted_at IS NULL AND moderation_status = 'rejected') AS rejected,
+          SUM(deleted_at IS NOT NULL) AS removed
      FROM boarding_houses"
 )->fetch();
 
-$pageTitle = 'Manage Listings';
+$pageTitle = $showRemoved ? 'Removed Listings' : 'Manage Listings';
 require __DIR__ . '/../includes/layouts/panel_head.php';
 require __DIR__ . '/../includes/layouts/panel_navbar.php';
 require __DIR__ . '/../includes/layouts/panel_sidebar.php';
@@ -76,29 +85,54 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
     <div class="container-fluid">
 
       <div class="card card-primary card-outline shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
           <h3 class="card-title font-weight-bold">
-            <i class="fas fa-clipboard-list mr-1"></i> Registered Boarding Houses
+            <i class="fas <?= $showRemoved ? 'fa-archive' : 'fa-clipboard-list' ?> mr-1"></i>
+            <?= $showRemoved ? 'Removed Listings' : 'Registered Boarding Houses' ?>
           </h3>
-          <div class="btn-group mt-2 mt-sm-0 ml-auto" role="group" aria-label="Filter listings by approval status">
-            <a href="<?= base_url('admin/manage_listings.php') ?>"
-              class="btn btn-sm btn-outline-primary <?= $statusFilter === '' ? 'active' : '' ?>">
-              All <span class="badge badge-light ml-1"><?= (int) $tally['all_listings'] ?></span>
-            </a>
-            <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>"
-              class="btn btn-sm btn-outline-warning <?= $statusFilter === 'pending' ? 'active' : '' ?>">
-              Pending <span class="badge badge-light ml-1"><?= (int) $tally['pending'] ?></span>
-            </a>
-            <a href="<?= base_url('admin/manage_listings.php?status=approved') ?>"
-              class="btn btn-sm btn-outline-success <?= $statusFilter === 'approved' ? 'active' : '' ?>">
-              Approved <span class="badge badge-light ml-1"><?= (int) $tally['approved'] ?></span>
-            </a>
-            <a href="<?= base_url('admin/manage_listings.php?status=rejected') ?>"
-              class="btn btn-sm btn-outline-danger <?= $statusFilter === 'rejected' ? 'active' : '' ?>">
-              Rejected <span class="badge badge-light ml-1"><?= (int) $tally['rejected'] ?></span>
-            </a>
+          <?php if (!$showRemoved): ?>
+            <div class="btn-group mt-2 mt-sm-0 ml-auto" role="group" aria-label="Filter listings by approval status">
+              <a href="<?= base_url('admin/manage_listings.php') ?>"
+                class="btn btn-sm btn-outline-primary <?= $statusFilter === '' ? 'active' : '' ?>">
+                All <span class="badge badge-light ml-1"><?= (int) $tally['all_listings'] ?></span>
+              </a>
+              <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>"
+                class="btn btn-sm btn-outline-warning <?= $statusFilter === 'pending' ? 'active' : '' ?>">
+                Pending <span class="badge badge-light ml-1"><?= (int) $tally['pending'] ?></span>
+              </a>
+              <a href="<?= base_url('admin/manage_listings.php?status=approved') ?>"
+                class="btn btn-sm btn-outline-success <?= $statusFilter === 'approved' ? 'active' : '' ?>">
+                Approved <span class="badge badge-light ml-1"><?= (int) $tally['approved'] ?></span>
+              </a>
+              <a href="<?= base_url('admin/manage_listings.php?status=rejected') ?>"
+                class="btn btn-sm btn-outline-danger <?= $statusFilter === 'rejected' ? 'active' : '' ?>">
+                Rejected <span class="badge badge-light ml-1"><?= (int) $tally['rejected'] ?></span>
+              </a>
+            </div>
+          <?php endif; ?>
+          <div class="mt-2 mt-sm-0 ml-sm-2<?= $showRemoved ? ' ml-auto' : '' ?>">
+            <?php if ($showRemoved): ?>
+              <a href="<?= base_url('admin/manage_listings.php') ?>" class="btn btn-sm btn-outline-dark">
+                <i class="fas fa-arrow-left mr-1"></i> Back to listings
+              </a>
+            <?php else: ?>
+              <a href="<?= base_url('admin/manage_listings.php?view=removed') ?>" class="btn btn-sm btn-outline-dark">
+                <i class="fas fa-archive mr-1"></i> Removed
+                <span class="badge badge-light ml-1"><?= (int) $tally['removed'] ?></span>
+              </a>
+            <?php endif; ?>
           </div>
         </div>
+
+        <?php if ($showRemoved): ?>
+          <div class="card-body pb-0">
+            <div class="alert alert-info mb-0 py-2">
+              <i class="fas fa-info-circle mr-1"></i>
+              These listings are hidden from boarders and from their landlords. Nothing has been deleted
+              &mdash; restoring a listing brings it back with its rooms, photos, and approval status.
+            </div>
+          </div>
+        <?php endif; ?>
 
         <div class="card-body">
           <table id="listingsTable" class="table table-bordered table-striped table-hover">
@@ -110,12 +144,18 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <th>Rooms</th>
                 <th>Approval</th>
                 <th>Website</th>
-                <th>Posted Date</th>
+                <th><?= $showRemoved ? 'Removed' : 'Posted Date' ?></th>
                 <th style="width: 110px;">Actions</th>
               </tr>
             </thead>
             <tbody>
               <?php foreach ($listings as $l): ?>
+                <?php
+                $avail = listing_availability($l);
+                // A listing whose landlord is removed or deactivated is off the public
+                // site whatever its approval says, so the table says so too.
+                $landlordLive = $l['landlord_deleted_at'] === null && (int) $l['landlord_active'] === 1;
+                ?>
                 <tr>
                   <td class="font-weight-bold">
                     <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank"
@@ -124,11 +164,6 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <?= h($l['name']) ?>
                     </a>
                   </td>
-                  <?php
-                  // A listing whose landlord is removed or deactivated is off the public
-                  // site whatever its approval says, so the table says so too.
-                  $landlordLive = $l['landlord_deleted_at'] === null && (int) $l['landlord_active'] === 1;
-                  ?>
                   <td>
                     <span class="font-weight-bold"><?= h($l['landlord_name']) ?></span>
                     <br>
@@ -143,7 +178,6 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                     <i class="fas fa-map-marker-alt text-danger mr-1"></i>
                     <?= h($l['address']) ?>
                   </td>
-                  <?php $avail = listing_availability($l); ?>
                   <td data-order="<?= (int) $avail['room_count'] ?>">
                     <?php if ($avail['room_count'] === 0): ?>
                       <span class="badge badge-warning px-2 py-1">No rooms yet</span>
@@ -166,45 +200,59 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                     <?php endif; ?>
                   </td>
                   <td>
-                    <?php if ($l['availability_status'] === 'available'): ?>
+                    <?php if ($showRemoved): ?>
+                      <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed</span>
+                    <?php elseif ($l['availability_status'] === 'available'): ?>
                       <span class="badge badge-success px-2 py-1"><i class="fas fa-eye mr-1"></i> Shown</span>
                     <?php else: ?>
                       <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i>
                         Hidden by landlord</span>
                     <?php endif; ?>
                   </td>
-                  <td class="text-sm text-muted">
-                    <?= h(date('M j, Y', strtotime($l['created_at']))) ?>
+                  <td class="text-sm text-muted" data-order="<?= h($showRemoved ? $l['deleted_at'] : $l['created_at']) ?>">
+                    <?= h(date('M j, Y', strtotime($showRemoved ? $l['deleted_at'] : $l['created_at']))) ?>
                   </td>
                   <td>
                     <div class="d-flex align-items-center flex-wrap" style="gap: 5px;">
-                      <?php if ($l['moderation_status'] !== 'approved'): ?>
-                        <?php
-                        // Approve only once the listing has a room to show and its landlord is live.
-                        $approveBlocked = $avail['room_count'] === 0
-                          ? 'Needs at least one room before it can be approved'
-                          : (!$landlordLive ? 'The landlord\'s account is removed or deactivated' : '');
-                        ?>
+                      <?php if ($showRemoved): ?>
                         <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
                           <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
-                          <input type="hidden" name="action" value="approve">
-                          <input type="hidden" name="return_status" value="<?= h($statusFilter) ?>">
-                          <button type="submit" class="btn btn-xs btn-outline-success"
-                            title="<?= h($approveBlocked !== '' ? $approveBlocked : 'Approve Listing') ?>"
-                            <?= $approveBlocked !== '' ? 'disabled' : '' ?>>
-                            <i class="fas fa-check"></i>
+                          <input type="hidden" name="action" value="restore">
+                          <input type="hidden" name="return_view" value="removed">
+                          <button type="submit" class="btn btn-xs btn-outline-success" title="Restore Listing">
+                            <i class="fas fa-trash-restore mr-1"></i> Restore
                           </button>
                         </form>
-                      <?php endif; ?>
+                      <?php else: ?>
+                        <?php if ($l['moderation_status'] !== 'approved'): ?>
+                          <?php
+                          // Approve only once the listing has a room to show and its landlord is live.
+                          $approveBlocked = $avail['room_count'] === 0
+                            ? 'Needs at least one room before it can be approved'
+                            : (!$landlordLive ? 'The landlord\'s account is removed or deactivated' : '');
+                          ?>
+                          <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
+                            <input type="hidden" name="action" value="approve">
+                            <input type="hidden" name="return_status" value="<?= h($statusFilter) ?>">
+                            <button type="submit" class="btn btn-xs btn-outline-success"
+                              title="<?= h($approveBlocked !== '' ? $approveBlocked : 'Approve Listing') ?>"
+                              <?= $approveBlocked !== '' ? 'disabled' : '' ?>>
+                              <i class="fas fa-check"></i>
+                            </button>
+                          </form>
+                        <?php endif; ?>
 
-                      <?php if ($l['moderation_status'] !== 'rejected'): ?>
-                        <!-- Reject Button (opens the reason dialog) -->
-                        <button type="button" class="btn btn-xs btn-outline-warning js-reject"
-                          data-id="<?= (int) $l['boarding_house_id'] ?>" data-name="<?= h($l['name']) ?>"
-                          title="Reject Listing">
-                          <i class="fas fa-ban"></i>
-                        </button>
+                        <?php if ($l['moderation_status'] !== 'rejected'): ?>
+                          <!-- Reject Button (opens the reason dialog) -->
+                          <button type="button" class="btn btn-xs btn-outline-warning js-reject"
+                            data-id="<?= (int) $l['boarding_house_id'] ?>" data-name="<?= h($l['name']) ?>"
+                            title="Reject Listing">
+                            <i class="fas fa-ban"></i>
+                          </button>
+                        <?php endif; ?>
                       <?php endif; ?>
 
                       <!-- View Button -->
@@ -213,17 +261,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                         <i class="fas fa-eye"></i>
                       </a>
 
-                      <!-- Remove Button -->
-                      <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline"
-                        onsubmit="return confirm('Permanently remove \'<?= h(addslashes($l['name'])) ?>\' from RoomEase?');">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="return_status" value="<?= h($statusFilter) ?>">
-                        <button type="submit" class="btn btn-xs btn-outline-danger" title="Remove Listing">
+                      <?php if (!$showRemoved): ?>
+                        <!-- Remove Button (opens the removal dialog) -->
+                        <button type="button" class="btn btn-xs btn-outline-danger js-remove"
+                          data-id="<?= (int) $l['boarding_house_id'] ?>" data-name="<?= h($l['name']) ?>"
+                          title="Remove Listing">
                           <i class="fas fa-trash"></i>
                         </button>
-                      </form>
+                      <?php endif; ?>
                     </div>
                   </td>
                 </tr>
@@ -241,46 +286,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 </div>
 <!-- /.content-wrapper -->
 
-<!-- Reject dialog: one modal reused for every row, filled in on click -->
-<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel"
-  aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <form method="post" action="<?= base_url('admin/listing_action.php') ?>">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="rejectModalLabel">
-            <i class="fas fa-ban text-warning mr-1"></i> Reject Listing
-          </h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <?= csrf_field() ?>
-          <input type="hidden" name="action" value="reject">
-          <input type="hidden" name="return_status" value="<?= h($statusFilter) ?>">
-          <input type="hidden" name="boarding_house_id" id="rejectListingId" value="">
-          <p class="mb-3">Rejecting <strong id="rejectListingName"></strong>. It stays hidden from boarders
-            until the landlord fixes it and it is approved.</p>
-          <div class="form-group mb-0">
-            <label for="rejection_reason">Reason for the landlord</label>
-            <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3" maxlength="500"
-              placeholder="e.g. The address is incomplete, or the photos do not show the actual room." required></textarea>
-            <small class="form-text text-muted">This is shown to the landlord on their dashboard.</small>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-warning">
-            <i class="fas fa-ban mr-1"></i> Reject Listing
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
-<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
+<?php
+$returnStatus = $statusFilter;
+require __DIR__ . '/../includes/components/listing_decision_modals.php';
+require __DIR__ . '/../includes/layouts/panel_footer.php';
+?>
 
 <!-- Initialize DataTables for listingsTable -->
 <script>
@@ -291,18 +301,6 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       "autoWidth": false,
       "order": [[6, "desc"]],
       "pageLength": 10
-    });
-  });
-</script>
-
-<!-- Fill the shared reject dialog with whichever row was clicked -->
-<script>
-  $(function () {
-    $(document).on("click", ".js-reject", function () {
-      $("#rejectListingId").val($(this).data("id"));
-      $("#rejectListingName").text($(this).data("name"));
-      $("#rejection_reason").val("");
-      $("#rejectModal").modal("show");
     });
   });
 </script>

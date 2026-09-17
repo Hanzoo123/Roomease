@@ -131,6 +131,16 @@ photo uploads, search/filter, and account management.
    itself sees the code on screen instead. Every send is logged to
    `storage/mail.log`, with Gmail's reason when one fails.
 
+   **Admin tools.** Removing a listing archives it instead of deleting it, the
+   Activity Log records every administrator decision, and landlords are told
+   about approvals and rejections. Upgrading an existing database? Run this; it
+   is safe to run twice:
+   ```
+   mysql -u root -p roomease < database/migration_admin_tools.sql
+   ```
+   Without it the admin listing pages fail, because they filter on the new
+   `deleted_at` column.
+
 5. **Set the administrator password.** The schema seeds the admin account with
    a placeholder that no password can ever match, so the account cannot be
    signed into until you choose one:
@@ -242,7 +252,9 @@ the cleanup log below for why that is worth saying.
   and save listings to a shortlist.
 - Admin: view platform stats, approve or reject listings with a reason,
   activate/deactivate user accounts, archive and restore them, and remove
-  listings.
+  and restore listings (removal archives, it never deletes). Every decision
+  is written to the Activity Log with the administrator and the reason, and
+  the landlord is told by email and on their dashboard.
 - All roles: edit their profile and change their own password.
 - Password reset by a 6-digit code emailed through Gmail. Codes are hashed,
   single use, expire after 10 minutes, and stop working after five wrong

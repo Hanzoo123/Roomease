@@ -95,7 +95,7 @@ if ($return === 'view') {
 // Only approved listings can be saved, matching what browse actually shows.
 $check = $pdo->prepare(
     "SELECT boarding_house_id FROM boarding_houses
-      WHERE boarding_house_id = ? AND moderation_status = 'approved'"
+      WHERE boarding_house_id = ? AND moderation_status = 'approved' AND deleted_at IS NULL"
 );
 $check->execute([$boardingHouseId]);
 if (!$check->fetch()) {

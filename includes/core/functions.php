@@ -373,8 +373,12 @@ function room_type_options()
 const LIVE_LANDLORD_JOIN =
     'JOIN users lu ON lu.user_id = bh.landlord_id AND lu.is_active = 1 AND lu.deleted_at IS NULL';
 
-/** A listing's own switches for being on the public site. */
-const LIVE_STATUS_WHERE = "bh.availability_status = 'available' AND bh.moderation_status = 'approved'";
+/**
+ * A listing's own switches for being on the public site. A listing an
+ * administrator removed stays in the table, archived, and never shows.
+ */
+const LIVE_STATUS_WHERE = "bh.availability_status = 'available' AND bh.moderation_status = 'approved'"
+    . ' AND bh.deleted_at IS NULL';
 
 /**
  * Everything else a listing needs to be on the public site: approved, switched
@@ -544,7 +548,7 @@ function find_landlord_room($roomId, $landlordId)
         'SELECT r.*, bh.name AS house_name, bh.landlord_id
            FROM rooms r
            JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id
-          WHERE r.room_id = ? AND bh.landlord_id = ?'
+          WHERE r.room_id = ? AND bh.landlord_id = ? AND bh.deleted_at IS NULL'
     );
     $stmt->execute([(int) $roomId, (int) $landlordId]);
     return $stmt->fetch();
@@ -563,7 +567,7 @@ function landlord_listings($landlordId)
                    WHERE img.boarding_house_id = bh.boarding_house_id) AS photo_count
            FROM boarding_houses bh
            ' . room_summary_join() . '
-          WHERE bh.landlord_id = ?
+          WHERE bh.landlord_id = ? AND bh.deleted_at IS NULL
           ORDER BY bh.created_at DESC'
     );
     $stmt->execute([(int) $landlordId]);
@@ -1052,6 +1056,235 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
  * guessing.
  * ------------------------------------------------------------------------ */
 
+/* ---------------------------------------------------------------------------
+ * Administration (database/migration_admin_tools.sql)
+ *
+ * The activity log records what administrators do to listings and accounts,
+ * and listing decisions are passed on to the landlord: by email, and on their
+ * dashboard, which reads the same log.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Every action the activity log records: how it reads, the badge it wears,
+ * and what kind of thing it acts on.
+ */
+function admin_action_types()
+{
+    return [
+        'listing_approve' => ['label' => 'Approved listing',    'badge' => 'badge-success',   'target' => 'listing'],
+        'listing_reject'  => ['label' => 'Rejected listing',    'badge' => 'badge-warning',   'target' => 'listing'],
+        'listing_remove'  => ['label' => 'Removed listing',     'badge' => 'badge-danger',    'target' => 'listing'],
+        'listing_restore' => ['label' => 'Restored listing',    'badge' => 'badge-info',      'target' => 'listing'],
+        'user_activate'   => ['label' => 'Activated account',   'badge' => 'badge-success',   'target' => 'user'],
+        'user_deactivate' => ['label' => 'Deactivated account', 'badge' => 'badge-warning',   'target' => 'user'],
+        'user_remove'     => ['label' => 'Removed account',     'badge' => 'badge-danger',    'target' => 'user'],
+        'user_restore'    => ['label' => 'Restored account',    'badge' => 'badge-info',      'target' => 'user'],
+        'export_users'    => ['label' => 'Exported users',      'badge' => 'badge-secondary', 'target' => 'export'],
+        'export_listings' => ['label' => 'Exported listings',   'badge' => 'badge-secondary', 'target' => 'export'],
+    ];
+}
+
+/**
+ * Write one entry to the activity log, as the signed-in administrator.
+ *
+ * $targetLabel is the listing or account name as it is now, so the entry still
+ * reads correctly after a rename. A log that cannot be written is reported to
+ * the PHP error log but never undoes or blocks the action it describes.
+ */
+function log_admin_action($action, $targetId, $targetLabel, $detail = null)
+{
+    global $pdo;
+
+    $types = admin_action_types();
+    if (!isset($types[$action])) {
+        error_log('RoomEase: unknown activity log action ' . $action);
+        return;
+    }
+
+    try {
+        $pdo->prepare(
+            'INSERT INTO admin_actions (admin_id, action, target_type, target_id, target_label, detail)
+             VALUES (?, ?, ?, ?, ?, ?)'
+        )->execute([
+            isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null,
+            $action,
+            $types[$action]['target'],
+            $targetId === null ? null : (int) $targetId,
+            mb_substr((string) $targetLabel, 0, 200),
+            ($detail === null || trim((string) $detail) === '') ? null : mb_substr(trim((string) $detail), 0, 500),
+        ]);
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not write the activity log - ' . $e->getMessage());
+    }
+}
+
+/**
+ * The activity log for one listing or account, newest first, with the name of
+ * the administrator behind each entry.
+ */
+function admin_actions_for($targetType, $targetId, $limit = 20)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name
+               FROM admin_actions a
+               LEFT JOIN users u ON u.user_id = a.admin_id
+              WHERE a.target_type = ? AND a.target_id = ?
+              ORDER BY a.created_at DESC, a.action_id DESC
+              LIMIT " . (int) $limit
+        );
+        $stmt->execute([$targetType, (int) $targetId]);
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/**
+ * The decisions an administrator made on a landlord's listings in the last
+ * $days days, newest first. Removed listings are included: telling the
+ * landlord why a listing disappeared is the point.
+ */
+function landlord_recent_decisions($landlordId, $days = 30, $limit = 5)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT a.action, a.detail, a.created_at, bh.boarding_house_id, bh.name, bh.deleted_at
+               FROM admin_actions a
+               JOIN boarding_houses bh ON bh.boarding_house_id = a.target_id
+              WHERE a.target_type = 'listing' AND bh.landlord_id = ?
+                AND a.action IN ('listing_approve', 'listing_reject', 'listing_remove', 'listing_restore')
+                AND a.created_at > NOW() - INTERVAL " . (int) $days . " DAY
+              ORDER BY a.created_at DESC, a.action_id DESC
+              LIMIT " . (int) $limit
+        );
+        $stmt->execute([(int) $landlordId]);
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/** Where the activity log links an entry to, or null for an export. */
+function admin_target_url($targetType, $targetId)
+{
+    if ($targetId === null) {
+        return null;
+    }
+    switch ($targetType) {
+        case 'listing':
+            return base_url('boarder/view_listing.php?id=' . (int) $targetId);
+        case 'user':
+            return base_url('admin/manage_users.php');
+        default:
+            return null;
+    }
+}
+
+/** "3 days ago", "just now": how long ago a timestamp was, for the panel. */
+function time_ago($datetime)
+{
+    $seconds = max(0, time() - strtotime((string) $datetime));
+    if ($seconds < 60) {
+        return 'just now';
+    }
+    foreach ([['day', 86400], ['hour', 3600], ['minute', 60]] as [$unit, $size]) {
+        if ($seconds >= $size) {
+            $n = (int) floor($seconds / $size);
+            return $n . ' ' . $unit . ($n === 1 ? '' : 's') . ' ago';
+        }
+    }
+    return 'just now';
+}
+
+/** An absolute URL to a page of this site, which is what an email link needs. */
+function absolute_url($path)
+{
+    $scheme = is_https_request() ? 'https' : 'http';
+    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_url($path);
+}
+
+/**
+ * Email a landlord about an administrator's decision on one of their listings.
+ * Returns true if Gmail accepted it and false if sending failed. Returns null,
+ * without trying, when the landlord's account is deactivated or removed.
+ */
+function notify_landlord_of_decision($listingId, $action, $reason = null)
+{
+    global $pdo;
+
+    $stmt = $pdo->prepare(
+        'SELECT bh.name, bh.moderation_status, u.email, u.first_name, u.is_active, u.deleted_at
+           FROM boarding_houses bh
+           JOIN users u ON u.user_id = bh.landlord_id
+          WHERE bh.boarding_house_id = ?'
+    );
+    $stmt->execute([(int) $listingId]);
+    $row = $stmt->fetch();
+    if (!$row || (int) $row['is_active'] !== 1 || $row['deleted_at'] !== null) {
+        return null;
+    }
+
+    $name = '"' . $row['name'] . '"';
+    $reason = trim((string) $reason);
+
+    switch ($action) {
+        case 'listing_approve':
+            $subject = 'Your listing is approved';
+            $paragraphs = [$name . ' is approved. Boarders can now find it on RoomEase.'];
+            break;
+        case 'listing_reject':
+            $subject = 'Your listing needs changes';
+            $paragraphs = [
+                $name . ' was not approved yet.',
+                'What to change: ' . $reason,
+                'Edit the listing from your dashboard. When you save your changes, it goes back for review.',
+            ];
+            break;
+        case 'listing_remove':
+            $subject = 'Your listing was removed';
+            $paragraphs = array_values(array_filter([
+                'An administrator removed ' . $name . ' from RoomEase, so boarders can no longer see it.',
+                $reason !== '' ? 'Reason: ' . $reason : null,
+                'If you think this is a mistake, contact the RoomEase administrator.',
+            ]));
+            break;
+        case 'listing_restore':
+            $subject = 'Your listing is back';
+            $paragraphs = [
+                $name . ' was restored and is on your dashboard again.'
+                . ($row['moderation_status'] === 'approved' ? ' Boarders can see it again.' : ''),
+            ];
+            break;
+        default:
+            return false;
+    }
+
+    $dashboard = absolute_url('landlord/dashboard.php');
+
+    $text = 'Hi ' . $row['first_name'] . ",\r\n\r\n"
+        . implode("\r\n\r\n", $paragraphs) . "\r\n\r\n"
+        . 'Your dashboard: ' . $dashboard . "\r\n\r\n"
+        . "RoomEase\r\n";
+
+    $html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"></head>'
+        . '<body style="margin:0;padding:32px 16px;background:#FAF8F3;">'
+        . '<div style="max-width:480px;margin:0 auto;font-family:\'IBM Plex Sans\',\'Segoe UI\',Helvetica,Arial,sans-serif;'
+        . 'font-size:15px;line-height:1.6;color:#1F2A28;">'
+        . '<p style="margin:0 0 28px;font-family:Georgia,\'Times New Roman\',serif;font-size:20px;color:#184A3F;">RoomEase</p>'
+        . '<p style="margin:0 0 16px;">Hi ' . h($row['first_name']) . ',</p>';
+    foreach ($paragraphs as $paragraph) {
+        $html .= '<p style="margin:0 0 16px;">' . h($paragraph) . '</p>';
+    }
+    $html .= '<p style="margin:24px 0 0;"><a href="' . h($dashboard) . '" style="display:inline-block;padding:10px 18px;'
+        . 'border-radius:8px;background:#184A3F;color:#FFFFFF;text-decoration:none;font-weight:600;">Open your dashboard</a></p>'
+        . '</div></body></html>';
+
+    return send_mail($row['email'], $subject, $text, $html);
+}
+
 /**
  * Listings waiting for an administrator's decision. A listing whose landlord
  * is removed or deactivated is not counted: it cannot be approved until the
@@ -1064,7 +1297,7 @@ function pending_listing_count()
         return (int) $pdo->query(
             "SELECT COUNT(*) FROM boarding_houses bh
                JOIN users u ON u.user_id = bh.landlord_id AND u.is_active = 1 AND u.deleted_at IS NULL
-              WHERE bh.moderation_status = 'pending'"
+              WHERE bh.moderation_status = 'pending' AND bh.deleted_at IS NULL"
         )->fetchColumn();
     } catch (PDOException $e) {
         error_log('RoomEase: pending listing count failed - ' . $e->getMessage());

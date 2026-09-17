@@ -39,6 +39,13 @@ if ($listing && !$landlordLive && !$isOwner && !is_admin()) {
     $listing = false;
 }
 
+// A listing an administrator removed is archived. Only administrators can still
+// open it, to review it or restore it; for everyone else, its landlord included,
+// it is gone.
+if ($listing && $listing['deleted_at'] !== null && !is_admin()) {
+    $listing = false;
+}
+
 if (!$listing) {
   $pageTitle = 'Listing not found';
   $band = [
@@ -209,6 +216,9 @@ if ($listing['moderation_status'] === 'pending') {
 } elseif ($listing['moderation_status'] === 'rejected') {
   $notice = 'This listing was rejected and is hidden from boarders.'
     . ($listing['rejection_reason'] ? ' Reason: ' . $listing['rejection_reason'] : '');
+}
+if ($listing['deleted_at'] !== null) {
+  $notice = 'This listing was removed by an administrator, so it is hidden from everyone else. It can be restored from Manage Listings.';
 }
 
 $pageTitle = $listing['name'];

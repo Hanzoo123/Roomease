@@ -14,7 +14,8 @@ $counts = $pdo->query(
         (SELECT COUNT(*) FROM users WHERE role = 'landlord' AND deleted_at IS NULL) AS landlords,
         (SELECT COUNT(*) FROM users WHERE role = 'boarder' AND deleted_at IS NULL) AS boarders,
         (SELECT COUNT(*) FROM boarding_houses bh
-           JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL) AS listings"
+           JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL
+          WHERE bh.deleted_at IS NULL) AS listings"
 )->fetch();
 $counts['pending'] = pending_listing_count();
 
@@ -26,6 +27,7 @@ $recentListings = $pdo->query(
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
      " . room_summary_join() . "
+     WHERE bh.deleted_at IS NULL
      ORDER BY bh.created_at DESC
      LIMIT 6"
 )->fetchAll();

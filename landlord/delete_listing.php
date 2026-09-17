@@ -10,8 +10,10 @@ verify_csrf();
 
 $boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
 
-// Ownership check inside the WHERE clause itself
-$stmt = $pdo->prepare('DELETE FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
+// Ownership check inside the WHERE clause itself. A listing an administrator
+// removed is archived and waiting to be reviewed or restored, so it is not the
+// landlord's to delete for good.
+$stmt = $pdo->prepare('DELETE FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ? AND deleted_at IS NULL');
 $stmt->execute([$boardingHouseId, $_SESSION['user_id']]);
 
 if ($stmt->rowCount() > 0) {

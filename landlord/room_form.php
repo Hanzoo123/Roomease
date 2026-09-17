@@ -27,7 +27,7 @@ if ($roomId) {
     $houseName = $room['house_name'];
 } else {
     $houseId = (int) ($_GET['house'] ?? $_POST['boarding_house_id'] ?? 0);
-    $stmt = $pdo->prepare('SELECT boarding_house_id, name FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
+    $stmt = $pdo->prepare('SELECT boarding_house_id, name FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ? AND deleted_at IS NULL');
     $stmt->execute([$houseId, $landlordId]);
     $house = $stmt->fetch();
     if (!$house) {

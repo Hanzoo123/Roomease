@@ -18,12 +18,22 @@ $countStmt = $pdo->prepare(
           SUM(moderation_status = 'pending')       AS pending,
           SUM(moderation_status = 'rejected')      AS rejected
      FROM boarding_houses
-    WHERE landlord_id = ?"
+    WHERE landlord_id = ? AND deleted_at IS NULL"
 );
 $countStmt->execute([$landlordId]);
 $counts = $countStmt->fetch();
 
 $listings = landlord_listings($landlordId);
+
+// What an administrator decided about this landlord's listings lately,
+// including any listing that was removed and so is no longer in the table.
+$decisions = landlord_recent_decisions($landlordId);
+$decisionWords = [
+  'listing_approve' => ['Approved', 'badge-success', 'is approved and visible to boarders.'],
+  'listing_reject'  => ['Needs changes', 'badge-warning', 'was not approved yet. Edit it and it goes back for review.'],
+  'listing_remove'  => ['Removed', 'badge-danger', 'was removed from RoomEase by an administrator.'],
+  'listing_restore' => ['Restored', 'badge-info', 'was restored and is back in your listings.'],
+];
 
 $pageTitle = 'Dashboard';
 require __DIR__ . '/../includes/layouts/panel_head.php';
@@ -126,6 +136,27 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
       </div>
       <!-- /.row -->
+
+      <?php if ($decisions): ?>
+        <div class="card card-outline card-secondary shadow-sm">
+          <div class="card-header">
+            <h3 class="card-title font-weight-bold">Updates from RoomEase</h3>
+          </div>
+          <ul class="list-group list-group-flush decision-list">
+            <?php foreach ($decisions as $d): ?>
+              <?php [$word, $badge, $sentence] = $decisionWords[$d['action']]; ?>
+              <li class="list-group-item">
+                <span class="badge <?= $badge ?> mr-2"><?= h($word) ?></span>
+                <strong><?= h($d['name']) ?></strong> <?= h($sentence) ?>
+                <?php if ($d['detail']): ?>
+                  <div class="text-muted mt-1"><?= $d['action'] === 'listing_reject' ? 'What to change: ' : 'Reason: ' ?><?= h($d['detail']) ?></div>
+                <?php endif; ?>
+                <small class="text-muted d-block mt-1"><?= h(time_ago($d['created_at'])) ?></small>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
 
       <?php require __DIR__ . '/../includes/components/landlord_listings_table.php'; ?>
 

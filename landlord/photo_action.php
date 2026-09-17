@@ -24,7 +24,7 @@ $stmt = $pdo->prepare(
     'SELECT i.image_id, i.boarding_house_id, i.room_id, i.image_path, i.is_primary
        FROM images i
        JOIN boarding_houses bh ON bh.boarding_house_id = i.boarding_house_id
-      WHERE i.image_id = ? AND bh.landlord_id = ?'
+      WHERE i.image_id = ? AND bh.landlord_id = ? AND bh.deleted_at IS NULL'
 );
 $stmt->execute([$imageId, $_SESSION['user_id']]);
 $image = $stmt->fetch();

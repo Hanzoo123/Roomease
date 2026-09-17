@@ -12,6 +12,7 @@ USE roomease;
 -- Disable foreign key checks for clean teardown/rebuild
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS admin_actions;
 DROP TABLE IF EXISTS site_settings;
 DROP TABLE IF EXISTS remember_tokens;
 DROP TABLE IF EXISTS password_resets;
@@ -57,7 +58,9 @@ CREATE TABLE users (
 -- The central table for property listings, managed by landlords. Rent,
 -- room type and capacity belong to each room (see rooms, below).
 -- availability_status is the whole listing's switch: 'unavailable' hides it
--- from the public site.
+-- from the public site. deleted_at is set when an administrator removes the
+-- listing: it is archived, off the site for everyone but administrators, and
+-- can be restored. moderated_by is the administrator behind the latest decision.
 -- ---------------------------------------------------------
 CREATE TABLE boarding_houses (
     boarding_house_id   INT AUTO_INCREMENT PRIMARY KEY,
@@ -69,6 +72,7 @@ CREATE TABLE boarding_houses (
     moderation_status   ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
     rejection_reason    VARCHAR(500) DEFAULT NULL,
     moderated_at        TIMESTAMP NULL DEFAULT NULL,
+    moderated_by        INT NULL DEFAULT NULL,
     description         TEXT DEFAULT NULL,
     contact_number      VARCHAR(50) DEFAULT NULL,
     house_rules         TEXT DEFAULT NULL,
@@ -86,14 +90,18 @@ CREATE TABLE boarding_houses (
     longitude           DECIMAL(9, 6) DEFAULT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at          DATETIME NULL DEFAULT NULL,
     -- Indexes for the queries the application actually runs. The two status
     -- columns lead because every browse query fixes both, and the ordering
     -- column comes last so the same index supplies the sort as well.
     KEY idx_bh_public_recent   (moderation_status, availability_status, created_at),
     KEY idx_bh_created         (created_at),
     KEY idx_bh_landlord_recent (landlord_id, created_at),
+    KEY idx_bh_deleted         (deleted_at),
     CONSTRAINT fk_bh_landlord FOREIGN KEY (landlord_id)
-        REFERENCES users(user_id) ON DELETE CASCADE
+        REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_bh_moderated_by FOREIGN KEY (moderated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
@@ -294,6 +302,29 @@ CREATE TABLE site_settings (
     setting_key     VARCHAR(64) NOT NULL PRIMARY KEY,
     setting_value   TEXT DEFAULT NULL,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- 13. Table: admin_actions
+-- The activity log (admin/activity.php): which administrator approved,
+-- rejected, removed or restored a listing, changed an account, or exported
+-- data, when, and the reason given. target_label keeps the listing or account
+-- name as it was at the time.
+-- ---------------------------------------------------------
+CREATE TABLE admin_actions (
+    action_id     INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id      INT NULL,
+    action        VARCHAR(40) NOT NULL,
+    target_type   VARCHAR(20) NOT NULL,
+    target_id     INT NULL,
+    target_label  VARCHAR(200) NOT NULL DEFAULT '',
+    detail        VARCHAR(500) DEFAULT NULL,
+    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_actions_created (created_at),
+    KEY idx_actions_target  (target_type, target_id, created_at),
+    KEY idx_actions_admin   (admin_id, created_at),
+    CONSTRAINT fk_actions_admin FOREIGN KEY (admin_id)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

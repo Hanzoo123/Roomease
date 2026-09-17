@@ -6,7 +6,7 @@ require_login('landlord');
 $landlordId = (int) $_SESSION['user_id'];
 $boardingHouseId = (int) ($_GET['id'] ?? $_POST['boarding_house_id'] ?? 0);
 
-$stmt = $pdo->prepare('SELECT * FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
+$stmt = $pdo->prepare('SELECT * FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ? AND deleted_at IS NULL');
 $stmt->execute([$boardingHouseId, $landlordId]);
 $listing = $stmt->fetch();
 
