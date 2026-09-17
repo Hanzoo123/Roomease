@@ -144,10 +144,9 @@ pages, "Continue with Google", and sending email through Gmail.
   it needs internet and Google Cloud OAuth credentials that only they can
   create. The button always shows; until credentials exist, clicking it says
   Google sign-in is not set up yet. Email and password login, "Remember me",
-  and everything else still work offline. The admin
-  Appearance page shows whether it is set up. Someone new from the log-in page
+  and everything else still work offline. Someone new from the log-in page
   chooses boarder or landlord on a "One more step" page before any account is
-  created; accounts made with Google set a password by an emailed link from
+  created; accounts made with Google set a password with an emailed code from
   their profile.
 - **Maps are an accepted exception to "runs offline".** The user chose to add
   a listing map and a landlord pin picker knowing the tiles need internet.

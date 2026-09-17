@@ -90,15 +90,16 @@ photo uploads, search/filter, and account management.
 
    **Optional: "Continue with Google".** The button always shows on the log
    in and sign up pages; until credentials are set, clicking it says Google
-   sign-in is not set up yet. The administrator's Appearance page shows whether
-   they are, with these steps and the exact redirect URI to copy.
+   sign-in is not set up yet. To set them up:
    1. In Google Cloud console, create a project and set up the OAuth consent
       screen (External). While it is in *Testing*, only the Google accounts
       added under **Test users** can sign in, so add every account you will
       use.
    2. Create an OAuth client ID of type *Web application* with the callback as
       an authorized redirect URI, for example
-      `http://localhost/roomease/auth/google_callback.php`.
+      `http://localhost/roomease/auth/google_callback.php`. It must match the
+      address the site is opened with exactly: `127.0.0.1` instead of
+      `localhost`, or a renamed folder, needs its own entry.
    3. Copy `config/google.local.example.php` to `config/google.local.php`
       (ignored by git) and fill in the client ID and secret, or set the
       `ROOMEASE_GOOGLE_CLIENT_ID` and `ROOMEASE_GOOGLE_CLIENT_SECRET`
