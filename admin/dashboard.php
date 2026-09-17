@@ -7,20 +7,21 @@ require __DIR__ . '/../includes/core/functions.php';
 
 require_login('admin');
 
-// Fetch counts
+// Removed accounts, and the listings of removed landlords, are not counted:
+// the figures describe what is live on RoomEase.
 $counts = $pdo->query(
   "SELECT
-        (SELECT COUNT(*) FROM users WHERE role='landlord') AS landlords,
-        (SELECT COUNT(*) FROM users WHERE role='boarder') AS boarders,
-        (SELECT COUNT(*) FROM boarding_houses) AS listings,
-        (SELECT COUNT(*) FROM boarding_houses WHERE availability_status='available') AS available,
-        (SELECT COUNT(*) FROM boarding_houses WHERE moderation_status='pending') AS pending"
+        (SELECT COUNT(*) FROM users WHERE role = 'landlord' AND deleted_at IS NULL) AS landlords,
+        (SELECT COUNT(*) FROM users WHERE role = 'boarder' AND deleted_at IS NULL) AS boarders,
+        (SELECT COUNT(*) FROM boarding_houses bh
+           JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL) AS listings"
 )->fetch();
+$counts['pending'] = pending_listing_count();
 
 // Fetch recently added boarding houses
 $recentListings = $pdo->query(
   "SELECT bh.boarding_house_id, bh.name AS boarding_house_name, bh.address,
-            bh.availability_status AS status, bh.created_at, " . ROOM_SUMMARY_COLUMNS . ",
+            bh.moderation_status, bh.created_at, " . ROOM_SUMMARY_COLUMNS . ",
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
@@ -160,10 +161,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <thead>
                   <tr>
                     <th>Boarding House</th>
-                    <th>City</th>
+                    <th>Address</th>
                     <th>Landlord</th>
                     <th>Rooms</th>
-                    <th>Status</th>
+                    <th>Approval</th>
                     <th>Date Posted</th>
                     <th>Action</th>
                   </tr>
@@ -189,15 +190,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                             <br><small class="text-muted"><?= h($avail['summary']) ?></small>
                           <?php endif; ?>
                         </td>
-                        <td>
-                          <?php if ($l['status'] !== 'available'): ?>
-                            <span class="badge badge-secondary px-2 py-1">Hidden</span>
-                          <?php elseif ($avail['key'] === 'available'): ?>
-                            <span class="badge badge-success px-2 py-1">Available</span>
-                          <?php else: ?>
-                            <span class="badge badge-secondary px-2 py-1"><?= h($avail['label']) ?></span>
-                          <?php endif; ?>
-                        </td>
+                        <td><?= moderation_badge($l['moderation_status']) ?></td>
                         <td class="text-muted text-sm"><?= h(date('M j, Y', strtotime($l['created_at']))) ?></td>
                         <td>
                           <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>"
@@ -224,30 +217,6 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
         <!-- Right column -->
         <div class="col-lg-4">
-          <!-- Quick Actions Card -->
-          <!-- <div class="card card-outline card-secondary shadow-sm mb-4">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold">
-                <i class="fas fa-bolt mr-1 text-warning"></i> Quick Management
-              </h3>
-            </div>
-            <div class="card-body p-3">
-              <div class="d-flex flex-column" style="gap: 10px;">
-                <a href="<?= base_url('admin/manage_users.php') ?>" class="btn btn-outline-primary btn-block text-left">
-                  <i class="fas fa-users mr-2"></i> Manage System Users
-                </a>
-                <a href="<?= base_url('admin/manage_listings.php') ?>"
-                  class="btn btn-outline-success btn-block text-left">
-                  <i class="fas fa-building mr-2"></i> Manage House Listings
-                </a>
-                <a href="<?= base_url('boarder/browse.php') ?>" target="_blank"
-                  class="btn btn-outline-secondary btn-block text-left">
-                  <i class="fas fa-globe mr-2"></i> Browse Site as Guest
-                </a>
-              </div>
-            </div>
-          </div> -->
-
           <!-- Recently Joined Users Card -->
           <div class="card card-outline card-info shadow-sm">
             <div class="card-header">

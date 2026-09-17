@@ -23,7 +23,12 @@ $returnTo = in_array($returnStatus, ['pending', 'approved', 'rejected'], true)
     ? 'admin/manage_listings.php?status=' . $returnStatus
     : 'admin/manage_listings.php';
 
-$stmt = $pdo->prepare('SELECT boarding_house_id, name FROM boarding_houses WHERE boarding_house_id = ?');
+$stmt = $pdo->prepare(
+    'SELECT bh.boarding_house_id, bh.name, u.is_active AS landlord_active, u.deleted_at AS landlord_deleted_at
+       FROM boarding_houses bh
+       JOIN users u ON u.user_id = bh.landlord_id
+      WHERE bh.boarding_house_id = ?'
+);
 $stmt->execute([$boardingHouseId]);
 $listing = $stmt->fetch();
 
@@ -39,6 +44,14 @@ if ($action === 'approve') {
     $rooms->execute([$boardingHouseId]);
     if ((int) $rooms->fetchColumn() === 0) {
         flash_set('"' . strip_tags($listing['name']) . '" has no rooms yet. The landlord needs to add at least one before it can be approved.', 'error');
+        redirect($returnTo);
+    }
+
+    // Approving would change nothing a boarder sees while the landlord's
+    // account is off, and would quietly publish the listing the moment the
+    // account came back, so it waits until the account is restored.
+    if ($listing['landlord_deleted_at'] !== null || (int) $listing['landlord_active'] !== 1) {
+        flash_set('"' . strip_tags($listing['name']) . '" cannot be approved while its landlord\'s account is removed or deactivated. Restore the account first.', 'error');
         redirect($returnTo);
     }
 

@@ -20,21 +20,21 @@ if (in_array($roleFilter, ['landlord', 'boarder'], true)) {
   $params[] = $roleFilter;
 }
 
-// Counts for filter pills. These count live accounts only, which is what the
-// pills filter; the archived count is shown separately.
+// Counts for the filter pills, taken from the view being shown: live accounts
+// normally, removed ones in the Removed view. The archived total also labels
+// the Removed button.
 $counts = $pdo->query(
-  "SELECT COUNT(*) AS live_total,
-          SUM(role = 'landlord') AS landlords,
-          SUM(role = 'boarder')  AS boarders
+  "SELECT SUM(deleted_at IS NULL) AS live_total,
+          SUM(deleted_at IS NOT NULL) AS archived_total,
+          SUM(role = 'landlord' AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL') . ") AS landlords,
+          SUM(role = 'boarder'  AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL') . ") AS boarders
      FROM users
-    WHERE role != 'administrator' AND deleted_at IS NULL"
+    WHERE role != 'administrator'"
 )->fetch();
 $totalNonAdmin  = (int) $counts['live_total'];
+$totalArchived  = (int) $counts['archived_total'];
 $totalLandlords = (int) $counts['landlords'];
 $totalBoarders  = (int) $counts['boarders'];
-$totalArchived  = (int) $pdo->query(
-  "SELECT COUNT(*) FROM users WHERE role != 'administrator' AND deleted_at IS NOT NULL"
-)->fetchColumn();
 
 // Fetch users for DataTable
 $stmt = $pdo->prepare("SELECT *, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE $where ORDER BY created_at DESC");

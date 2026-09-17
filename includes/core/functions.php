@@ -1052,6 +1052,26 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
  * guessing.
  * ------------------------------------------------------------------------ */
 
+/**
+ * Listings waiting for an administrator's decision. A listing whose landlord
+ * is removed or deactivated is not counted: it cannot be approved until the
+ * account is back, so it is not waiting on anyone.
+ */
+function pending_listing_count()
+{
+    global $pdo;
+    try {
+        return (int) $pdo->query(
+            "SELECT COUNT(*) FROM boarding_houses bh
+               JOIN users u ON u.user_id = bh.landlord_id AND u.is_active = 1 AND u.deleted_at IS NULL
+              WHERE bh.moderation_status = 'pending'"
+        )->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('RoomEase: pending listing count failed - ' . $e->getMessage());
+        return 0;
+    }
+}
+
 /** The stay-term columns on boarding_houses, in the order the forms write them. */
 const STAY_TERM_COLUMNS = [
     'curfew', 'security_deposit', 'minimum_stay_months', 'payment_methods', 'gender_policy',

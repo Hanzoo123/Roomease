@@ -81,7 +81,12 @@ foreach ($panel['menu'] as $idx => $item) {
             <a href="<?= base_url($item['url']) ?>"
               class="nav-link <?= $activeItem === $idx ? 'active' : '' ?>">
               <i class="nav-icon fas <?= h($item['icon']) ?>"></i>
-              <p><?= h($item['label']) ?></p>
+              <p>
+                <?= h($item['label']) ?>
+                <?php if (!empty($item['count'])): ?>
+                  <span class="right badge badge-warning"><?= (int) $item['count'] ?></span>
+                <?php endif; ?>
+              </p>
             </a>
           </li>
         <?php endforeach; ?>

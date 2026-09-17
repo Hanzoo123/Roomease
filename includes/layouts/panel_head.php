@@ -15,9 +15,7 @@ $pageTitle = $pageTitle ?? $panel['name'] . ' Dashboard';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($pageTitle) ?> | RoomEase <?= h($panel['name']) ?></title>
 
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link rel="preload" href="<?= base_url('assets/fonts/ibm-plex-sans-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="<?= base_url('assets/adminlte/plugins/fontawesome-free/css/all.min.css') ?>">
   <!-- DataTables -->
@@ -28,21 +26,9 @@ $pageTitle = $pageTitle ?? $panel['name'] . ' Dashboard';
   <link rel="stylesheet" href="<?= base_url('assets/adminlte/plugins/toastr/toastr.min.css') ?>">
   <!-- Theme style -->
   <link rel="stylesheet" href="<?= base_url('assets/adminlte/dist/css/adminlte.min.css') ?>">
-  <style>
-    .brand-link .brand-image {
-      max-height: 33px;
-    }
-
-    .badge-landlord {
-      background-color: #17a2b8;
-      color: #fff;
-    }
-
-    .badge-boarder {
-      background-color: #6c757d;
-      color: #fff;
-    }
-  </style>
+  <!-- RoomEase panel styles: self-hosted fonts and theme, after AdminLTE so they win -->
+  <link rel="stylesheet"
+    href="<?= base_url('assets/css/panel.css') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/css/panel.css') ?: 0 ?>">
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed">

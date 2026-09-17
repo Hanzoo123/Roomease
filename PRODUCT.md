@@ -123,20 +123,17 @@ inquiry inbox as though it already ships.
 - **Plain PHP 8 + MySQL, no framework.** PDO, no Composer, no build step, no
   package manager in the request path. Roughly 39 PHP files.
 
-**Known conflict with the offline constraint**
+**Webfonts: resolved**
 
-Six rendering paths currently fetch webfonts over the network, so on an offline
-demo they silently fall back to system faces:
+Every face is self-hosted under `assets/fonts/` (IBM Plex Sans and Fraunces),
+for the public site in `assets/css/style.css` and for the management panel in
+`assets/css/panel.css`, and the CSP allows fonts from this server only. The
+panel was the last page still asking Google Fonts for Source Sans Pro, a
+request the CSP always refused. The typography seen offline at the defence is
+the typography seen online.
 
-- `assets/css/style.css:8` — `@import` of Zilla Slab, Inter, and IBM Plex Mono
-- `includes/layouts/panel_head.php:20`, `auth/login.php:83`,
-  `auth/forgot_password.php:71`, `auth/reset_password.php:65` — Source Sans Pro
-- `includes/core/security.php:101-102` — the CSP explicitly allows
-  `fonts.googleapis.com` and `fonts.gstatic.com`
-
-Resolving this means self-hosting the faces under `assets/` and tightening the
-CSP. Until then, the typography seen on a connected machine is not the
-typography seen at the defence.
+What still needs a connection, by design: the OpenStreetMap tiles on listing
+pages, "Continue with Google", and sending email through Gmail.
 
 **Explicitly undecided**
 

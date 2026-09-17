@@ -16,6 +16,7 @@ if (!in_array($statusFilter, ['pending', 'approved', 'rejected'], true)) {
 $sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ",
             CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
             u.email AS landlord_email,
+            u.is_active AS landlord_active,
             u.deleted_at AS landlord_deleted_at
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
@@ -123,10 +124,20 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <?= h($l['name']) ?>
                     </a>
                   </td>
+                  <?php
+                  // A listing whose landlord is removed or deactivated is off the public
+                  // site whatever its approval says, so the table says so too.
+                  $landlordLive = $l['landlord_deleted_at'] === null && (int) $l['landlord_active'] === 1;
+                  ?>
                   <td>
                     <span class="font-weight-bold"><?= h($l['landlord_name']) ?></span>
                     <br>
                     <small class="text-muted"><?= h($l['contact_number']) ?></small>
+                    <?php if ($l['landlord_deleted_at'] !== null): ?>
+                      <br><span class="badge badge-dark">Landlord removed</span>
+                    <?php elseif (!$landlordLive): ?>
+                      <br><span class="badge badge-secondary">Landlord deactivated</span>
+                    <?php endif; ?>
                   </td>
                   <td>
                     <i class="fas fa-map-marker-alt text-danger mr-1"></i>
@@ -168,15 +179,20 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <td>
                     <div class="d-flex align-items-center flex-wrap" style="gap: 5px;">
                       <?php if ($l['moderation_status'] !== 'approved'): ?>
-                        <!-- Approve Button: only once the listing has a room to show -->
+                        <?php
+                        // Approve only once the listing has a room to show and its landlord is live.
+                        $approveBlocked = $avail['room_count'] === 0
+                          ? 'Needs at least one room before it can be approved'
+                          : (!$landlordLive ? 'The landlord\'s account is removed or deactivated' : '');
+                        ?>
                         <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
                           <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
                           <input type="hidden" name="action" value="approve">
                           <input type="hidden" name="return_status" value="<?= h($statusFilter) ?>">
                           <button type="submit" class="btn btn-xs btn-outline-success"
-                            title="<?= $avail['room_count'] === 0 ? 'Needs at least one room before it can be approved' : 'Approve Listing' ?>"
-                            <?= $avail['room_count'] === 0 ? 'disabled' : '' ?>>
+                            title="<?= h($approveBlocked !== '' ? $approveBlocked : 'Approve Listing') ?>"
+                            <?= $approveBlocked !== '' ? 'disabled' : '' ?>>
                             <i class="fas fa-check"></i>
                           </button>
                         </form>
