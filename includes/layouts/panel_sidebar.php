@@ -9,6 +9,11 @@ $panel = $panel ?? panel_config();
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 $panelUser   = $_SESSION['full_name'] ?? $panel['badge']['label'];
 
+// Initials for the avatar: the first letter of the first two words of the name.
+$panelInitials = mb_strtoupper(implode('', array_map(function ($word) {
+    return mb_substr($word, 0, 1);
+}, array_slice(preg_split('/\s+/u', trim($panelUser)), 0, 2))));
+
 // Work out the highlighted item once. Two entries can share a page and differ
 // only by a query string (Manage Listings vs Pending Approvals), so the most
 // specific match wins: an item whose query parameters all match the current
@@ -43,12 +48,12 @@ foreach ($panel['menu'] as $idx => $item) {
 }
 ?>
 <!-- Main Sidebar Container -->
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
-  <!-- Brand Logo -->
+<aside class="main-sidebar sidebar-light-primary">
+  <!-- Brand: the RoomEase wordmark, as on the public site. The single letter
+       is what stays visible when the sidebar is collapsed. -->
   <a href="<?= base_url($panel['home']) ?>" class="brand-link">
-    <i class="fas fa-house-user brand-image img-circle elevation-3 text-center"
-      style="opacity:.8; background:#007bff; color:#fff; width:33px; height:33px; line-height:33px; font-size:15px;"></i>
-    <span class="brand-text font-weight-light"><strong>Room</strong>Ease</span>
+    <span class="brand-image brand-mark" aria-hidden="true">R</span>
+    <span class="brand-text">RoomEase</span>
   </a>
 
   <!-- Sidebar -->
@@ -56,16 +61,13 @@ foreach ($panel['menu'] as $idx => $item) {
     <!-- Sidebar user panel (optional) -->
     <div class="user-panel mt-3 pb-3 mb-3 d-flex">
       <div class="image">
-        <i class="fas <?= h($panel['avatar']) ?> img-circle elevation-2 text-center"
-          style="background:#007bff; color:#fff; width:34px; height:34px; line-height:34px; font-size:15px;"></i>
+        <span class="panel-avatar" aria-hidden="true"><?= h($panelInitials) ?></span>
       </div>
       <div class="info">
-        <a href="<?= base_url($panel['home']) ?>" class="d-block font-weight-bold text-truncate"
-          style="max-width: 160px;" title="<?= h($panelUser) ?>">
+        <a href="<?= base_url($panel['home']) ?>" class="d-block text-truncate panel-user" title="<?= h($panelUser) ?>">
           <?= h($panelUser) ?>
         </a>
-        <small class="text-success"><i class="fas fa-circle text-xs mr-1"></i> Online
-          (<?= h($panel['name']) ?>)</small>
+        <small class="panel-role"><?= h($panel['badge']['label']) ?></small>
       </div>
     </div>
 
@@ -73,8 +75,6 @@ foreach ($panel['menu'] as $idx => $item) {
     <nav class="mt-2">
       <ul class="nav nav-pills nav-sidebar flex-column nav-child-indent" data-widget="treeview" role="menu"
         data-accordion="false">
-
-        <li class="nav-header">NAVIGATION</li>
 
         <?php foreach ($panel['menu'] as $idx => $item): ?>
           <li class="nav-item">
@@ -84,14 +84,14 @@ foreach ($panel['menu'] as $idx => $item) {
               <p>
                 <?= h($item['label']) ?>
                 <?php if (!empty($item['count'])): ?>
-                  <span class="right badge badge-warning"><?= (int) $item['count'] ?></span>
+                  <span class="right nav-count"><?= (int) $item['count'] ?></span>
                 <?php endif; ?>
               </p>
             </a>
           </li>
         <?php endforeach; ?>
 
-        <li class="nav-header">PORTAL</li>
+        <li class="nav-divider" role="separator"></li>
 
         <li class="nav-item">
           <a href="<?= base_url('boarder/browse.php') ?>" target="_blank" class="nav-link">
@@ -104,7 +104,7 @@ foreach ($panel['menu'] as $idx => $item) {
         </li>
 
         <li class="nav-item">
-          <a href="<?= base_url('auth/logout.php') ?>" class="nav-link text-danger">
+          <a href="<?= base_url('auth/logout.php') ?>" class="nav-link">
             <i class="nav-icon fas fa-sign-out-alt"></i>
             <p>Logout</p>
           </a>

@@ -19,11 +19,10 @@ $panel = $panel ?? panel_config();
   <!-- Right navbar links -->
   <ul class="navbar-nav ml-auto">
     <li class="nav-item d-flex align-items-center mr-3">
-      <span class="badge <?= h($panel['badge']['class']) ?> px-2 py-1"><i
-          class="fas <?= h($panel['badge']['icon']) ?> mr-1"></i> <?= h($panel['badge']['label']) ?></span>
+      <span class="nav-role"><?= h($panel['badge']['label']) ?> panel</span>
     </li>
     <li class="nav-item">
-      <a href="<?= base_url('auth/logout.php') ?>" class="btn btn-sm btn-outline-danger"
+      <a href="<?= base_url('auth/logout.php') ?>" class="btn btn-sm btn-outline-secondary"
         title="Log out of RoomEase">
         <i class="fas fa-sign-out-alt mr-1"></i> Logout
       </a>

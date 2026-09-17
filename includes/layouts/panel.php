@@ -10,20 +10,15 @@
 
 /**
  * Panel settings for the currently logged-in user.
- * Returns the title suffix, the navbar role badge, the panel's home page,
- * and the sidebar menu.
+ * Returns the title suffix, the role label shown in the navbar and sidebar,
+ * the panel's home page, and the sidebar menu.
  */
 function panel_config()
 {
     if (is_admin()) {
         return [
             'name'  => 'Admin',
-            'badge' => [
-                'label' => 'Administrator',
-                'class' => 'badge-success',
-                'icon'  => 'fa-shield-alt',
-            ],
-            'avatar' => 'fa-user-shield',
+            'badge' => ['label' => 'Administrator'],
             'home'   => 'admin/dashboard.php',
             'menu'  => [
                 ['url' => 'admin/dashboard.php',       'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
@@ -46,12 +41,7 @@ function panel_config()
 
     return [
         'name'  => 'Landlord',
-        'badge' => [
-            'label' => 'Landlord',
-            'class' => 'badge-info',
-            'icon'  => 'fa-user-tie',
-        ],
-        'avatar' => 'fa-user-tie',
+        'badge' => ['label' => 'Landlord'],
         'home'   => 'landlord/dashboard.php',
         'menu'  => [
             ['url' => 'landlord/dashboard.php',   'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],

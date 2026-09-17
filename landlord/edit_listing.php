@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($storedModeration === 'rejected') {
             $pdo->prepare(
                 "UPDATE boarding_houses
-                    SET moderation_status = 'pending', rejection_reason = NULL, moderated_at = NULL
+                    SET moderation_status = 'pending', rejection_reason = NULL, moderated_at = NULL, moderated_by = NULL
                   WHERE boarding_house_id = ? AND landlord_id = ?"
             )->execute([$boardingHouseId, $landlordId]);
         }

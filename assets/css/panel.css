@@ -88,6 +88,24 @@ body,
   margin-bottom: 1rem;
 }
 
+/* Six figures sit in two rows of three, or one row where there is room, so
+   none is ever left alone on a row. */
+.stat-row--six {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 768px) {
+  .stat-row--six {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1500px) {
+  .stat-row--six {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
 .stat {
   display: flex;
   flex-direction: column;
@@ -293,6 +311,609 @@ a.stat--attention:focus {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--re-line);
+}
+
+/* =========================================================
+   Theme: AdminLTE in RoomEase's colours
+   ---------------------------------------------------------
+   One bold element per screen, and quiet everywhere else. On the
+   admin dashboard that element is the "Awaiting approval" figure
+   (.stat--attention above), with the sidebar's pending count as its
+   only echo. Everything below takes AdminLTE's saturated blues,
+   greens and reds down to the public site's palette: white surfaces
+   on paper, forest for links, actions and the current page, and the
+   status tints for badges.
+   ========================================================= */
+
+body {
+  color: var(--re-ink);
+}
+
+a {
+  color: var(--re-forest);
+}
+
+a:hover {
+  color: var(--re-forest-deep);
+}
+
+:focus-visible {
+  outline: 2px solid var(--re-forest);
+  outline-offset: 2px;
+}
+
+.text-primary,
+.text-info {
+  color: var(--re-forest) !important;
+}
+
+.text-success {
+  color: var(--re-approved-fg) !important;
+}
+
+.text-danger {
+  color: var(--re-danger) !important;
+}
+
+.text-muted {
+  color: var(--re-ink-soft) !important;
+}
+
+/* ---- Page frame ---- */
+.content-wrapper,
+.main-footer {
+  background-color: var(--re-paper);
+}
+
+.main-footer {
+  border-top: 1px solid var(--re-line);
+  color: var(--re-ink-faint);
+  font-size: .85rem;
+}
+
+.content-header h1 {
+  font-size: 1.55rem;
+  font-weight: 600 !important;
+  color: var(--re-ink);
+}
+
+/* Headings and card titles carried decorative icons; the words are enough. */
+.content-header h1 > .fas,
+.card-title > .fas {
+  display: none;
+}
+
+.content-header .breadcrumb {
+  font-size: .85rem;
+}
+
+.breadcrumb-item.active {
+  color: var(--re-ink-soft);
+}
+
+/* ---- Top bar ---- */
+.main-header.navbar {
+  background: var(--re-panel);
+  border-bottom: 1px solid var(--re-line);
+}
+
+.main-header .nav-link {
+  color: var(--re-ink-soft);
+}
+
+.nav-role {
+  font-size: .85rem;
+  color: var(--re-ink-soft);
+}
+
+/* ---- Sidebar ---- */
+/* The dividing line is a shadow, not a border: a border narrows the sidebar
+   by a pixel, and its content then scrolls sideways. */
+.main-sidebar[class*="sidebar-light-"] {
+  background: var(--re-panel);
+  box-shadow: 1px 0 0 var(--re-line) !important;
+}
+
+.main-sidebar .brand-link {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--re-line) !important;
+}
+
+.main-sidebar .brand-link:hover {
+  text-decoration: none;
+}
+
+/* The single letter stands in for the wordmark only while the sidebar is
+   collapsed to icons. */
+.brand-mark {
+  display: none;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .brand-mark {
+  display: inline-flex;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar .brand-mark,
+.brand-mark {
+  align-items: center;
+  justify-content: center;
+  float: none;
+  width: 33px;
+  height: 33px;
+  margin-left: .2rem;
+  margin-right: .5rem;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--re-forest);
+}
+
+.main-sidebar .brand-text {
+  margin-left: .45rem;
+  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--re-forest);
+}
+
+.main-sidebar .user-panel {
+  align-items: center;
+  border-bottom: 1px solid var(--re-line) !important;
+}
+
+.panel-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--re-forest);
+  background: var(--re-leaf);
+  border-radius: 50%;
+}
+
+.main-sidebar .panel-user {
+  max-width: 160px;
+  font-weight: 600;
+  color: var(--re-ink);
+}
+
+.panel-role {
+  color: var(--re-ink-soft);
+}
+
+.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link {
+  color: var(--re-ink-soft);
+  border-radius: 8px;
+}
+
+.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link:hover {
+  color: var(--re-ink);
+  background: var(--re-paper);
+}
+
+.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link.active,
+.main-sidebar[class*="sidebar-light-"] .nav-sidebar > .nav-item > .nav-link.active:hover {
+  font-weight: 600;
+  color: var(--re-forest);
+  background: var(--re-leaf);
+  box-shadow: none;
+}
+
+.nav-count {
+  top: .6rem;
+  min-width: 1.5rem;
+  padding: 1px 7px;
+  font-size: .75rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--re-on-marigold);
+  background: var(--re-marigold);
+  border-radius: 999px;
+}
+
+.nav-divider {
+  margin: .5rem;
+  border-top: 1px solid var(--re-line);
+}
+
+/* ---- Cards ---- */
+.card,
+.card.shadow-sm {
+  border: 1px solid var(--re-line);
+  border-radius: 12px;
+  box-shadow: none !important;
+}
+
+.card.card-outline,
+.card[class*="card-"].card-outline {
+  border-top: 1px solid var(--re-line);
+}
+
+.card > .card-header,
+.card[class*="card-"]:not(.card-outline) > .card-header {
+  color: var(--re-ink);
+  background: transparent;
+  border-bottom: 1px solid var(--re-line);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600 !important;
+}
+
+.card-footer {
+  background: var(--re-paper);
+  border-top: 1px solid var(--re-line);
+  border-radius: 0 0 12px 12px !important;
+}
+
+.btn-tool {
+  color: var(--re-ink-soft);
+}
+
+.btn-tool:hover {
+  color: var(--re-forest);
+}
+
+.list-group-item {
+  border-color: var(--re-line);
+}
+
+/* The landlord dashboard's figures: plain, like the admin stat row. */
+.small-box[class*="bg-"] {
+  color: var(--re-ink) !important;
+  background: var(--re-panel) !important;
+  border: 1px solid var(--re-line);
+  border-radius: 12px;
+  box-shadow: none !important;
+}
+
+.small-box h3 {
+  font-size: 2rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.small-box p {
+  color: var(--re-ink-soft);
+}
+
+.small-box .icon {
+  display: none;
+}
+
+.small-box > .small-box-footer {
+  color: var(--re-forest) !important;
+  background: transparent !important;
+  border-top: 1px solid var(--re-line);
+  border-radius: 0 0 12px 12px;
+}
+
+.small-box > .small-box-footer:hover {
+  background: var(--re-paper) !important;
+}
+
+/* ---- Buttons ---- */
+.btn {
+  border-radius: 8px;
+}
+
+.btn-primary,
+.btn-success {
+  color: #FFFFFF;
+  background-color: var(--re-forest);
+  border-color: var(--re-forest);
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-success:not(:disabled):not(.disabled):active {
+  color: #FFFFFF;
+  background-color: var(--re-forest-deep);
+  border-color: var(--re-forest-deep);
+}
+
+.btn:focus,
+.btn.focus {
+  box-shadow: 0 0 0 3px rgba(24, 74, 63, .18);
+}
+
+.btn-primary:disabled,
+.btn-success:disabled {
+  color: #FFFFFF;
+  background-color: var(--re-ink-faint);
+  border-color: var(--re-ink-faint);
+}
+
+.btn-warning {
+  color: #FFFFFF;
+  background-color: var(--re-pending-fg);
+  border-color: var(--re-pending-fg);
+}
+
+.btn-warning:hover {
+  color: #FFFFFF;
+  background-color: #5F3C0A;
+  border-color: #5F3C0A;
+}
+
+.btn-danger {
+  color: #FFFFFF;
+  background-color: var(--re-danger);
+  border-color: var(--re-danger);
+}
+
+.btn-danger:hover {
+  color: #FFFFFF;
+  background-color: var(--re-rejected-fg);
+  border-color: var(--re-rejected-fg);
+}
+
+.btn-outline-primary,
+.btn-outline-info,
+.btn-outline-success,
+.btn-outline-warning,
+.btn-outline-danger,
+.btn-outline-secondary,
+.btn-outline-dark,
+.btn-default {
+  background-color: var(--re-panel);
+  border-color: var(--re-line-strong);
+}
+
+.btn-outline-primary,
+.btn-outline-info {
+  color: var(--re-forest);
+}
+
+.btn-outline-success {
+  color: var(--re-approved-fg);
+}
+
+.btn-outline-warning {
+  color: var(--re-pending-fg);
+}
+
+.btn-outline-danger {
+  color: var(--re-danger);
+}
+
+.btn-outline-secondary,
+.btn-outline-dark,
+.btn-default {
+  color: var(--re-ink-soft);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-info:hover {
+  color: var(--re-forest);
+  background-color: var(--re-leaf);
+  border-color: var(--re-forest);
+}
+
+.btn-outline-success:hover {
+  color: var(--re-approved-fg);
+  background-color: var(--re-approved-bg);
+  border-color: var(--re-approved-fg);
+}
+
+.btn-outline-warning:hover {
+  color: var(--re-pending-fg);
+  background-color: var(--re-pending-bg);
+  border-color: var(--re-pending-fg);
+}
+
+.btn-outline-danger:hover {
+  color: var(--re-rejected-fg);
+  background-color: var(--re-rejected-bg);
+  border-color: var(--re-danger);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-dark:hover,
+.btn-default:hover {
+  color: var(--re-ink);
+  background-color: var(--re-paper);
+  border-color: var(--re-ink-faint);
+}
+
+/* The chosen tab in a row of filter buttons. */
+.btn-group > .btn.active,
+.btn[class*="btn-outline-"]:not(:disabled):not(.disabled).active {
+  color: #FFFFFF;
+  background-color: var(--re-forest);
+  border-color: var(--re-forest);
+  box-shadow: none;
+}
+
+.btn.active .badge-light {
+  color: var(--re-forest);
+}
+
+.btn-link {
+  color: var(--re-forest);
+}
+
+/* ---- Badges ---- */
+.badge {
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.badge-success {
+  color: var(--re-approved-fg);
+  background-color: var(--re-approved-bg);
+}
+
+.badge-warning {
+  color: var(--re-pending-fg);
+  background-color: var(--re-pending-bg);
+}
+
+.badge-danger {
+  color: var(--re-rejected-fg);
+  background-color: var(--re-rejected-bg);
+}
+
+.badge-info,
+.badge-primary {
+  color: var(--re-forest);
+  background-color: var(--re-leaf);
+}
+
+.badge-secondary {
+  color: var(--re-muted-fg);
+  background-color: var(--re-muted-bg);
+}
+
+.badge-dark {
+  color: #F3F1EA;
+  background-color: #3A4543;
+}
+
+.badge-light {
+  color: var(--re-ink-soft);
+  background-color: var(--re-panel);
+}
+
+/* ---- Tables ---- */
+.table {
+  color: var(--re-ink);
+}
+
+.table thead th {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--re-ink-soft);
+  border-top: 0;
+  border-bottom: 1px solid var(--re-line);
+}
+
+.table td,
+.table th,
+.table-bordered,
+.table-bordered td,
+.table-bordered th {
+  border-color: var(--re-line);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: transparent;
+}
+
+.table-hover tbody tr:hover {
+  color: var(--re-ink);
+  background-color: var(--re-paper);
+}
+
+.page-link {
+  color: var(--re-forest);
+  border-color: var(--re-line);
+}
+
+.page-item.active .page-link {
+  color: #FFFFFF;
+  background-color: var(--re-forest);
+  border-color: var(--re-forest);
+}
+
+.page-item.disabled .page-link {
+  color: var(--re-ink-faint);
+  border-color: var(--re-line);
+}
+
+/* ---- Forms ---- */
+.form-control,
+.custom-select {
+  border-color: var(--re-line-strong);
+  border-radius: 8px;
+}
+
+.form-control:focus,
+.custom-select:focus {
+  border-color: var(--re-forest);
+  box-shadow: 0 0 0 3px rgba(24, 74, 63, .15);
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+  background-color: var(--re-forest);
+  border-color: var(--re-forest);
+}
+
+.custom-control-input:focus ~ .custom-control-label::before {
+  box-shadow: 0 0 0 3px rgba(24, 74, 63, .15);
+}
+
+/* ---- Alerts ---- */
+.alert {
+  border-radius: 10px;
+}
+
+.alert-info {
+  color: var(--re-forest);
+  background-color: var(--re-leaf);
+  border-color: transparent;
+}
+
+.alert-success {
+  color: var(--re-approved-fg);
+  background-color: var(--re-approved-bg);
+  border-color: transparent;
+}
+
+.alert-warning {
+  color: var(--re-pending-fg);
+  background-color: var(--re-pending-bg);
+  border-color: transparent;
+}
+
+.alert-danger {
+  color: var(--re-rejected-fg);
+  background-color: var(--re-rejected-bg);
+  border-color: transparent;
+}
+
+.alert-light {
+  color: var(--re-ink);
+  background-color: var(--re-paper);
+  border-color: var(--re-line) !important;
+}
+
+.alert a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ---- Dialogs and notifications ---- */
+.modal-content {
+  border: 0;
+  border-radius: 12px;
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--re-line);
+}
+
+#toast-container > .toast-success {
+  background-color: var(--re-forest);
+}
+
+#toast-container > .toast-error {
+  background-color: var(--re-rejected-fg);
+}
+
+#toast-container > div {
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 58, 49, .18);
+  opacity: 1;
 }
 
 @media print {

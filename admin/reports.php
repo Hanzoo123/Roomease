@@ -174,13 +174,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   <section class="content">
     <div class="container-fluid">
 
-      <div class="stat-row">
+      <div class="stat-row stat-row--six">
         <div class="stat"><span class="stat-value"><?= (int) $people['landlords'] ?></span><span class="stat-label">Landlords</span></div>
         <div class="stat"><span class="stat-value"><?= (int) $people['boarders'] ?></span><span class="stat-label">Boarders</span></div>
         <div class="stat"><span class="stat-value"><?= (int) $live['listings'] ?></span><span class="stat-label">Listings boarders can see</span></div>
         <div class="stat"><span class="stat-value"><?= (int) $roomFigures['rooms'] ?></span><span class="stat-label">Open rooms in them</span></div>
         <div class="stat">
-          <span class="stat-value"><?= $roomFigures['avg_rent'] !== null ? h(peso_round($roomFigures['avg_rent'])) : '—' ?></span>
+          <span class="stat-value"><?= $roomFigures['avg_rent'] !== null ? '&#8369;' . number_format(round((float) $roomFigures['avg_rent'])) : '—' ?></span>
           <span class="stat-label">Average rent</span>
         </div>
         <div class="stat">
