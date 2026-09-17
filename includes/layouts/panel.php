@@ -27,11 +27,15 @@ function panel_config()
             'home'   => 'admin/dashboard.php',
             'menu'  => [
                 ['url' => 'admin/dashboard.php',       'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
-                ['url' => 'admin/manage_users.php',    'icon' => 'fa-users',          'label' => 'Manage Users'],
-                ['url' => 'admin/manage_listings.php', 'icon' => 'fa-home',           'label' => 'Manage Listings'],
+                // A listing's review page and an account's page stay under their list.
+                ['url' => 'admin/manage_users.php',    'icon' => 'fa-users',          'label' => 'Manage Users',
+                 'also' => ['user.php']],
+                ['url' => 'admin/manage_listings.php', 'icon' => 'fa-home',           'label' => 'Manage Listings',
+                 'also' => ['listing.php']],
                 // 'count' puts a number beside the item, shown only when it is above zero.
                 ['url' => 'admin/manage_listings.php?status=pending', 'icon' => 'fa-clipboard-check', 'label' => 'Pending Approvals',
                  'count' => pending_listing_count()],
+                ['url' => 'admin/reports.php',         'icon' => 'fa-chart-bar',      'label' => 'Reports'],
                 ['url' => 'admin/activity.php',        'icon' => 'fa-history',        'label' => 'Activity Log'],
                 ['url' => 'admin/extras.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
                 ['url' => 'admin/appearance.php',      'icon' => 'fa-paint-brush',    'label' => 'Appearance'],

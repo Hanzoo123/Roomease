@@ -1,14 +1,16 @@
 <?php
 /**
- * RoomEase Admin Dashboard (AdminLTE Theme)
+ * RoomEase Admin Dashboard
+ *
+ * What needs the administrator now (listings waiting for a decision, oldest
+ * first), how the last 30 days went, and what administrators have done
+ * lately. Removed accounts and removed listings are not counted.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
 
 require_login('admin');
 
-// Removed accounts, and the listings of removed landlords, are not counted:
-// the figures describe what is live on RoomEase.
 $counts = $pdo->query(
   "SELECT
         (SELECT COUNT(*) FROM users WHERE role = 'landlord' AND deleted_at IS NULL) AS landlords,
@@ -18,29 +20,79 @@ $counts = $pdo->query(
           WHERE bh.deleted_at IS NULL) AS listings"
 )->fetch();
 $counts['pending'] = pending_listing_count();
+$live = live_listing_stats();
 
-// Fetch recently added boarding houses
-$recentListings = $pdo->query(
-  "SELECT bh.boarding_house_id, bh.name AS boarding_house_name, bh.address,
-            bh.moderation_status, bh.created_at, " . ROOM_SUMMARY_COLUMNS . ",
-            CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
+// Waiting longest first. A listing edited after a rejection goes back to
+// pending, so "waiting since" is its last change rather than when it was posted.
+$needsReview = $pdo->query(
+  "SELECT bh.boarding_house_id, bh.name, bh.address, bh.created_at, bh.updated_at, " . ROOM_SUMMARY_COLUMNS . ",
+          CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
      FROM boarding_houses bh
-     JOIN users u ON u.user_id = bh.landlord_id
+     JOIN users u ON u.user_id = bh.landlord_id AND u.is_active = 1 AND u.deleted_at IS NULL
      " . room_summary_join() . "
-     WHERE bh.deleted_at IS NULL
-     ORDER BY bh.created_at DESC
-     LIMIT 6"
+    WHERE bh.moderation_status = 'pending' AND bh.deleted_at IS NULL
+    ORDER BY bh.updated_at ASC
+    LIMIT 6"
 )->fetchAll();
 
-// Fetch recently registered users
-$recentUsers = $pdo->query(
-  "SELECT user_id, first_name, last_name, CONCAT(first_name, ' ', last_name) AS full_name,
-            email, role, is_active, created_at
-     FROM users
-     WHERE role != 'administrator'
-     ORDER BY created_at DESC
-     LIMIT 5"
+// The last 30 days, one bucket per day, oldest first. Days are counted on the
+// database's clock, which is the one created_at was written with.
+$today = substr(db_now(), 0, 10);
+$days = [];
+for ($i = 29; $i >= 0; $i--) {
+  $days[date('Y-m-d', strtotime("$today -$i day"))] = ['accounts' => 0, 'listings' => 0];
+}
+$since = array_key_first($days);
+$daily = function ($sql, $column) use ($pdo, $since, &$days) {
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([$since]);
+  foreach ($stmt as $row) {
+    if (isset($days[$row['d']])) {
+      $days[$row['d']][$column] = (int) $row['n'];
+    }
+  }
+};
+$daily("SELECT DATE(created_at) AS d, COUNT(*) AS n FROM users
+         WHERE role <> 'administrator' AND created_at >= ? GROUP BY d", 'accounts');
+$daily("SELECT DATE(created_at) AS d, COUNT(*) AS n FROM boarding_houses
+         WHERE created_at >= ? GROUP BY d", 'listings');
+$decided = $pdo->prepare(
+  "SELECT SUM(action = 'listing_approve') AS approved, SUM(action = 'listing_reject') AS rejected
+     FROM admin_actions WHERE created_at >= ?"
+);
+$decided->execute([$since]);
+$decided = $decided->fetch();
+
+$recentActivity = $pdo->query(
+  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name
+     FROM admin_actions a LEFT JOIN users u ON u.user_id = a.admin_id
+    ORDER BY a.created_at DESC, a.action_id DESC
+    LIMIT 6"
 )->fetchAll();
+$types = admin_action_types();
+
+$recentUsers = $pdo->query(
+  "SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name, email, role, is_active, deleted_at, created_at
+     FROM users
+    WHERE role <> 'administrator'
+    ORDER BY created_at DESC
+    LIMIT 5"
+)->fetchAll();
+
+/** A row of 30 thin columns, one per day, scaled to the busiest day. */
+function spark(array $days, $column, $label)
+{
+  $values = array_column($days, $column);
+  $max = max(1, max($values));
+  $total = array_sum($values);
+  $html = '<div class="spark" role="img" aria-label="' . h($label . ' per day over the last 30 days: ' . $total . ' in total') . '">';
+  foreach ($days as $date => $counts) {
+    $value = $counts[$column];
+    $html .= '<span style="height:' . ($value ? max(8, round(100 * $value / $max)) : 0) . '%" title="'
+      . h(date('M j', strtotime($date)) . ': ' . $value) . '"></span>';
+  }
+  return $html . '</div>';
+}
 
 $pageTitle = 'Dashboard';
 require __DIR__ . '/../includes/layouts/panel_head.php';
@@ -48,226 +100,169 @@ require __DIR__ . '/../includes/layouts/panel_navbar.php';
 require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
-<!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
-  <!-- Content Header (Page header) -->
   <div class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-tachometer-alt text-primary mr-2"></i>Admin Dashboard
-          </h1>
+          <h1 class="m-0 font-weight-bold">Dashboard</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item active">Dashboard</li>
+            <li class="breadcrumb-item active">Home</li>
           </ol>
         </div>
       </div>
     </div>
   </div>
-  <!-- /.content-header -->
 
-  <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
 
-      <!-- Small boxes (Stat box) -->
-      <div class="row">
-        <!-- Landlords -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-info shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['landlords'] ?></h3>
-              <p>Registered Landlords</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-user-tie"></i>
-            </div>
-            <a href="<?= base_url('admin/manage_users.php?role=landlord') ?>" class="small-box-footer">
-              View Landlords <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Boarders -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-success shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['boarders'] ?></h3>
-              <p>Registered Boarders</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-users"></i>
-            </div>
-            <a href="<?= base_url('admin/manage_users.php?role=boarder') ?>" class="small-box-footer">
-              View Boarders <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Total Listings -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-warning shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['listings'] ?></h3>
-              <p>Total Boarding Houses</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-home"></i>
-            </div>
-            <a href="<?= base_url('admin/manage_listings.php') ?>" class="small-box-footer">
-              View All Listings <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Available Listings -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box <?= (int) $counts['pending'] > 0 ? 'bg-danger' : 'bg-olive' ?> shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['pending'] ?></h3>
-              <p>Awaiting Approval</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-clipboard-check"></i>
-            </div>
-            <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>" class="small-box-footer">
-              Review Queue <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
+      <div class="stat-row">
+        <a class="stat" href="<?= base_url('admin/manage_users.php?role=landlord') ?>">
+          <span class="stat-value"><?= (int) $counts['landlords'] ?></span>
+          <span class="stat-label">Landlords</span>
+        </a>
+        <a class="stat" href="<?= base_url('admin/manage_users.php?role=boarder') ?>">
+          <span class="stat-value"><?= (int) $counts['boarders'] ?></span>
+          <span class="stat-label">Boarders</span>
+        </a>
+        <a class="stat" href="<?= base_url('admin/manage_listings.php') ?>">
+          <span class="stat-value"><?= (int) $counts['listings'] ?></span>
+          <span class="stat-label">Listings &middot; <?= (int) $live['listings'] ?> on the site</span>
+        </a>
+        <a class="stat stat--attention" href="<?= base_url('admin/manage_listings.php?status=pending') ?>">
+          <span class="stat-value"><?= (int) $counts['pending'] ?></span>
+          <span class="stat-label">Awaiting approval</span>
+        </a>
       </div>
-      <!-- /.row -->
 
-      <!-- Main row -->
       <div class="row">
-        <!-- Left column -->
         <div class="col-lg-8">
-          <!-- Recent Listings Card -->
-          <div class="card card-primary card-outline shadow-sm">
-            <div class="card-header border-0">
-              <h3 class="card-title font-weight-bold">
-                <i class="fas fa-clipboard-list mr-1"></i> Recently Added Listings
-              </h3>
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h3 class="card-title font-weight-bold">Needs your review</h3>
               <div class="card-tools">
-                <a href="<?= base_url('admin/manage_listings.php') ?>" class="btn btn-tool btn-sm">
-                  <i class="fas fa-external-link-alt"></i> View All
-                </a>
+                <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>" class="btn btn-tool">All pending</a>
               </div>
             </div>
-            <div class="card-body table-responsive p-0">
-              <table class="table table-striped table-valign-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Boarding House</th>
-                    <th>Address</th>
-                    <th>Landlord</th>
-                    <th>Rooms</th>
-                    <th>Approval</th>
-                    <th>Date Posted</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (!empty($recentListings)): ?>
-                    <?php foreach ($recentListings as $l): ?>
-                      <tr>
-                        <td class="font-weight-bold">
-                          <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>"
-                            target="_blank" class="text-dark">
-                            <?= h($l['boarding_house_name']) ?>
-                          </a>
-                        </td>
-                        <td><?= h($l['address']) ?></td>
-                        <td><?= h($l['landlord_name']) ?></td>
-                        <?php $avail = listing_availability($l); ?>
-                        <td>
-                          <?php if ($avail['room_count'] === 0): ?>
-                            <span class="text-muted">No rooms yet</span>
-                          <?php else: ?>
-                            <span class="text-success font-weight-bold">From &#8369;<?= number_format((float) $avail['rent_from'], 2) ?></span>
-                            <br><small class="text-muted"><?= h($avail['summary']) ?></small>
-                          <?php endif; ?>
-                        </td>
-                        <td><?= moderation_badge($l['moderation_status']) ?></td>
-                        <td class="text-muted text-sm"><?= h(date('M j, Y', strtotime($l['created_at']))) ?></td>
-                        <td>
-                          <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>"
-                            target="_blank" class="btn btn-sm btn-outline-info" title="View Details">
-                            <i class="fas fa-eye"></i>
-                          </a>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <tr>
-                      <td colspan="7" class="text-center py-4 text-muted">
-                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i> No listings posted yet.
-                      </td>
-                    </tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
+            <?php if (!$needsReview): ?>
+              <div class="card-body text-muted">Nothing is waiting for a decision.</div>
+            <?php else: ?>
+              <ul class="list-group list-group-flush review-queue">
+                <?php foreach ($needsReview as $l): ?>
+                  <?php $avail = listing_availability($l); ?>
+                  <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between" style="gap: 8px;">
+                    <div>
+                      <a class="font-weight-bold" href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>"><?= h($l['name']) ?></a>
+                      <small class="text-muted d-block">
+                        <?= h($l['landlord_name']) ?> &middot; <?= h($avail['summary']) ?>
+                        <?php if ($avail['rent_from'] !== null): ?> &middot; from <?= h(peso_round($avail['rent_from'])) ?><?php endif; ?>
+                      </small>
+                    </div>
+                    <div class="d-flex align-items-center" style="gap: 12px;">
+                      <small class="text-muted">waiting <?= h(preg_replace('/ ago$/', '', time_ago($l['updated_at']))) ?></small>
+                      <a href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>" class="btn btn-sm btn-primary">Review</a>
+                    </div>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            <?php endif; ?>
+          </div>
+
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h3 class="card-title font-weight-bold">Last 30 days</h3>
+              <div class="card-tools">
+                <a href="<?= base_url('admin/reports.php') ?>" class="btn btn-tool">Reports</a>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3 mb-md-0">
+                  <div class="d-flex justify-content-between align-items-baseline">
+                    <span class="text-muted">New accounts</span>
+                    <strong class="tabular"><?= array_sum(array_column($days, 'accounts')) ?></strong>
+                  </div>
+                  <?= spark($days, 'accounts', 'New accounts') ?>
+                </div>
+                <div class="col-md-6">
+                  <div class="d-flex justify-content-between align-items-baseline">
+                    <span class="text-muted">New listings</span>
+                    <strong class="tabular"><?= array_sum(array_column($days, 'listings')) ?></strong>
+                  </div>
+                  <?= spark($days, 'listings', 'New listings') ?>
+                </div>
+              </div>
+              <p class="text-muted small mb-0 mt-3">
+                <?= (int) $decided['approved'] ?> approved and <?= (int) $decided['rejected'] ?> rejected in the same period.
+              </p>
             </div>
           </div>
-          <!-- /.card -->
         </div>
-        <!-- /.col-lg-8 -->
 
-        <!-- Right column -->
         <div class="col-lg-4">
-          <!-- Recently Joined Users Card -->
-          <div class="card card-outline card-info shadow-sm">
+          <div class="card shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">
-                <i class="fas fa-user-plus mr-1"></i> New Users
-              </h3>
+              <h3 class="card-title font-weight-bold">Recent activity</h3>
               <div class="card-tools">
-                <a href="<?= base_url('admin/manage_users.php') ?>" class="btn btn-tool btn-sm">
-                  <i class="fas fa-arrow-right"></i>
-                </a>
+                <a href="<?= base_url('admin/activity.php') ?>" class="btn btn-tool">Full log</a>
               </div>
             </div>
-            <div class="card-body p-0">
-              <ul class="products-list product-list-in-card pl-2 pr-2">
-                <?php if (!empty($recentUsers)): ?>
-                  <?php foreach ($recentUsers as $ru): ?>
-                    <li class="item py-2">
-                      <div class="product-img">
-                        <i class="fas fa-user-circle fa-2x text-secondary"></i>
-                      </div>
-                      <div class="product-info">
-                        <span class="product-title font-weight-bold">
-                          <?= h($ru['full_name']) ?>
-                          <span class="badge badge-<?= $ru['role'] === 'landlord' ? 'info' : 'secondary' ?> float-right">
-                            <?= h(ucfirst($ru['role'])) ?>
-                          </span>
-                        </span>
-                        <span class="product-description text-xs text-muted">
-                          <?= h($ru['email']) ?> &middot; Joined <?= h(date('M j, Y', strtotime($ru['created_at']))) ?>
-                        </span>
-                      </div>
+            <div class="card-body">
+              <?php if (!$recentActivity): ?>
+                <p class="text-muted mb-0">No administrator actions yet.</p>
+              <?php else: ?>
+                <ul class="review-history">
+                  <?php foreach ($recentActivity as $e): ?>
+                    <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
+                    <?php $url = admin_target_url($e['target_type'], $e['target_id']); ?>
+                    <li>
+                      <span class="badge <?= h($type['badge']) ?>"><?= h($type['label']) ?></span>
+                      <?php if ($url !== null): ?>
+                        <a href="<?= h($url) ?>"><?= h($e['target_label']) ?></a>
+                      <?php else: ?>
+                        <?= h($e['target_label']) ?>
+                      <?php endif; ?>
+                      <small class="text-muted d-block">
+                        <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'Unknown' ?> &middot; <?= h(time_ago($e['created_at'])) ?>
+                      </small>
                     </li>
                   <?php endforeach; ?>
-                <?php else: ?>
-                  <li class="p-3 text-center text-muted">No users found.</li>
-                <?php endif; ?>
-              </ul>
+                </ul>
+              <?php endif; ?>
             </div>
           </div>
-          <!-- /.card -->
-        </div>
-        <!-- /.col-lg-4 -->
-      </div>
-      <!-- /.row -->
 
-    </div><!-- /.container-fluid -->
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h3 class="card-title font-weight-bold">New accounts</h3>
+              <div class="card-tools">
+                <a href="<?= base_url('admin/manage_users.php') ?>" class="btn btn-tool">All users</a>
+              </div>
+            </div>
+            <ul class="list-group list-group-flush">
+              <?php if (!$recentUsers): ?>
+                <li class="list-group-item text-muted">No accounts yet.</li>
+              <?php endif; ?>
+              <?php foreach ($recentUsers as $ru): ?>
+                <li class="list-group-item">
+                  <a class="font-weight-bold" href="<?= base_url('admin/user.php?id=' . (int) $ru['user_id']) ?>"><?= h($ru['full_name']) ?></a>
+                  <span class="badge badge-light border float-right"><?= h(ucfirst($ru['role'])) ?></span>
+                  <small class="text-muted d-block">
+                    <?= h($ru['email']) ?> &middot; <?= h(time_ago($ru['created_at'])) ?>
+                    <?php if ($ru['deleted_at'] !== null): ?> &middot; removed<?php elseif (!$ru['is_active']): ?> &middot; deactivated<?php endif; ?>
+                  </small>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </section>
-  <!-- /.content -->
 </div>
-<!-- /.content-wrapper -->
 
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

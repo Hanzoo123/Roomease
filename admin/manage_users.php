@@ -96,6 +96,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             </a>
           </div>
           <div class="mt-2 mt-sm-0 ml-sm-2">
+            <?php
+            $exportQuery = array_filter(['type' => 'users', 'view' => $showArchived ? 'archived' : '',
+              'role' => in_array($roleFilter, ['landlord', 'boarder'], true) ? $roleFilter : '']);
+            ?>
+            <a href="<?= base_url('admin/export.php?' . http_build_query($exportQuery)) ?>" class="btn btn-sm btn-outline-secondary"
+              title="Download these accounts as a spreadsheet">
+              <i class="fas fa-file-csv mr-1"></i> Export CSV
+            </a>
             <?php if ($showArchived): ?>
               <a href="manage_users.php" class="btn btn-sm btn-outline-dark">
                 <i class="fas fa-arrow-left mr-1"></i> Back to active users
@@ -139,7 +147,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <td class="font-weight-bold">
                     <i
                       class="fas <?= $u['role'] === 'landlord' ? 'fa-user-tie text-info' : 'fa-user text-secondary' ?> mr-1"></i>
-                    <?= h($u['full_name']) ?>
+                    <a href="<?= base_url('admin/user.php?id=' . (int) $u['user_id']) ?>"><?= h($u['full_name']) ?></a>
                   </td>
                   <td>
                     <a href="mailto:<?= h($u['email']) ?>" class="text-muted"><?= h($u['email']) ?></a>

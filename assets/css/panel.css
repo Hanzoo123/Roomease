@@ -44,3 +44,272 @@ body,
 .brand-link .brand-image {
   max-height: 33px;
 }
+
+/* =========================================================
+   Tokens: the public site's palette (assets/css/style.css)
+   ========================================================= */
+:root {
+  --re-paper: #FAF8F3;
+  --re-panel: #FFFFFF;
+  --re-line: #E6E1D6;
+  --re-line-strong: #CFC8B8;
+  --re-forest: #184A3F;
+  --re-forest-deep: #0F3A31;
+  --re-leaf: #E6EFEA;
+  --re-ink: #1F2A28;
+  --re-ink-soft: #5C6B66;
+  --re-ink-faint: #7A8682;
+  --re-marigold: #F2A93B;
+  --re-marigold-hover: #E39A2A;
+  --re-on-marigold: #2A1E08;
+  --re-approved-bg: #E3F0E7;
+  --re-approved-fg: #22613F;
+  --re-pending-bg: #FDF1DC;
+  --re-pending-fg: #7A4E0E;
+  --re-rejected-bg: #F6E4E1;
+  --re-rejected-fg: #8E3325;
+  --re-muted-bg: #EEEBE4;
+  --re-muted-fg: #5E5850;
+  --re-danger: #B3402F;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   Stat row: a line of plain figures. One of them may carry
+   stat--attention, the single number that asks for action.
+   ========================================================= */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px;
+  background: var(--re-panel);
+  border: 1px solid var(--re-line);
+  border-radius: 12px;
+  color: var(--re-ink);
+}
+
+a.stat:hover,
+a.stat:focus {
+  color: var(--re-ink);
+  text-decoration: none;
+  border-color: var(--re-line-strong);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  margin-top: 4px;
+  font-size: .9rem;
+  color: var(--re-ink-soft);
+}
+
+.stat--attention {
+  background: var(--re-marigold);
+  border-color: var(--re-marigold);
+  color: var(--re-on-marigold);
+}
+
+.stat--attention .stat-label {
+  color: var(--re-on-marigold);
+}
+
+a.stat--attention:hover,
+a.stat--attention:focus {
+  background: var(--re-marigold-hover);
+  border-color: var(--re-marigold-hover);
+  color: var(--re-on-marigold);
+}
+
+/* =========================================================
+   Charts, drawn in CSS: 30 thin columns, and labelled bars
+   ========================================================= */
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 56px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--re-line);
+}
+
+.spark span {
+  flex: 1;
+  min-width: 2px;
+  background: var(--re-forest);
+  border-radius: 2px 2px 0 0;
+}
+
+.bars {
+  display: grid;
+  gap: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 40%) 1fr 2.5em;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-label {
+  font-size: .92rem;
+  color: var(--re-ink-soft);
+}
+
+.bar {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: var(--re-muted-bg);
+  border-radius: 999px;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--re-forest);
+  border-radius: 999px;
+}
+
+.bar-value {
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-cell {
+  min-width: 170px;
+  white-space: nowrap;
+}
+
+.bar-cell .bar {
+  display: inline-block;
+  width: calc(100% - 3em);
+  vertical-align: middle;
+}
+
+.bar-cell .bar-value {
+  display: inline-block;
+  width: 2.5em;
+}
+
+/* =========================================================
+   Review pages: a listing, an account
+   ========================================================= */
+.review-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.review-photo {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background: var(--re-muted-bg);
+  border-radius: 8px;
+}
+
+.review-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.review-photo span {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  font-size: .75rem;
+  color: #FFFFFF;
+  background: rgba(31, 42, 40, .78);
+  border-radius: 4px;
+}
+
+.review-terms {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 18px;
+  margin: 0 0 1rem;
+}
+
+.review-terms dt {
+  font-weight: 500;
+  color: var(--re-ink-soft);
+}
+
+.review-terms dd {
+  margin: 0;
+}
+
+.review-terms--stacked {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.review-terms--stacked dd {
+  margin-bottom: 10px;
+}
+
+.review-subhead {
+  margin: 1.25rem 0 .35rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.review-prose {
+  margin-bottom: 0;
+}
+
+.review-map {
+  height: 220px;
+  border-radius: 8px;
+}
+
+.review-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-history li + li {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--re-line);
+}
+
+@media print {
+  .main-sidebar,
+  .main-header,
+  .main-footer,
+  .no-print,
+  .content-header .breadcrumb {
+    display: none !important;
+  }
+
+  .content-wrapper {
+    margin-left: 0 !important;
+    background: #FFFFFF !important;
+  }
+
+  .card {
+    break-inside: avoid;
+  }
+}

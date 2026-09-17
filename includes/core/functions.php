@@ -1175,18 +1175,41 @@ function admin_target_url($targetType, $targetId)
     }
     switch ($targetType) {
         case 'listing':
-            return base_url('boarder/view_listing.php?id=' . (int) $targetId);
+            return base_url('admin/listing.php?id=' . (int) $targetId);
         case 'user':
-            return base_url('admin/manage_users.php');
+            return base_url('admin/user.php?id=' . (int) $targetId);
         default:
             return null;
     }
 }
 
-/** "3 days ago", "just now": how long ago a timestamp was, for the panel. */
+/**
+ * The database's clock, as 'Y-m-d H:i:s', read once per request.
+ *
+ * PHP here runs on UTC (date.timezone in php.ini) while MySQL runs on the
+ * machine's local time, eight hours ahead in the Philippines. A timestamp read
+ * from the database is therefore only ever compared with this, never with
+ * time(): mixing the two made an action taken a minute ago read "just now" for
+ * eight hours, and put late-evening sign-ups on the wrong day.
+ */
+function db_now()
+{
+    global $pdo;
+    static $now = null;
+    if ($now === null) {
+        try {
+            $now = (string) $pdo->query('SELECT NOW()')->fetchColumn();
+        } catch (PDOException $e) {
+            $now = date('Y-m-d H:i:s');
+        }
+    }
+    return $now;
+}
+
+/** "3 days ago", "just now": how long ago a database timestamp was. */
 function time_ago($datetime)
 {
-    $seconds = max(0, time() - strtotime((string) $datetime));
+    $seconds = max(0, strtotime(db_now()) - strtotime((string) $datetime));
     if ($seconds < 60) {
         return 'just now';
     }

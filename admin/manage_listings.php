@@ -111,6 +111,18 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             </div>
           <?php endif; ?>
           <div class="mt-2 mt-sm-0 ml-sm-2<?= $showRemoved ? ' ml-auto' : '' ?>">
+            <?php
+            $exportQuery = ['type' => 'listings'];
+            if ($showRemoved) {
+              $exportQuery['view'] = 'removed';
+            } elseif ($statusFilter !== '') {
+              $exportQuery['status'] = $statusFilter;
+            }
+            ?>
+            <a href="<?= base_url('admin/export.php?' . http_build_query($exportQuery)) ?>" class="btn btn-sm btn-outline-secondary"
+              title="Download these listings as a spreadsheet">
+              <i class="fas fa-file-csv mr-1"></i> Export CSV
+            </a>
             <?php if ($showRemoved): ?>
               <a href="<?= base_url('admin/manage_listings.php') ?>" class="btn btn-sm btn-outline-dark">
                 <i class="fas fa-arrow-left mr-1"></i> Back to listings
@@ -158,9 +170,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 ?>
                 <tr>
                   <td class="font-weight-bold">
-                    <a href="<?= base_url('boarder/view_listing.php?id=' . $l['boarding_house_id']) ?>" target="_blank"
-                      class="text-dark" title="View Listing Details">
-                      <i class="fas fa-external-link-alt text-xs text-primary mr-1"></i>
+                    <a href="<?= base_url('admin/listing.php?id=' . $l['boarding_house_id']) ?>" title="Review this listing">
                       <?= h($l['name']) ?>
                     </a>
                   </td>
