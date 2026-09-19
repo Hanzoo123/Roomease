@@ -15,6 +15,8 @@
  *   $bleed      bool, optional. True when the page draws its own bands and
  *               containers, as the home page does.
  */
+require_once __DIR__ . '/../components/icons.php';
+
 $pageTitle = $pageTitle ?? 'RoomEase';
 $band = $band ?? [];
 $bleed = $bleed ?? false;
@@ -30,9 +32,16 @@ $navCurrent = function ($path) {
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <?php /* The phone's browser chrome takes the band's colour, so the page starts
+       at the top of the screen instead of under a grey strip. */ ?>
+  <meta name="theme-color" content="#184A3F">
   <title><?= h($pageTitle) ?> · RoomEase</title>
   <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
+  <?php /* Before the first paint, so the collapsed navigation is only ever drawn
+       where the script that opens it is running. With JavaScript off the links
+       stay laid out as they always were. */ ?>
+  <script>document.documentElement.className += ' js';</script>
   <?php /* filemtime stamp: a stylesheet edit shows up on the next load instead of
        sitting behind a stale browser cache. */ ?>
   <link rel="stylesheet"
@@ -50,7 +59,16 @@ $navCurrent = function ($path) {
       <div class="nav-tab">
         <a href="<?= base_url('index.php') ?>" class="brand">RoomEase</a>
 
-        <nav class="nav" aria-label="Main">
+        <?php /* Only ever visible on a narrow screen, where the links below drop
+             out of the tab and become a sheet hanging under it. Which icon
+             shows follows aria-expanded, so the button has one state to set. */ ?>
+        <button type="button" class="nav-toggle" data-nav-toggle
+          aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+          <span class="nav-toggle-open"><?= icon('menu', 22) ?></span>
+          <span class="nav-toggle-close"><?= icon('x', 22) ?></span>
+        </button>
+
+        <nav class="nav" id="site-nav" aria-label="Main">
           <a href="<?= base_url('boarder/browse.php') ?>"<?= $navCurrent('boarder/browse.php') ?>>Browse rooms</a>
           <?php if (is_logged_in()): ?>
             <?php if (current_role() === 'landlord'): ?>
@@ -76,6 +94,11 @@ $navCurrent = function ($path) {
         </nav>
       </div>
     </div>
+
+    <?php /* Dims the page behind an open sheet, and a tap anywhere on it closes
+         the sheet. Hidden outright the rest of the time, so it can never
+         swallow a tap meant for the page. */ ?>
+    <div class="nav-scrim" data-nav-scrim hidden></div>
   </header>
 
   <?php /* Outside the header, which stays on screen as the page scrolls: a

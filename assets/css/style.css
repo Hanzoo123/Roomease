@@ -302,6 +302,136 @@ a:hover {
   color: #fff;
 }
 
+/* =========================================================
+   The same header on a phone: the tab stays one line
+   ---------------------------------------------------------
+   Under 820px the links leave the tab — where they were wrapping onto a
+   second and third row — and become a sheet that hangs under it, opened by
+   the button beside the wordmark. The sheet is plain on purpose: the page's
+   one bold element is the seam below, not the navigation.
+
+   Everything here is gated on html.js, which header.php sets before the first
+   paint. With JavaScript off, nothing would open the sheet, so the links stay
+   laid out as they are above.
+   ========================================================= */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--forest);
+  cursor: pointer;
+}
+
+.nav-toggle:hover,
+.nav-toggle[aria-expanded="true"] {
+  background: var(--leaf);
+}
+
+/* One button, two icons: which one shows follows the state the button already
+   has to publish for screen readers. */
+.nav-toggle-close,
+.nav-toggle[aria-expanded="true"] .nav-toggle-open {
+  display: none;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-close {
+  display: inline-flex;
+}
+
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: rgba(15, 58, 49, .35);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+@media (max-width: 820px) {
+  html.js .nav-toggle {
+    display: inline-flex;
+  }
+
+  html.js .nav-tab {
+    flex-wrap: nowrap;
+    padding: 8px 10px 8px 20px;
+  }
+
+  /* Hangs from the tab's lower edge and overlaps it by the tab's own corner
+     radius, so the two read as one piece of paper rather than two. */
+  html.js .nav {
+    position: absolute;
+    top: calc(100% - 16px);
+    left: 0;
+    right: 0;
+    z-index: 2;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 22px 16px 16px;
+    background: var(--panel);
+    border-radius: 0 0 20px 20px;
+    box-shadow: var(--lift);
+    /* A long menu scrolls inside itself rather than off the screen. dvh, where
+       it is understood, discounts the phone's own address bar. */
+    max-height: calc(100vh - 76px);
+    max-height: calc(100dvh - 76px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  html.nav-open .nav {
+    display: flex;
+  }
+
+  html.js .nav a {
+    padding: 13px 10px;
+    font-size: 16px;
+    border-radius: var(--r-md);
+  }
+
+  html.js .nav a + a,
+  html.js .nav .role-tag + a {
+    border-top: 1px solid var(--line);
+  }
+
+  /* There is room for it here, unlike in the tab. */
+  html.js .nav .nav-extra {
+    display: block;
+  }
+
+  html.js .role-tag {
+    align-self: flex-start;
+    margin: 4px 10px 8px;
+  }
+
+  /* The one action in the sheet, kept last and given the full width. */
+  html.js .nav .btn-nav {
+    margin: 12px 0 0;
+    border-top: 1px solid var(--forest);
+    padding: 13px 10px;
+    text-align: center;
+  }
+
+  html.nav-open,
+  html.nav-open body {
+    overflow: hidden;
+  }
+
+  /* While the sheet is open the tab is the only part of the header that takes
+     a tap; .is-floating otherwise passes taps through to the page. */
+  html.nav-open .site-header.is-floating {
+    pointer-events: auto;
+  }
+}
+
 /* Flash messages sit in the band, just under the tab, so they need no script. */
 .flash-band {
   position: relative;
@@ -405,7 +535,9 @@ a:hover {
 
 .hero-title {
   color: #fff;
-  font-size: clamp(2.5rem, 1.1rem + 5.2vw, 4.25rem);
+  /* The floor is set by the phone, not the laptop: at 2.5rem the heading ran
+     to three lines on a 375px screen and pushed the search box off it. */
+  font-size: clamp(2.05rem, 1.1rem + 5.2vw, 4.25rem);
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -0.025em;
@@ -2243,6 +2375,64 @@ input[type=checkbox] {
   margin-top: var(--s2);
 }
 
+/* =========================================================
+   The call bar: the landlord's number, kept within reach
+   ---------------------------------------------------------
+   Below 980px Quick Info moves above the long read, so by the time a boarder
+   has been through the rooms, the utilities and the house rules, the number
+   they came for is thousands of pixels behind them. On a phone it rides along
+   the bottom of the screen instead. Rent on the left, Call on the right in
+   the accent that is already reserved for it.
+   ========================================================= */
+.call-bar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  /* The inset keeps the buttons clear of the iPhone's home bar. */
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -10px 30px -22px rgba(15, 58, 49, .6);
+}
+
+.call-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.call-bar-price {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+.call-bar-price span {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.call-bar .save-form {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.call-bar .btn {
+  flex: 0 0 auto;
+  padding: 11px 18px;
+}
+
 .is-copied {
   background: var(--available-fg) !important;
   color: #fff !important;
@@ -2709,6 +2899,15 @@ input[type=checkbox] {
     border-radius: 0 0 16px 16px;
   }
 
+  /* The sheet carries the tab's corner, whatever it is at this width. */
+  html.js .nav-tab {
+    padding: 8px 8px 8px 16px;
+  }
+
+  html.js .nav {
+    border-radius: 0 0 16px 16px;
+  }
+
   .nav a {
     font-size: 14.5px;
     padding: 6px 9px;
@@ -2845,15 +3044,149 @@ input[type=checkbox] {
   .lightbox-next {
     right: calc(50% - 58px);
   }
+
+  .call-bar {
+    display: block;
+  }
+
+  /* Room under the last line of the page for the bar that floats over it. */
+  body:has(.call-bar) .site-footer {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Six room types wrapped into four rows of chips and pushed the rooms
+     themselves off the screen. One row that scrolls sideways instead. */
+  .room-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    /* Bleeds to both edges so a half-visible chip says there is more. */
+    margin-inline: calc(-1 * var(--s4));
+    padding-inline: var(--s4);
+    padding-bottom: 4px;
+  }
+
+  .room-filter .chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  /* Comfortable targets for a thumb. */
+  .chip,
+  .show-more .btn {
+    min-height: 42px;
+  }
+
+  .chip {
+    padding: 8px 14px;
+  }
 }
 
 @media (max-width: 600px) {
+  /* =========================================================
+     Two listings to a row on a phone
+     ---------------------------------------------------------
+     One card per row meant two listings to a screenful and a lot of scrolling
+     to compare rents. Two columns puts four in view. A card is then about
+     165px wide on a 375px screen, so everything inside it steps down a size
+     and the foot stacks: the room count over a full-width "View details".
+     ========================================================= */
   .card-grid {
-    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
   .card-chunk + .card-chunk {
-    margin-top: 16px;
+    margin-top: 12px;
+  }
+
+  .room-card-body {
+    padding: 12px 12px 14px;
+  }
+
+  .room-card-title {
+    font-size: 15px;
+  }
+
+  .room-card-addr {
+    margin-top: 4px;
+    font-size: 12.5px;
+    gap: 4px;
+  }
+
+  .room-card-price {
+    margin-top: 10px;
+    font-size: 19px;
+  }
+
+  .room-card-price span,
+  .room-card-type,
+  .room-card-meta {
+    font-size: 12.5px;
+  }
+
+  /* One line each: three room types would otherwise push the foot down on one
+     card and not its neighbour, and the row would stop lining up. */
+  .room-card-type {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+  }
+
+  .room-card-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 10px;
+  }
+
+  .room-card-cta {
+    justify-content: center;
+    width: 100%;
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+
+  .room-card-body > :nth-last-child(2) {
+    margin-bottom: 12px;
+  }
+
+  /* The photo's furniture shrinks with the photo. */
+  .room-card .pill--on-photo {
+    top: 8px;
+    right: 8px;
+    font-size: 11.5px;
+    padding: 4px 8px;
+  }
+
+  .room-card .save-form {
+    top: 8px;
+    left: 8px;
+  }
+
+  .room-card .save-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .room-card-placeholder .icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .room-card-placeholder span {
+    font-size: 15px;
+    padding: 0 8px;
+    text-align: center;
+  }
+
+  /* The rooms inside one listing follow the same two-up rhythm. */
+  .room-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .util-grid,
@@ -2861,7 +3194,8 @@ input[type=checkbox] {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Guests reach "List a property" from the home page and footer instead. */
+  /* Guests reach "List a property" from the home page and footer instead.
+     Inside the sheet there is room for it, which the rule above restores. */
   .nav .nav-extra {
     display: none;
   }
@@ -2874,6 +3208,24 @@ input[type=checkbox] {
 
   .brand {
     font-size: 20px;
+  }
+
+  /* Two cards still fit here, but the rent has to: at 19px a four-figure rent
+     pushed "/ month" onto a line of its own. */
+  .card-grid {
+    gap: 10px;
+  }
+
+  .room-card-price {
+    font-size: 17px;
+  }
+
+  .room-card-price span {
+    font-size: 12px;
+  }
+
+  .room-card-body {
+    padding: 11px 11px 13px;
   }
 }
 

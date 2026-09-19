@@ -654,6 +654,49 @@ rows and its existing administrator password. To adopt the new arrangement,
 either keep using that database as it is, or drop it and follow the setup
 steps above from step 3.
 
+### The public theme on a phone
+
+The public pages were readable on a phone but not designed for one. Four
+things changed, all in the public theme; the AdminLTE panels are untouched.
+
+**The navigation tab is one line again.** Below 820px the links no longer fit
+beside the wordmark, and the white tab was wrapping onto two rows — three for
+a landlord, whose navigation also carries a role tag and "Add listing". The
+links now leave the tab and become a sheet that hangs under it, opened by the
+button beside the wordmark (`includes/layouts/header.php`, the second half of
+`assets/js/site-header.js`, and the *same header on a phone* block in
+`assets/css/style.css`). Escape, a tap on the dimmed page, or following a link
+closes it; the header's scroll-away behaviour is suspended while it is open,
+so the menu cannot slide out from under a reaching thumb. All of it is gated
+on `html.js`, which `header.php` sets before the first paint: with JavaScript
+off nothing would open the sheet, so the links stay laid out as they were.
+
+**Two listings to a row.** `.card-grid` used `minmax(290px, 1fr)`, which is
+one card per row on any phone — two listings to a screenful. Below 600px it is
+now two fixed columns, which is four in view, and the card has a compact form
+to match: smaller type, the address and room types clamped to one line each,
+and a foot that stacks the room count over a full-width "View details". At
+380px and below the rent drops another step, because at 19px a four-figure
+rent pushed "/ month" onto a line of its own. The rooms inside a listing
+follow the same two-up rhythm.
+
+**The landlord's number stays within reach.** Below 980px Quick Info is
+hoisted above the long read, so by the time a boarder has been through the
+rooms, the utilities and the house rules, the number they came for is
+thousands of pixels behind them. On a phone `.call-bar` rides along the bottom
+of the screen instead: rent on the left, Call on the right in the accent
+already reserved for it. It repeats the heart from Quick Info, so
+`includes/scripts/favorite_toggle.php` now repaints every heart for a listing
+rather than only the form that was submitted — otherwise the two would
+disagree after a tap.
+
+**Smaller things.** The hero heading's floor came down from 2.5rem, where it
+ran to three lines on a 375px screen and pushed the search box off it; the
+room-type filter on a listing became one row that scrolls sideways instead of
+four rows of chips; chips and "Show more" are at least 42px tall; and the page
+declares a `theme-color`, so the phone's browser chrome takes the band's
+forest rather than a grey strip.
+
 ## Suggested next steps
 
 Parts B and C of `RoomEase_Improvement_Plan.docx` cover these in full. The

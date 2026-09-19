@@ -529,6 +529,46 @@ require __DIR__ . '/../includes/layouts/header.php';
   </aside>
 </div>
 
+<?php if ($shownPhone !== ''): ?>
+  <?php /* Phones only (.call-bar is display:none above 720px). Quick Info is
+           hoisted above the long read on a narrow screen, so without this the
+           number is left far behind by the time anyone has read the listing.
+           The heart repeats the one in Quick Info; favorite_toggle.js repaints
+           every heart for the listing, so the two never disagree. */ ?>
+  <div class="call-bar">
+    <div class="call-bar-inner">
+      <?php if ($avail['rent_from'] !== null): ?>
+        <p class="call-bar-price">
+          <?php if (count($rooms) > 1): ?><span>From</span> <?php endif; ?><?= peso_round($avail['rent_from']) ?>
+          <span>/ month</span>
+        </p>
+      <?php else: ?>
+        <p class="call-bar-price"><?= h($listing['landlord_name']) ?></p>
+      <?php endif; ?>
+
+      <?php if (can_save_listings()): ?>
+        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
+          <?= csrf_field() ?>
+          <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
+          <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">
+          <input type="hidden" name="return" value="view">
+          <button type="submit" class="save-btn <?= $isSaved ? 'is-saved' : '' ?>"
+            title="<?= $isSaved ? 'Remove from saved' : 'Save this listing' ?>"
+            aria-label="<?= $isSaved ? 'Remove from saved' : 'Save this listing' ?>"
+            aria-pressed="<?= $isSaved ? 'true' : 'false' ?>">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $isSaved ? 'currentColor' : 'none' ?>"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </form>
+      <?php endif; ?>
+
+      <a class="btn btn-accent" href="tel:<?= h($dialPhone) ?>"><?= icon('phone', 16) ?> Call</a>
+    </div>
+  </div>
+<?php endif; ?>
+
 <?php if ($galleryPhotos || $roomPhotos): ?>
   <?php /* One viewer for the house gallery and every room's photos. listing.js
            hides the arrows when the set it is showing has a single photo. */ ?>

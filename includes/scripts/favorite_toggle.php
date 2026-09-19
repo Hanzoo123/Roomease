@@ -65,6 +65,28 @@
     }
 
     /**
+     * The listing page carries two hearts for the same listing: one in Quick
+     * Info and one in the call bar that follows a phone down the page. Both
+     * are repainted, or tapping one would leave the other showing the state
+     * the listing was in before.
+     */
+    function paintAll(form, saved) {
+      var idField = form.querySelector('input[name="boarding_house_id"]');
+      var id = idField ? idField.value : null;
+
+      Array.prototype.forEach.call(document.querySelectorAll('.save-form'), function (other) {
+        var otherId = other.querySelector('input[name="boarding_house_id"]');
+        if (!id || !otherId || otherId.value !== id) {
+          return;
+        }
+        var otherBtn = other.querySelector('.save-btn');
+        if (otherBtn) {
+          paint(other, otherBtn, saved);
+        }
+      });
+    }
+
+    /**
      * On the saved page an unsaved card no longer belongs in the list, so it
      * fades out and the counter follows it down. Emptying the list reloads
      * once, which is the cheapest way to get the proper empty state back.
@@ -130,7 +152,7 @@
           if (!data.saved && form.dataset.dropOnUnsave) {
             dropCard(form);
           } else {
-            paint(form, btn, data.saved);
+            paintAll(form, data.saved);
           }
           toast(data.message, 'success');
         })
