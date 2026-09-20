@@ -66,31 +66,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-bolt text-primary mr-2"></i>Utilities &amp; Amenities
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item active">Utilities &amp; Amenities</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header('Utilities & Amenities', [
+    'subtitle' => 'Items from the administrator are available to every landlord. Items you add are only on '
+      . 'your own list, and boarders see them on any listing you tick them for.',
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
-      <p class="text-muted">
-        Items from the administrator are available to every landlord. Items you add are only on your own list, and
-        boarders see them on any listing you tick them for.
-      </p>
-
       <div class="row">
         <?php foreach (['utility', 'amenity'] as $kind): ?>
           <?php

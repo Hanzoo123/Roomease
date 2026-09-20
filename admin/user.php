@@ -77,37 +77,21 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-7">
-          <div class="d-flex align-items-center" style="gap: 14px;">
-            <?= avatar_html($user, 56) ?>
-            <div>
-              <h1 class="m-0 font-weight-bold"><?= h($fullName) ?></h1>
-              <p class="text-muted mb-0 mt-1"><?= $isLandlord ? 'Landlord' : 'Boarder' ?> &middot; joined <?= h(date('F j, Y', strtotime($user['created_at']))) ?></p>
-            </div>
-          </div>
-        </div>
-        <div class="col-sm-5">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item">
-              <a href="<?= base_url('admin/manage_users.php' . ($removed ? '?view=archived' : '')) ?>">Manage Users</a>
-            </li>
-            <li class="breadcrumb-item active"><?= h($fullName) ?></li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header($fullName, [
+    'subtitle' => ($isLandlord ? 'Landlord' : 'Boarder') . ' · joined '
+      . date('F j, Y', strtotime($user['created_at'])),
+    'back' => 'admin/manage_users.php' . ($removed ? '?view=archived' : ''),
+    'backLabel' => 'Back to Manage Users',
+    'lead' => avatar_html($user, 44),
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
       <div class="row">
         <div class="col-lg-4">
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Account</h3></div>
+            <div class="card-header"><h3 class="card-title">Account</h3>
+              <span class="card-subtitle">How this person signs in, and what you can do about it.</span></div>
             <div class="card-body">
               <p class="mb-3">
                 <?php if ($removed): ?>
@@ -166,7 +150,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">History</h3></div>
+            <div class="card-header"><h3 class="card-title">History</h3>
+              <span class="card-subtitle">Changes an administrator made to this account.</span></div>
             <div class="card-body">
               <?php if (!$history): ?>
                 <p class="text-muted mb-0">No administrator has changed this account since the activity log started.</p>
@@ -190,7 +175,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <?php if ($isLandlord): ?>
             <div class="card shadow-sm">
               <div class="card-header">
-                <h3 class="card-title font-weight-bold">Listings <span class="text-muted font-weight-normal">(<?= count($listings) ?>)</span></h3>
+                <h3 class="card-title">Listings <span class="text-muted font-weight-normal">(<?= count($listings) ?>)</span></h3>
+              <span class="card-subtitle">Everything this landlord has posted, removed ones included.</span>
               </div>
               <div class="card-body p-0 table-responsive">
                 <?php if (!$listings): ?>
@@ -225,7 +211,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <?php else: ?>
             <div class="card shadow-sm">
               <div class="card-header">
-                <h3 class="card-title font-weight-bold">Saved listings <span class="text-muted font-weight-normal">(<?= count($saved) ?>)</span></h3>
+                <h3 class="card-title">Saved listings <span class="text-muted font-weight-normal">(<?= count($saved) ?>)</span></h3>
+              <span class="card-subtitle">Boarding houses this boarder shortlisted.</span>
               </div>
               <div class="card-body p-0 table-responsive">
                 <?php if (!$saved): ?>

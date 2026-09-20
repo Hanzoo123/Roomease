@@ -85,10 +85,77 @@ body,
   --re-slate: #3A4543;
   --re-gray: #66706D;
 
-  /* The forest sidebar. */
-  --re-sidebar-text: #B9CBC4;
-  --re-sidebar-bright: #F3F1EA;
-  --re-sidebar-line: rgba(255, 255, 255, .12);
+  /* Hairlines. --re-line draws a card's edge; --re-line-soft separates rows
+     inside one, where the stronger line would turn ten rows into a grid. */
+  --re-line-soft: #F0ECE3;
+
+  /* The small grey a field label is set in: one step quieter than
+     --re-ink-faint, so a label never competes with its own value. */
+  --re-ink-label: #8A948F;
+
+  /* The sidebar. It is white, like the cards, against the paper page: the
+     panel's colour belongs to the figures and the statuses, not to the frame
+     around them. Forest marks the item you are on, and nothing else. */
+  --re-sidebar-bg: #FFFFFF;
+  --re-sidebar-text: #5C6B66;
+  --re-sidebar-bright: #1F2A28;
+  --re-sidebar-line: #E6E1D6;
+  --re-sidebar-hover: #FAF8F3;
+  --re-sidebar-active-bg: #E6EFEA;
+}
+
+/* =========================================================
+   Type scale
+   ---------------------------------------------------------
+   Four sizes do the whole panel: a page title, a card title,
+   a body/table size, and a small grey for labels and meta.
+   Set once here so a new page inherits the hierarchy instead
+   of picking sizes by eye.
+   ========================================================= */
+.page-title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--re-ink);
+}
+
+.page-subtitle {
+  margin: 4px 0 0;
+  font-size: .845rem;
+  line-height: 1.45;
+  color: var(--re-ink-soft);
+}
+
+/* A label above a value: the pair the panel repeats everywhere, from a
+   guest's details to a listing's rent. */
+.re-field-label {
+  display: block;
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--re-ink-label);
+}
+
+.re-field-value {
+  display: block;
+  margin-top: 2px;
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--re-ink);
+}
+
+/* Several pairs side by side, wrapping to as many as fit. */
+.re-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px 20px;
+}
+
+.re-fields--tight {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px 16px;
 }
 
 /* =========================================================
@@ -127,10 +194,9 @@ body,
   border-color: transparent;
 }
 
-/* In the sidebar the circle sits on forest, where a light ring would read
-   as a halo, so the photo meets the background directly. */
+/* The sidebar circle sits on white like the rest, so it takes the same ring. */
 .panel-avatar {
-  border: 0;
+  border: 1px solid var(--re-line);
 }
 
 /* A listing's cover photo in a queue or a table row. */
@@ -309,6 +375,19 @@ a.stat--attention:hover,
 a.stat--attention:focus {
   color: var(--re-on-marigold);
   background: var(--re-marigold-hover);
+}
+
+/* Something needing the landlord's own attention, such as a rejected listing.
+   Only drawn when the figure is above zero: a permanent red nought on the
+   dashboard would read as a fault rather than as good news. */
+.stat--danger {
+  background: var(--re-red);
+}
+
+a.stat--danger:hover,
+a.stat--danger:focus {
+  color: #FFFFFF;
+  background: var(--re-red-deep);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -718,8 +797,12 @@ a:hover {
 }
 
 /* ---- Sidebar ---- */
-.main-sidebar[class*="sidebar-dark-"] {
-  background: var(--re-forest);
+/* Both the dark and light AdminLTE variants are matched, so the panel looks
+   right whichever class the markup carries. */
+.main-sidebar[class*="sidebar-dark-"],
+.main-sidebar[class*="sidebar-light-"] {
+  background: var(--re-sidebar-bg);
+  border-right: 1px solid var(--re-sidebar-line);
   box-shadow: none !important;
 }
 
@@ -765,7 +848,7 @@ a:hover {
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: var(--re-sidebar-bright);
+  color: var(--re-forest);
 }
 
 .main-sidebar .user-panel {
@@ -780,44 +863,54 @@ a:hover {
 }
 
 .panel-role {
-  color: var(--re-sidebar-text);
+  font-size: .78rem;
+  color: var(--re-ink-label);
 }
 
-.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link {
+.main-sidebar .nav-sidebar > .nav-item > .nav-link {
+  padding: .55rem .8rem;
+  font-size: .875rem;
   color: var(--re-sidebar-text);
   border-radius: 8px;
 }
 
-.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:hover,
-.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:focus {
-  color: var(--re-sidebar-bright);
-  background: rgba(255, 255, 255, .08);
+.main-sidebar .nav-sidebar > .nav-item > .nav-link .nav-icon {
+  font-size: .95rem;
+  color: var(--re-ink-faint);
 }
 
-.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link.active,
-.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link.active:hover,
-.main-sidebar[class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link.active:focus {
+.main-sidebar .nav-sidebar > .nav-item > .nav-link:hover,
+.main-sidebar .nav-sidebar > .nav-item > .nav-link:focus {
+  color: var(--re-sidebar-bright);
+  background: var(--re-sidebar-hover);
+}
+
+/* The page you are on is the only forest in the sidebar. A soft leaf fill
+   rather than a solid bar: it marks the item without turning it into the
+   loudest thing on the screen, which the figures should be. */
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active,
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active:hover,
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active:focus {
   font-weight: 600;
-  color: var(--re-on-marigold);
-  background: var(--re-marigold);
+  color: var(--re-forest);
+  background: var(--re-sidebar-active-bg);
   box-shadow: none;
 }
 
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active .nav-icon {
+  color: var(--re-forest);
+}
+
 .nav-count {
-  top: .6rem;
+  top: .5rem;
   min-width: 1.5rem;
   padding: 1px 7px;
-  font-size: .75rem;
+  font-size: .72rem;
   font-weight: 700;
   text-align: center;
   color: var(--re-on-marigold);
   background: var(--re-marigold);
   border-radius: 999px;
-}
-
-.nav-link.active .nav-count {
-  color: var(--re-marigold);
-  background: var(--re-on-marigold);
 }
 
 .nav-divider {
@@ -833,41 +926,64 @@ a:hover {
   box-shadow: none !important;
 }
 
-/* A coloured rule along the top, as AdminLTE's outline cards have. */
-.card.card-outline {
-  border-top: 3px solid var(--re-forest);
-}
-
-.card.card-info.card-outline {
-  border-top-color: var(--re-teal);
-}
-
-.card.card-success.card-outline {
-  border-top-color: var(--re-green);
-}
-
-.card.card-warning.card-outline {
-  border-top-color: var(--re-marigold);
-}
-
-.card.card-danger.card-outline {
-  border-top-color: var(--re-red);
-}
-
-.card.card-secondary.card-outline {
-  border-top-color: var(--re-gray);
+/* AdminLTE's outline cards draw a coloured rule along the top. The panel does
+   not: a card now says what it is in words, with a title and a line of grey
+   underneath, and twenty coloured rules competing down a page was the loudest
+   remaining sign that this started life as a stock theme. The card-outline
+   classes are left on the markup deliberately — they cost nothing, and
+   stripping them from every page would be a large diff for no visible gain. */
+.card.card-outline,
+.card[class*="card-"].card-outline {
+  border-top: 1px solid var(--re-line);
 }
 
 .card > .card-header,
-.card[class*="card-"]:not(.card-outline) > .card-header {
+.card[class*="card-"] > .card-header {
+  padding: 1rem 1.25rem;
   color: var(--re-ink);
   background: transparent;
   border-bottom: 1px solid var(--re-line);
 }
 
+/* AdminLTE floats the card title left, which puts the subtitle on the same
+   line as it. The title and its subtitle are one block here. */
 .card-title {
-  font-size: 1rem;
+  display: block;
+  float: none;
+  margin: 0;
+  font-size: .9375rem;
   font-weight: 600 !important;
+  line-height: 1.3;
+}
+
+/* The line of grey under a card's title, saying what the card is for. Every
+   card in the panel carries one: a box that has to be worked out from its
+   contents is a box that slows someone down. */
+.card-subtitle {
+  display: block;
+  margin: 2px 0 0;
+  font-size: .78rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--re-ink-label);
+}
+
+/* A header whose tools sit to the right of the title block. */
+.card-header--split {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.card-header--split .card-tools,
+.card-header--split .card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  float: none;
+  margin: 0;
 }
 
 .card-footer {
@@ -1174,34 +1290,70 @@ a:hover {
   background-color: var(--re-panel);
 }
 
-/* ---- Tables ---- */
+/* =========================================================
+   Tables
+   ---------------------------------------------------------
+   No vertical rules and no zebra striping. Both were doing a
+   job the data can do on its own, and a wide table drawn as a
+   grid reads as a spreadsheet rather than as a list of things
+   you can act on. What is left is a hairline between rows, a
+   quiet header, and room to breathe.
+   ========================================================= */
 .table {
   color: var(--re-ink);
+  font-size: .845rem;
 }
 
 .table thead th {
-  font-size: .85rem;
+  padding: .6rem .9rem;
+  font-size: .75rem;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--re-ink-soft);
   border-top: 0;
-  border-bottom: 2px solid var(--re-line);
+  border-bottom: 1px solid var(--re-line);
 }
 
+.table td {
+  padding: .75rem .9rem;
+  vertical-align: middle;
+}
+
+/* The row separator is the soft hairline, not the card's own edge colour:
+   ten rows of --re-line turn back into a grid. */
 .table td,
-.table th,
+.table tbody th {
+  border-top: 1px solid var(--re-line-soft);
+}
+
+/* table-bordered and table-striped are left on the markup and neutralised
+   here, so a page that still carries them looks the same as one that does
+   not, and no page is left half-converted. */
 .table-bordered,
 .table-bordered td,
 .table-bordered th {
-  border-color: var(--re-line);
+  border-left: 0;
+  border-right: 0;
+}
+
+.table-bordered thead td,
+.table-bordered thead th {
+  border-bottom-width: 1px;
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
-  background-color: rgba(24, 74, 63, .03);
+  background-color: transparent;
 }
 
 .table-hover tbody tr:hover {
   color: var(--re-ink);
-  background-color: var(--re-leaf);
+  background-color: var(--re-paper);
+}
+
+/* The last row meets the card's own border, so the two should not double up. */
+.card-body.p-0 > .table tbody tr:last-child td,
+.table-responsive > .table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .page-link {
@@ -1397,4 +1549,121 @@ a:hover {
     align-items: flex-start;
     gap: 12px;
   }
+}
+
+/* =========================================================
+   Page header (includes/components/panel_page_header.php)
+   ---------------------------------------------------------
+   One block at the top of every page: an optional way back,
+   the title, a line saying what the page is for, and the
+   actions. The actions sit here rather than scattered through
+   the page, so there is one place to look for "what can I do
+   on this screen".
+   ========================================================= */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-head-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* The way back to the list this record came from. A link rather than the
+   browser's back button, because arriving here from a search or a
+   notification is just as common as arriving from the list. */
+.page-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  margin-top: 1px;
+  color: var(--re-ink-soft);
+  background: var(--re-panel);
+  border: 1px solid var(--re-line);
+  border-radius: 8px;
+}
+
+.page-back:hover,
+.page-back:focus {
+  color: var(--re-forest);
+  background: var(--re-leaf);
+  border-color: var(--re-leaf);
+  text-decoration: none;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 575.98px) {
+  .page-head {
+    gap: 12px;
+  }
+
+  .page-actions {
+    width: 100%;
+  }
+
+  .page-actions > .btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* =========================================================
+   Empty states
+   ---------------------------------------------------------
+   A card with nothing in it still owes the reader a sentence
+   and, where there is one, a way to fix that.
+   ========================================================= */
+.re-empty {
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.re-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+  color: var(--re-ink-faint);
+  background: var(--re-muted-bg);
+  border-radius: 12px;
+}
+
+.re-empty-title {
+  margin: 0;
+  font-size: .9375rem;
+  font-weight: 600;
+  color: var(--re-ink);
+}
+
+.re-empty-text {
+  max-width: 380px;
+  margin: 4px auto 0;
+  font-size: .845rem;
+  color: var(--re-ink-soft);
+}
+
+.re-empty-action {
+  margin-top: 14px;
+}
+
+/* The same thing inside a table, where it has to sit in a cell. */
+.table .re-empty {
+  padding: 28px 20px;
 }

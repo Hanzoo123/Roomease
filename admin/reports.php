@@ -151,25 +151,24 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2 align-items-center">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold"><i class="fas fa-chart-bar text-primary mr-2"></i>Reports</h1>
-          <p class="text-muted mb-0 mt-1">As of <?= h(date('F j, Y g:i A', strtotime(db_now()))) ?></p>
-        </div>
-        <div class="col-sm-6 d-flex flex-wrap justify-content-sm-end no-print" style="gap: 8px;">
-          <div class="btn-group" role="group" aria-label="Period">
-            <a href="<?= base_url('admin/reports.php?months=6') ?>" class="btn btn-sm btn-outline-primary <?= $months === 6 ? 'active' : '' ?>">6 months</a>
-            <a href="<?= base_url('admin/reports.php?months=12') ?>" class="btn btn-sm btn-outline-primary <?= $months === 12 ? 'active' : '' ?>">12 months</a>
-          </div>
-          <a href="<?= base_url('admin/export.php?type=users') ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-csv mr-1"></i> Users CSV</a>
-          <a href="<?= base_url('admin/export.php?type=listings') ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-csv mr-1"></i> Listings CSV</a>
-          <button type="button" class="btn btn-sm btn-outline-secondary js-print"><i class="fas fa-print mr-1"></i> Print</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <?php
+    $reportActions = '<div class="btn-group" role="group" aria-label="Period">'
+      . '<a href="' . base_url('admin/reports.php?months=6') . '" class="btn btn-sm btn-outline-primary '
+      . ($months === 6 ? 'active' : '') . '">6 months</a>'
+      . '<a href="' . base_url('admin/reports.php?months=12') . '" class="btn btn-sm btn-outline-primary '
+      . ($months === 12 ? 'active' : '') . '">12 months</a></div>'
+      . '<a href="' . base_url('admin/export.php?type=users') . '" class="btn btn-sm btn-outline-secondary">'
+      . '<i class="fas fa-file-csv mr-1"></i> Users CSV</a>'
+      . '<a href="' . base_url('admin/export.php?type=listings') . '" class="btn btn-sm btn-outline-secondary">'
+      . '<i class="fas fa-file-csv mr-1"></i> Listings CSV</a>'
+      . '<button type="button" class="btn btn-sm btn-outline-secondary js-print">'
+      . '<i class="fas fa-print mr-1"></i> Print</button>';
+
+    panel_page_header('Reports', [
+      'subtitle' => 'How RoomEase is doing, as of ' . date('F j, Y g:i A', strtotime(db_now())) . '.',
+      'actions' => $reportActions,
+    ]);
+    ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -190,7 +189,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       </div>
 
       <div class="card shadow-sm">
-        <div class="card-header"><h3 class="card-title font-weight-bold">Month by month</h3></div>
+        <div class="card-header"><h3 class="card-title">Month by month</h3>
+              <span class="card-subtitle">New accounts and new listings, with the decisions made on them.</span></div>
         <div class="card-body p-0 table-responsive">
           <table class="table mb-0 report-table">
             <thead>
@@ -240,7 +240,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       <div class="row">
         <div class="col-lg-4">
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Listings by status</h3></div>
+            <div class="card-header"><h3 class="card-title">Listings by status</h3>
+              <span class="card-subtitle">Where every listing stands with approval.</span></div>
             <div class="card-body">
               <?= bar_rows([
                 ['label' => 'Pending', 'value' => $statusCounts['pending'], 'tone' => 'marigold'],
@@ -253,13 +254,15 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
         <div class="col-lg-4">
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Open rooms by type</h3></div>
+            <div class="card-header"><h3 class="card-title">Open rooms by type</h3>
+              <span class="card-subtitle">What boarders can actually book right now.</span></div>
             <div class="card-body"><?= bar_rows($roomTypes, 'terracotta') ?></div>
           </div>
         </div>
         <div class="col-lg-4">
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Open rooms by monthly rent</h3></div>
+            <div class="card-header"><h3 class="card-title">Open rooms by monthly rent</h3>
+              <span class="card-subtitle">How the available rooms are priced.</span></div>
             <div class="card-body"><?= bar_rows($rentRows, 'terracotta') ?></div>
           </div>
         </div>

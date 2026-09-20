@@ -61,80 +61,76 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
-  <!-- Content Header (Page header) -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-home text-primary mr-2"></i>Manage Boarding House Listings
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item active">Manage Listings</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- /.content-header -->
+  <?php
+  $exportQuery = ['type' => 'listings'];
+  if ($showRemoved) {
+    $exportQuery['view'] = 'removed';
+  } elseif ($statusFilter !== '') {
+    $exportQuery['status'] = $statusFilter;
+  }
+
+  $pageActions = '<a href="' . base_url('admin/export.php?' . http_build_query($exportQuery))
+    . '" class="btn btn-sm btn-outline-secondary" title="Download these listings as a spreadsheet">'
+    . '<i class="fas fa-file-csv mr-1"></i> Export CSV</a>';
+
+  $pageActions .= $showRemoved
+    ? '<a href="' . base_url('admin/manage_listings.php') . '" class="btn btn-sm btn-outline-dark">'
+      . '<i class="fas fa-home mr-1"></i> All listings</a>'
+    : '<a href="' . base_url('admin/manage_listings.php?view=removed') . '" class="btn btn-sm btn-outline-dark">'
+      . '<i class="fas fa-archive mr-1"></i> Removed <span class="badge badge-light ml-1">'
+      . (int) $tally['removed'] . '</span></a>';
+
+  // Pending is the one worth going straight to, so it is the page's primary
+  // action — but only when something is actually waiting.
+  if (!$showRemoved && (int) $tally['pending'] > 0 && $statusFilter !== 'pending') {
+    $pageActions = '<a href="' . base_url('admin/manage_listings.php?status=pending')
+      . '" class="btn btn-sm btn-primary"><i class="fas fa-clipboard-check mr-1"></i> Review '
+      . (int) $tally['pending'] . ' pending</a>' . $pageActions;
+  }
+
+  panel_page_header($showRemoved ? 'Removed listings' : 'Manage Listings', [
+    'subtitle' => $showRemoved
+      ? 'Listings an administrator has archived. Restoring one brings back its rooms, photos and approval.'
+      : 'Every boarding house on RoomEase, by where it stands with approval.',
+    'back' => $showRemoved ? 'admin/manage_listings.php' : null,
+    'backLabel' => 'Back to all listings',
+    'actions' => $pageActions,
+  ]);
+  ?>
 
   <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
 
       <div class="card card-primary card-outline shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-          <h3 class="card-title font-weight-bold">
-            <i class="fas <?= $showRemoved ? 'fa-archive' : 'fa-clipboard-list' ?> mr-1"></i>
-            <?= $showRemoved ? 'Removed Listings' : 'Registered Boarding Houses' ?>
-          </h3>
+        <div class="card-header card-header--split">
+          <div style="min-width: 0;">
+            <h3 class="card-title"><?= $showRemoved ? 'Removed listings' : 'Registered boarding houses' ?></h3>
+            <span class="card-subtitle">
+              <?= $showRemoved ? 'Hidden from boarders and from their landlords until restored.'
+                : 'Newest first. Select a name to review everything about that listing.' ?>
+            </span>
+          </div>
           <?php if (!$showRemoved): ?>
-            <div class="btn-group mt-2 mt-sm-0 ml-auto" role="group" aria-label="Filter listings by approval status">
+            <div class="btn-group" role="group" aria-label="Filter listings by approval status">
               <a href="<?= base_url('admin/manage_listings.php') ?>"
                 class="btn btn-sm btn-outline-primary <?= $statusFilter === '' ? 'active' : '' ?>">
                 All <span class="badge badge-light ml-1"><?= (int) $tally['all_listings'] ?></span>
               </a>
               <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>"
-                class="btn btn-sm btn-outline-warning <?= $statusFilter === 'pending' ? 'active' : '' ?>">
+                class="btn btn-sm btn-outline-primary <?= $statusFilter === 'pending' ? 'active' : '' ?>">
                 Pending <span class="badge badge-light ml-1"><?= (int) $tally['pending'] ?></span>
               </a>
               <a href="<?= base_url('admin/manage_listings.php?status=approved') ?>"
-                class="btn btn-sm btn-outline-success <?= $statusFilter === 'approved' ? 'active' : '' ?>">
+                class="btn btn-sm btn-outline-primary <?= $statusFilter === 'approved' ? 'active' : '' ?>">
                 Approved <span class="badge badge-light ml-1"><?= (int) $tally['approved'] ?></span>
               </a>
               <a href="<?= base_url('admin/manage_listings.php?status=rejected') ?>"
-                class="btn btn-sm btn-outline-danger <?= $statusFilter === 'rejected' ? 'active' : '' ?>">
+                class="btn btn-sm btn-outline-primary <?= $statusFilter === 'rejected' ? 'active' : '' ?>">
                 Rejected <span class="badge badge-light ml-1"><?= (int) $tally['rejected'] ?></span>
               </a>
             </div>
           <?php endif; ?>
-          <div class="mt-2 mt-sm-0 ml-sm-2<?= $showRemoved ? ' ml-auto' : '' ?>">
-            <?php
-            $exportQuery = ['type' => 'listings'];
-            if ($showRemoved) {
-              $exportQuery['view'] = 'removed';
-            } elseif ($statusFilter !== '') {
-              $exportQuery['status'] = $statusFilter;
-            }
-            ?>
-            <a href="<?= base_url('admin/export.php?' . http_build_query($exportQuery)) ?>" class="btn btn-sm btn-outline-secondary"
-              title="Download these listings as a spreadsheet">
-              <i class="fas fa-file-csv mr-1"></i> Export CSV
-            </a>
-            <?php if ($showRemoved): ?>
-              <a href="<?= base_url('admin/manage_listings.php') ?>" class="btn btn-sm btn-outline-dark">
-                <i class="fas fa-arrow-left mr-1"></i> Back to listings
-              </a>
-            <?php else: ?>
-              <a href="<?= base_url('admin/manage_listings.php?view=removed') ?>" class="btn btn-sm btn-outline-dark">
-                <i class="fas fa-archive mr-1"></i> Removed
-                <span class="badge badge-light ml-1"><?= (int) $tally['removed'] ?></span>
-              </a>
-            <?php endif; ?>
-          </div>
         </div>
 
         <?php if ($showRemoved): ?>

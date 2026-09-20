@@ -8,6 +8,10 @@
  * panels cannot drift apart.
  */
 
+// The page header, card header and field helpers every panel page uses. Loaded
+// with the shell rather than page by page, so a new page gets them for free.
+require_once __DIR__ . '/../components/panel_page_header.php';
+
 /**
  * Panel settings for the currently logged-in user.
  * Returns the title suffix, the role label shown in the navbar and sidebar,

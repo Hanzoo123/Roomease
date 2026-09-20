@@ -16,7 +16,7 @@ require_login('admin');
 $listingId = (int) ($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare(
-  "SELECT bh.*,
+  "SELECT bh.*, " . COVER_PHOTO_SELECT . ",
           u.user_id AS landlord_id, u.first_name AS landlord_first_name, u.last_name AS landlord_last_name,
           u.email AS landlord_email, u.phone_number AS landlord_phone, u.is_active AS landlord_active,
           u.deleted_at AS landlord_deleted_at, u.created_at AS landlord_joined, u.google_id AS landlord_google_id,
@@ -147,25 +147,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-7">
-          <h1 class="m-0 font-weight-bold"><?= h($listing['name']) ?></h1>
-          <p class="text-muted mb-0 mt-1"><?= h($listing['address']) ?></p>
-        </div>
-        <div class="col-sm-5">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item">
-              <a href="<?= base_url('admin/manage_listings.php' . ($archived ? '?view=removed' : '')) ?>">Manage Listings</a>
-            </li>
-            <li class="breadcrumb-item active">Review</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header($listing['name'], [
+    'subtitle' => $listing['address'],
+    'back' => 'admin/manage_listings.php' . ($archived ? '?view=removed' : ''),
+    'backLabel' => 'Back to Manage Listings',
+    'lead' => listing_thumb_html($listing, 'queue-thumb'),
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -264,7 +251,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
           <div class="card shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">Photos <span class="text-muted font-weight-normal">(<?= count($photos) ?>)</span></h3>
+              <h3 class="card-title">Photos <span class="text-muted font-weight-normal">(<?= count($photos) ?>)</span></h3>
+              <span class="card-subtitle">House photos first, then each room's. Select one to see it full size.</span>
             </div>
             <div class="card-body">
               <?php if (!$photos): ?>
@@ -285,7 +273,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
           <div class="card shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">Rooms <span class="text-muted font-weight-normal">(<?= count($rooms) ?>)</span></h3>
+              <h3 class="card-title">Rooms <span class="text-muted font-weight-normal">(<?= count($rooms) ?>)</span></h3>
+              <span class="card-subtitle">A listing needs at least one room before it can be approved.</span>
             </div>
             <div class="card-body p-0 table-responsive">
               <?php if (!$rooms): ?>
@@ -313,7 +302,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Details</h3></div>
+            <div class="card-header"><h3 class="card-title">Details</h3>
+              <span class="card-subtitle">What the landlord wrote about the property.</span></div>
             <div class="card-body">
               <dl class="review-terms">
                 <dt>Contact number</dt>
@@ -349,7 +339,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
         <div class="col-lg-4">
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Landlord</h3></div>
+            <div class="card-header"><h3 class="card-title">Landlord</h3>
+              <span class="card-subtitle">Who posted this, and what else they have on RoomEase.</span></div>
             <div class="card-body">
               <div class="d-flex align-items-center mb-2" style="gap: 12px;">
                 <?php /* The one place in the admin area a landlord's own photo is
@@ -397,7 +388,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Location</h3></div>
+            <div class="card-header"><h3 class="card-title">Location</h3>
+              <span class="card-subtitle">The pin the landlord placed on the map.</span></div>
             <div class="card-body">
               <?php if ($hasMap): ?>
                 <div id="review-map" class="review-map" data-lat="<?= h($listing['latitude']) ?>"
@@ -416,7 +408,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">History</h3></div>
+            <div class="card-header"><h3 class="card-title">History</h3>
+              <span class="card-subtitle">Every decision made on this listing.</span></div>
             <div class="card-body">
               <?php if (!$history): ?>
                 <p class="text-muted mb-0">No administrator has acted on this listing since the activity log started.</p>

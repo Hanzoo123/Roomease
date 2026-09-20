@@ -163,25 +163,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
   <!-- Content Header (Page header) -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-edit text-primary mr-2"></i>Edit Boarding House
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/listings.php') ?>">My Boarding Houses</a></li>
-            <li class="breadcrumb-item active"><?= h($listing['name']) ?></li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- /.content-header -->
+  <?php panel_page_header($listing['name'], [
+    'subtitle' => 'Editing this listing sends it back to an administrator for approval.',
+    'back' => 'landlord/listings.php',
+    'backLabel' => 'Back to my boarding houses',
+    'actions' => '<a href="' . base_url('boarder/view_listing.php?id=' . (int) $listing['boarding_house_id'])
+      . '" target="_blank" class="btn btn-sm btn-outline-secondary">'
+      . '<i class="fas fa-external-link-alt mr-1"></i> Public page</a>',
+  ]); ?>
 
   <!-- Main content -->
   <section class="content">

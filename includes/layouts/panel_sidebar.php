@@ -48,7 +48,7 @@ foreach ($panel['menu'] as $idx => $item) {
 }
 ?>
 <!-- Main Sidebar Container -->
-<aside class="main-sidebar sidebar-dark-primary">
+<aside class="main-sidebar sidebar-light-primary">
   <!-- Brand: the RoomEase wordmark, as on the public site. The single letter
        is what stays visible when the sidebar is collapsed. -->
   <a href="<?= base_url($panel['home']) ?>" class="brand-link">

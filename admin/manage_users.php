@@ -47,27 +47,35 @@ require __DIR__ . '/../includes/layouts/panel_navbar.php';
 require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
+<?php
+// The page's own actions: taking a copy away, and the Removed view. Built as
+// a string because that is what panel_page_header() puts on the right.
+$exportQuery = array_filter(['type' => 'users', 'view' => $showArchived ? 'archived' : '',
+  'role' => in_array($roleFilter, ['landlord', 'boarder'], true) ? $roleFilter : '']);
+
+$pageActions = '<a href="' . base_url('admin/export.php?' . http_build_query($exportQuery))
+  . '" class="btn btn-sm btn-outline-secondary" title="Download these accounts as a spreadsheet">'
+  . '<i class="fas fa-file-csv mr-1"></i> Export CSV</a>';
+
+$pageActions .= $showArchived
+  ? '<a href="' . base_url('admin/manage_users.php') . '" class="btn btn-sm btn-outline-dark">'
+    . '<i class="fas fa-users mr-1"></i> Active accounts</a>'
+  : '<a href="' . base_url('admin/manage_users.php?view=archived') . '" class="btn btn-sm btn-outline-dark">'
+    . '<i class="fas fa-archive mr-1"></i> Removed <span class="badge badge-light ml-1">' . $totalArchived . '</span></a>';
+
+?>
+
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
-  <!-- Content Header (Page header) -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-users text-primary mr-2"></i>Manage Users
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item active">Manage Users</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- /.content-header -->
+
+  <?php panel_page_header($showArchived ? 'Removed accounts' : 'Manage Users', [
+    'subtitle' => $showArchived
+      ? 'Accounts an administrator has archived. Nothing is deleted, and restoring one brings its listings back with it.'
+      : 'Every landlord and boarder on RoomEase, and what an administrator can do about them.',
+    'back' => $showArchived ? 'admin/manage_users.php' : null,
+    'backLabel' => 'Back to active accounts',
+    'actions' => $pageActions,
+  ]); ?>
 
   <!-- Main content -->
   <section class="content">
@@ -75,45 +83,28 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
       <!-- Filter Buttons & Controls -->
       <div class="card card-primary card-outline shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-          <h3 class="card-title font-weight-bold">
-            <i class="fas <?= $showArchived ? 'fa-archive' : 'fa-list' ?> mr-1"></i>
-            <?= $showArchived ? 'Removed Accounts' : 'User Directory' ?>
-          </h3>
-          <div class="btn-group mt-2 mt-sm-0" role="group" aria-label="Filter users">
+        <div class="card-header card-header--split">
+          <div style="min-width: 0;">
+            <h3 class="card-title"><?= $showArchived ? 'Removed accounts' : 'User directory' ?></h3>
+            <span class="card-subtitle">
+              <?= $showArchived ? 'Restore an account to put it and its listings back on the site.'
+                : 'Sorted by newest first. Select a name to see everything about that account.' ?>
+            </span>
+          </div>
+          <div class="btn-group" role="group" aria-label="Filter users">
             <?php $q = $showArchived ? '?view=archived' : ''; $sep = $showArchived ? '&' : '?'; ?>
             <a href="manage_users.php<?= $q ?>"
               class="btn btn-sm btn-outline-primary <?= $roleFilter === '' ? 'active' : '' ?>">
               All <span class="badge badge-light ml-1"><?= $showArchived ? $totalArchived : $totalNonAdmin ?></span>
             </a>
             <a href="manage_users.php<?= $q . $sep ?>role=landlord"
-              class="btn btn-sm btn-outline-info <?= $roleFilter === 'landlord' ? 'active' : '' ?>">
+              class="btn btn-sm btn-outline-primary <?= $roleFilter === 'landlord' ? 'active' : '' ?>">
               Landlords <span class="badge badge-light ml-1"><?= $totalLandlords ?></span>
             </a>
             <a href="manage_users.php<?= $q . $sep ?>role=boarder"
-              class="btn btn-sm btn-outline-secondary <?= $roleFilter === 'boarder' ? 'active' : '' ?>">
+              class="btn btn-sm btn-outline-primary <?= $roleFilter === 'boarder' ? 'active' : '' ?>">
               Boarders <span class="badge badge-light ml-1"><?= $totalBoarders ?></span>
             </a>
-          </div>
-          <div class="mt-2 mt-sm-0 ml-sm-2">
-            <?php
-            $exportQuery = array_filter(['type' => 'users', 'view' => $showArchived ? 'archived' : '',
-              'role' => in_array($roleFilter, ['landlord', 'boarder'], true) ? $roleFilter : '']);
-            ?>
-            <a href="<?= base_url('admin/export.php?' . http_build_query($exportQuery)) ?>" class="btn btn-sm btn-outline-secondary"
-              title="Download these accounts as a spreadsheet">
-              <i class="fas fa-file-csv mr-1"></i> Export CSV
-            </a>
-            <?php if ($showArchived): ?>
-              <a href="manage_users.php" class="btn btn-sm btn-outline-dark">
-                <i class="fas fa-arrow-left mr-1"></i> Back to active users
-              </a>
-            <?php else: ?>
-              <a href="manage_users.php?view=archived" class="btn btn-sm btn-outline-dark">
-                <i class="fas fa-archive mr-1"></i> Removed
-                <span class="badge badge-light ml-1"><?= $totalArchived ?></span>
-              </a>
-            <?php endif; ?>
           </div>
         </div>
 

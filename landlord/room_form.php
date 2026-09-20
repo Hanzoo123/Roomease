@@ -122,26 +122,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-door-open text-primary mr-2"></i><?= $room ? 'Edit Room' : 'Add a Room' ?>
-          </h1>
-          <p class="text-muted mb-0 mt-1"><?= h($houseName) ?></p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/listings.php') ?>">My Boarding Houses</a></li>
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/edit_listing.php?id=' . $houseId) ?>#rooms"><?= h($houseName) ?></a></li>
-            <li class="breadcrumb-item active"><?= $room ? h($room['name']) : 'Add room' ?></li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header($room ? 'Edit Room' : 'Add a Room', [
+    'subtitle' => $houseName,
+    'back' => 'landlord/edit_listing.php?id=' . $houseId . '#rooms',
+    'backLabel' => 'Back to ' . $houseName,
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">

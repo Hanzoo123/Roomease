@@ -103,20 +103,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold"><i class="fas fa-tachometer-alt text-primary mr-2"></i>Dashboard</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item active">Home</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header('Dashboard', [
+    'subtitle' => 'What needs you now, how the last 30 days went, and what administrators have done lately.',
+    'actions' => '<a href="' . base_url('admin/manage_listings.php?status=pending')
+      . '" class="btn btn-sm btn-primary"><i class="fas fa-clipboard-check mr-1"></i> Review queue</a>'
+      . '<a href="' . base_url('admin/reports.php') . '" class="btn btn-sm btn-outline-secondary">'
+      . '<i class="fas fa-chart-bar mr-1"></i> Reports</a>',
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -151,14 +144,17 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       <div class="row">
         <div class="col-lg-8">
           <div class="card card-warning card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-clipboard-check mr-1"></i> Needs your review</h3>
-              <div class="card-tools">
-                <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>" class="btn btn-tool">All pending</a>
-              </div>
-            </div>
+            <?php panel_card_header(
+              'Needs your review',
+              'Listings waiting for a decision, the one that has waited longest first.',
+              '<a href="' . base_url('admin/manage_listings.php?status=pending') . '" class="btn btn-tool">All pending</a>'
+            ); ?>
             <?php if (!$needsReview): ?>
-              <div class="card-body text-muted">Nothing is waiting for a decision.</div>
+              <?= re_empty(
+                'The queue is clear',
+                'Nothing is waiting for a decision. New listings will appear here as landlords post them.',
+                'fa-clipboard-check'
+              ) ?>
             <?php else: ?>
               <ul class="list-group list-group-flush review-queue">
                 <?php foreach ($needsReview as $l): ?>
@@ -185,8 +181,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card card-primary card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-chart-bar mr-1"></i> Last 30 days</h3>
+            <div class="card-header card-header--split">
+              <div style="min-width: 0;">
+                <h3 class="card-title">Last 30 days</h3>
+                <span class="card-subtitle">New accounts and new listings, one bar per day.</span>
+              </div>
               <div class="card-tools">
                 <a href="<?= base_url('admin/reports.php') ?>" class="btn btn-tool">Reports</a>
               </div>
@@ -217,15 +216,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
         <div class="col-lg-4">
           <div class="card card-info card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-history mr-1"></i> Recent activity</h3>
-              <div class="card-tools">
-                <a href="<?= base_url('admin/activity.php') ?>" class="btn btn-tool">Full log</a>
-              </div>
-            </div>
-            <div class="card-body">
+            <?php panel_card_header(
+              'Recent activity',
+              'The last few things an administrator did.',
+              '<a href="' . base_url('admin/activity.php') . '" class="btn btn-tool">Full log</a>'
+            ); ?>
+            <div class="card-body<?= $recentActivity ? '' : ' p-0' ?>">
               <?php if (!$recentActivity): ?>
-                <p class="text-muted mb-0">No administrator actions yet.</p>
+                <?= re_empty('Nothing logged yet', 'Approvals, rejections and account changes will appear here.', 'fa-history') ?>
               <?php else: ?>
                 <ul class="review-history">
                   <?php foreach ($recentActivity as $e): ?>
@@ -254,15 +252,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card card-success card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-user-plus mr-1"></i> New accounts</h3>
-              <div class="card-tools">
-                <a href="<?= base_url('admin/manage_users.php') ?>" class="btn btn-tool">All users</a>
-              </div>
-            </div>
+            <?php panel_card_header(
+              'New accounts',
+              'The most recent landlords and boarders to sign up.',
+              '<a href="' . base_url('admin/manage_users.php') . '" class="btn btn-tool">All users</a>'
+            ); ?>
             <ul class="list-group list-group-flush">
               <?php if (!$recentUsers): ?>
-                <li class="list-group-item text-muted">No accounts yet.</li>
+                <li class="list-group-item p-0"><?= re_empty('No accounts yet', 'Landlords and boarders appear here as they sign up.', 'fa-user-plus') ?></li>
               <?php endif; ?>
               <?php foreach ($recentUsers as $ru): ?>
                 <li class="list-group-item d-flex align-items-center" style="gap: 10px;">
