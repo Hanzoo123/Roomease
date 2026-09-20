@@ -140,11 +140,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       );
   }
 
-  // The heading names the kind of page, not the person on it. Whose page this
-  // is comes from the Profile card below, which carries the photo and the
-  // name at a size the header cannot match, and from the browser tab, which
-  // still reads as their name.
+  // The heading names the kind of page and the line under it names the person,
+  // rather than the other way round. The name has to be here as well as in the
+  // Profile card: on the Listings and History tabs that card is not on screen,
+  // and a list of listings with no indication whose they are is a page you can
+  // misread.
   panel_page_header($isLandlord ? 'Landlord Profile' : 'Boarder Profile', [
+    'subtitle' => $fullName,
     'back' => 'admin/manage_users.php' . ($removed ? '?view=archived' : ''),
     'backLabel' => 'Back to Manage Users',
     'actions' => $pageActions,
@@ -219,8 +221,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <div class="re-fields re-fields--tight">
                     <?= re_field('Joined', date('M j, Y', strtotime($user['created_at']))) ?>
                     <?= re_field('Signs in with', $user['google_id'] ? 'Google' : 'Email and password') ?>
-                    <?= re_field('Remembered devices', '<span class="tabular">' . $devices . '</span>', true) ?>
-                    <?= re_field('Failed sign-ins, 24h', '<span class="tabular">' . $failedLogins . '</span>', true) ?>
+        
                   </div>
                 </div>
               </div>
