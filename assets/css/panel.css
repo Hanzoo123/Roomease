@@ -1718,3 +1718,258 @@ a:hover {
 .re-tabbed .re-tabpanel[hidden] {
   display: none;
 }
+
+/* =========================================================
+   Record cards (admin/user.php)
+   ---------------------------------------------------------
+   The pieces a page about one person is built from: a heading
+   block with their photo, sections divided inside a card,
+   contact details as rows rather than as a list of strings,
+   and a figures breakdown that totals at the bottom.
+   ========================================================= */
+
+/* Photo, name and status at the top of a profile card. */
+.re-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.re-profile-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--re-ink);
+}
+
+.re-profile-meta {
+  margin: 2px 0 0;
+  font-size: .78rem;
+  color: var(--re-ink-label);
+}
+
+/* A section inside a card: a rule, then a small heading. Deliberately not
+   set in capitals — an all-caps label above a heading is the tell this
+   panel is trying not to have. */
+.re-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--re-line-soft);
+}
+
+.re-section-label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--re-ink-soft);
+}
+
+/* A way of reaching this person: the icon in a soft tile, then the value.
+   Both rows are links, so the tile is part of the target rather than
+   decoration beside it. */
+.re-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: .875rem;
+  color: var(--re-ink);
+}
+
+.re-contact + .re-contact {
+  margin-top: 2px;
+}
+
+.re-contact:hover {
+  color: var(--re-forest);
+  text-decoration: none;
+}
+
+.re-contact-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  font-size: .85rem;
+  color: var(--re-forest);
+  background: var(--re-leaf);
+  border-radius: 9px;
+}
+
+.re-contact-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.re-contact--muted,
+.re-contact--muted:hover {
+  color: var(--re-ink-label);
+}
+
+.re-contact--muted .re-contact-icon {
+  color: var(--re-ink-faint);
+  background: var(--re-muted-bg);
+}
+
+/* A picture of the thing this card is about, as the reference puts the room
+   beside its booking. */
+.re-media {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border: 1px solid var(--re-line);
+  border-radius: 10px;
+}
+
+.re-media--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: var(--re-ink-faint);
+  background: var(--re-muted-bg);
+}
+
+/* Figures that add up: a label on the left, a number on the right, and the
+   total set apart above its own rule. */
+.re-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.re-breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: .82rem;
+  color: var(--re-ink-soft);
+}
+
+.re-breakdown-row > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.re-breakdown-value {
+  font-weight: 600;
+  color: var(--re-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The status the row counts, so colour still carries the meaning here. */
+.re-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--re-gray);
+}
+
+.re-dot--approved { background: var(--re-green); }
+.re-dot--pending  { background: var(--re-marigold); }
+.re-dot--rejected { background: var(--re-red); }
+.re-dot--removed  { background: var(--re-slate); }
+
+.re-breakdown-total {
+  margin-top: 4px;
+  padding-top: 10px;
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--re-ink);
+  border-top: 1px solid var(--re-line-soft);
+}
+
+.re-breakdown-total .re-breakdown-value {
+  font-weight: 700;
+}
+
+/* How many things are behind a card's title, beside it. */
+.re-count-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--re-forest);
+  background: var(--re-leaf);
+  border-radius: 999px;
+}
+
+/* =========================================================
+   Notes
+   ---------------------------------------------------------
+   What an administrator observed about an account. Private to
+   the panel, so the tone of the card is a working note rather
+   than a published comment.
+   ========================================================= */
+.re-note-form textarea {
+  resize: vertical;
+  min-height: 74px;
+}
+
+.re-note {
+  display: flex;
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid var(--re-line-soft);
+}
+
+.re-note-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.re-note-author {
+  font-size: .845rem;
+  font-weight: 600;
+  color: var(--re-ink);
+}
+
+.re-note-when {
+  font-size: .72rem;
+  color: var(--re-ink-label);
+}
+
+/* Notes keep the landlord's own words intact, including the line breaks
+   they were typed with. */
+.re-note-body {
+  margin: 0;
+  font-size: .845rem;
+  line-height: 1.5;
+  color: var(--re-ink-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.re-note-delete {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  font-size: .8rem;
+  line-height: 1;
+  color: var(--re-ink-faint);
+  background: none;
+  border: 0;
+}
+
+.re-note-delete:hover {
+  color: var(--re-red);
+}

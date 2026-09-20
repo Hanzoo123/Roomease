@@ -29,9 +29,11 @@ $removed = $user['deleted_at'] !== null;
 $listings = [];
 $saved = [];
 if ($isLandlord) {
-  // Every listing, removed ones included, with its room figures.
+  // Every listing, removed ones included, with its room figures and its
+  // cover photo: the Portfolio card puts the newest one's photo beside the
+  // figures, the way the reference puts the room beside its booking.
   $listStmt = $pdo->prepare(
-    'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . '
+    'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ', ' . COVER_PHOTO_SELECT . '
        FROM boarding_houses bh
        ' . room_summary_join() . '
       WHERE bh.landlord_id = ?
@@ -41,7 +43,8 @@ if ($isLandlord) {
   $listings = $listStmt->fetchAll();
 } else {
   $savedStmt = $pdo->prepare(
-    'SELECT bh.boarding_house_id, bh.name, bh.moderation_status, bh.deleted_at, f.created_at AS saved_at
+    'SELECT bh.boarding_house_id, bh.name, bh.address, bh.moderation_status, bh.deleted_at,
+            f.created_at AS saved_at, ' . COVER_PHOTO_SELECT . '
        FROM favorites f
        JOIN boarding_houses bh ON bh.boarding_house_id = f.boarding_house_id
       WHERE f.user_id = ?
@@ -49,6 +52,34 @@ if ($isLandlord) {
   );
   $savedStmt->execute([$userId]);
   $saved = $savedStmt->fetchAll();
+}
+
+// The portfolio figures, counted once here rather than in the markup.
+$byStatus = ['approved' => 0, 'pending' => 0, 'rejected' => 0, 'removed' => 0];
+$roomTotal = 0;
+$roomsOpen = 0;
+foreach ($listings as $l) {
+  if ($l['deleted_at'] !== null) {
+    $byStatus['removed']++;
+    continue;
+  }
+  if (isset($byStatus[$l['moderation_status']])) {
+    $byStatus[$l['moderation_status']]++;
+  }
+  $roomTotal += (int) $l['room_count'];
+  $roomsOpen += (int) $l['rooms_available'];
+}
+
+// The picture for the Portfolio card: the newest listing that still has one.
+$showcase = null;
+foreach ($listings as $l) {
+  if (!empty($l['cover_photo'])) {
+    $showcase = $l;
+    break;
+  }
+}
+if ($showcase === null && $listings) {
+  $showcase = $listings[0];
 }
 
 // How the account signs in right now.
@@ -68,6 +99,7 @@ try {
 }
 
 $history = admin_actions_for('user', $userId);
+$notes = account_notes($userId);
 $types = admin_action_types();
 
 $pageTitle = $fullName;
@@ -127,65 +159,278 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
   <section class="content">
     <div class="container-fluid">
-      <div class="row re-tabpanel" id="panel-overview" role="tabpanel" aria-labelledby="tab-panel-overview">
-        <div class="col-lg-5">
-          <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title">Account</h3>
-              <span class="card-subtitle">How this person signs in, and what you can do about it.</span></div>
-            <div class="card-body">
-              <p class="mb-3">
-                <?php if ($removed): ?>
-                  <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed <?= h(date('M j, Y', strtotime($user['deleted_at']))) ?></span>
-                <?php elseif ($user['is_active']): ?>
-                  <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Active</span>
-                <?php else: ?>
-                  <span class="badge badge-danger px-2 py-1"><i class="fas fa-ban mr-1"></i> Deactivated</span>
-                <?php endif; ?>
-              </p>
-              <div class="re-fields">
-                <?= re_field('Email', '<a href="mailto:' . h($user['email']) . '">' . h($user['email']) . '</a>', true) ?>
-                <?= re_field('Phone', $user['phone_number'] ?: 'Not given') ?>
-                <?= re_field('Signs in with', $user['google_id'] ? 'Google, and a password if one was set' : 'Email and password') ?>
-                <?= re_field('Remembered devices', '<span class="tabular">' . $devices . '</span>', true) ?>
-                <?= re_field('Failed sign-ins, last 24h', '<span class="tabular">' . $failedLogins . '</span>', true) ?>
-              </div>
+      <div class="re-tabpanel" id="panel-overview" role="tabpanel" aria-labelledby="tab-panel-overview">
+        <div class="row">
 
+          <!-- Who they are -->
+          <div class="col-lg-5">
+            <div class="card shadow-sm">
+              <?php panel_card_header('Profile', 'Who this account belongs to, and how to reach them.'); ?>
+              <div class="card-body">
+                <div class="re-profile-head">
+                  <?= avatar_html($user, 56) ?>
+                  <div style="min-width: 0;">
+                    <h4 class="re-profile-name">
+                      <?= h($fullName) ?>
+                      <?php if ($removed): ?>
+                        <span class="badge badge-dark"><i class="fas fa-archive mr-1"></i> Removed</span>
+                      <?php elseif ($user['is_active']): ?>
+                        <span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> Active</span>
+                      <?php else: ?>
+                        <span class="badge badge-danger"><i class="fas fa-ban mr-1"></i> Deactivated</span>
+                      <?php endif; ?>
+                    </h4>
+                    <p class="re-profile-meta">
+                      <?= $isLandlord ? 'Landlord' : 'Boarder' ?> &middot; account #<?= (int) $userId ?>
+                      <?php if ($removed): ?>
+                        &middot; removed <?= h(date('M j, Y', strtotime($user['deleted_at']))) ?>
+                      <?php endif; ?>
+                    </p>
+                  </div>
+                </div>
+
+                <div class="re-section">
+                  <span class="re-section-label">Contact information</span>
+                  <?php
+                  // The phone is a tel: link so it can be dialled from a laptop
+                  // or a phone without being retyped.
+                  $dial = preg_replace('/[^0-9+]/', '', (string) $user['phone_number']);
+                  ?>
+                  <?php if ($dial !== ''): ?>
+                    <a class="re-contact" href="tel:<?= h($dial) ?>">
+                      <span class="re-contact-icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                      <span class="re-contact-value"><?= h($user['phone_number']) ?></span>
+                    </a>
+                  <?php else: ?>
+                    <span class="re-contact re-contact--muted">
+                      <span class="re-contact-icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                      <span class="re-contact-value">No phone number given</span>
+                    </span>
+                  <?php endif; ?>
+                  <a class="re-contact" href="mailto:<?= h($user['email']) ?>">
+                    <span class="re-contact-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                    <span class="re-contact-value"><?= h($user['email']) ?></span>
+                  </a>
+                </div>
+
+                <div class="re-section">
+                  <span class="re-section-label">Account</span>
+                  <div class="re-fields re-fields--tight">
+                    <?= re_field('Joined', date('M j, Y', strtotime($user['created_at']))) ?>
+                    <?= re_field('Signs in with', $user['google_id'] ? 'Google' : 'Email and password') ?>
+                    <?= re_field('Remembered devices', '<span class="tabular">' . $devices . '</span>', true) ?>
+                    <?= re_field('Failed sign-ins, 24h', '<span class="tabular">' . $failedLogins . '</span>', true) ?>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- What they have here -->
+          <div class="col-lg-7">
+            <div class="card shadow-sm">
+              <?php panel_card_header(
+                $isLandlord ? 'Portfolio' : 'Shortlist',
+                $isLandlord
+                  ? 'What this landlord has on RoomEase, and where each listing stands.'
+                  : 'The boarding houses this boarder has saved for later.',
+                '<span class="re-count-pill">' . ($isLandlord ? count($listings) : count($saved)) . ' '
+                  . ($isLandlord
+                      ? (count($listings) === 1 ? 'listing' : 'listings')
+                      : (count($saved) === 1 ? 'saved' : 'saved')) . '</span>'
+              ); ?>
+              <div class="card-body">
+                <?php if ($isLandlord): ?>
+                  <div class="d-flex flex-wrap" style="gap: 20px;">
+                    <div class="flex-grow-1" style="min-width: 210px;">
+                      <div class="re-fields re-fields--tight">
+                        <?= re_field('On the site', '<span class="tabular">' . $byStatus['approved'] . '</span>', true) ?>
+                        <?= re_field('Rooms', '<span class="tabular">' . $roomTotal . '</span>', true) ?>
+                        <?= re_field('Rooms free', '<span class="tabular">' . $roomsOpen . '</span>', true) ?>
+                      </div>
+
+                      <div class="re-section">
+                        <span class="re-section-label">By approval</span>
+                        <div class="re-breakdown">
+                          <?php foreach ([
+                            'approved' => 'Approved',
+                            'pending'  => 'Waiting on approval',
+                            'rejected' => 'Rejected',
+                            'removed'  => 'Removed by an administrator',
+                          ] as $key => $label): ?>
+                            <div class="re-breakdown-row">
+                              <span><span class="re-dot re-dot--<?= $key ?>" aria-hidden="true"></span><?= h($label) ?></span>
+                              <span class="re-breakdown-value"><?= $byStatus[$key] ?></span>
+                            </div>
+                          <?php endforeach; ?>
+                          <div class="re-breakdown-row re-breakdown-total">
+                            <span>Total posted</span>
+                            <span class="re-breakdown-value"><?= count($listings) ?></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <?php if ($showcase !== null): ?>
+                      <div style="flex: 0 0 auto;">
+                        <?php if (!empty($showcase['cover_photo'])): ?>
+                          <img class="re-media" src="<?= h(base_url($showcase['cover_photo'])) ?>" alt="" loading="lazy">
+                        <?php else: ?>
+                          <span class="re-media re-media--empty" aria-hidden="true"><i class="fas fa-camera"></i></span>
+                        <?php endif; ?>
+                        <p class="re-profile-meta" style="max-width: 220px;">
+                          <?= h($showcase['name']) ?>
+                        </p>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+                <?php else: ?>
+                  <?php if (!$saved): ?>
+                    <?= re_empty('Nothing saved yet', 'This boarder has not shortlisted a boarding house.', 'fa-heart') ?>
+                  <?php else: ?>
+                    <div class="d-flex flex-wrap" style="gap: 20px;">
+                      <div class="flex-grow-1" style="min-width: 210px;">
+                        <div class="re-fields re-fields--tight">
+                          <?= re_field('Listings saved', '<span class="tabular">' . count($saved) . '</span>', true) ?>
+                          <?= re_field('Most recent', date('M j, Y', strtotime($saved[0]['saved_at']))) ?>
+                        </div>
+                      </div>
+                      <div style="flex: 0 0 auto;">
+                        <?php if (!empty($saved[0]['cover_photo'])): ?>
+                          <img class="re-media" src="<?= h(base_url($saved[0]['cover_photo'])) ?>" alt="" loading="lazy">
+                        <?php else: ?>
+                          <span class="re-media re-media--empty" aria-hidden="true"><i class="fas fa-camera"></i></span>
+                        <?php endif; ?>
+                        <p class="re-profile-meta" style="max-width: 220px;"><?= h($saved[0]['name']) ?></p>
+                      </div>
+                    </div>
+                  <?php endif; ?>
+                <?php endif; ?>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="col-lg-7">
-          <div class="card shadow-sm">
-            <?php panel_card_header(
-              'At a glance',
-              $isLandlord
-                ? 'What this landlord has on RoomEase right now.'
-                : 'What this boarder has done on RoomEase so far.'
-            ); ?>
-            <div class="card-body">
-              <div class="re-fields">
-                <?php if ($isLandlord): ?>
-                  <?php
-                  $live = 0;
-                  $waiting = 0;
-                  foreach ($listings as $l) {
-                      if ($l['deleted_at'] !== null) {
-                          continue;
-                      }
-                      if ($l['moderation_status'] === 'approved') {
-                          $live++;
-                      } elseif ($l['moderation_status'] === 'pending') {
-                          $waiting++;
-                      }
-                  }
-                  ?>
-                  <?= re_field('Listings posted', '<span class="tabular">' . count($listings) . '</span>', true) ?>
-                  <?= re_field('Approved', '<span class="tabular">' . $live . '</span>', true) ?>
-                  <?= re_field('Waiting on approval', '<span class="tabular">' . $waiting . '</span>', true) ?>
+        <div class="row">
+          <!-- A few of the things, with the full list a tab away -->
+          <div class="col-lg-7">
+            <div class="card shadow-sm">
+              <?php
+              $recent = $isLandlord ? array_slice($listings, 0, 4) : array_slice($saved, 0, 4);
+              $allCount = $isLandlord ? count($listings) : count($saved);
+              panel_card_header(
+                $isLandlord ? 'Recent listings' : 'Recently saved',
+                $isLandlord
+                  ? 'The newest first. The full list is under the Listings tab.'
+                  : 'The newest first. The full list is under the Saved tab.',
+                $allCount > count($recent)
+                  ? '<a href="#panel-things" class="btn btn-tool">View all ' . $allCount . '</a>'
+                  : ''
+              );
+              ?>
+              <div class="card-body p-0">
+                <?php if (!$recent): ?>
+                  <?php /* Worded differently from the card above it, which is
+                       empty at the same time and would otherwise say the same
+                       sentence twice on one screen. */ ?>
+                  <?= $isLandlord
+                    ? re_empty('Nothing to show', 'Boarding houses appear here as this landlord posts them.', 'fa-home')
+                    : re_empty('Nothing to show', 'Boarding houses appear here as this boarder saves them.', 'fa-heart') ?>
                 <?php else: ?>
-                  <?= re_field('Listings saved', '<span class="tabular">' . count($saved) . '</span>', true) ?>
+                  <table class="table mb-0">
+                    <tbody>
+                      <?php foreach ($recent as $r): ?>
+                        <tr>
+                          <td>
+                            <span class="d-flex align-items-center" style="gap: 10px;">
+                              <?= listing_thumb_html($r) ?>
+                              <span style="min-width: 0;">
+                                <a class="font-weight-bold" href="<?= base_url('admin/listing.php?id=' . (int) $r['boarding_house_id']) ?>"><?= h($r['name']) ?></a>
+                                <small class="text-muted d-block"><?= h($r['address'] ?? '') ?></small>
+                              </span>
+                            </span>
+                          </td>
+                          <td class="text-right" style="width: 140px;">
+                            <?php if ($r['deleted_at'] !== null): ?>
+                              <span class="badge badge-dark">Removed</span>
+                            <?php else: ?>
+                              <?= moderation_badge($r['moderation_status']) ?>
+                            <?php endif; ?>
+                            <small class="text-muted d-block mt-1">
+                              <?= h(date('M j, Y', strtotime($isLandlord ? $r['created_at'] : $r['saved_at']))) ?>
+                            </small>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
                 <?php endif; ?>
-                <?= re_field('Administrator changes', '<span class="tabular">' . count($history) . '</span>', true) ?>
+              </div>
+            </div>
+          </div>
+
+          <!-- What administrators have noticed about this account -->
+          <div class="col-lg-5">
+            <div class="card shadow-sm">
+              <?php panel_card_header(
+                'Notes',
+                'Only administrators see these. ' . ($isLandlord ? 'The landlord' : 'The boarder') . ' never does.',
+                $notes ? '<span class="re-count-pill">' . count($notes) . '</span>' : ''
+              ); ?>
+              <div class="card-body">
+                <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="re-note-form">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="user_id" value="<?= (int) $userId ?>">
+                  <input type="hidden" name="action" value="add_note">
+                  <label class="sr-only" for="note-body">Write a note about this account</label>
+                  <textarea class="form-control" id="note-body" name="body" rows="3"
+                    maxlength="<?= ACCOUNT_NOTE_MAX ?>" required
+                    placeholder="e.g. Asked to re-upload clearer photos, says they will by Friday."></textarea>
+                  <div class="text-right mt-2">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      <i class="fas fa-plus mr-1"></i> Add note
+                    </button>
+                  </div>
+                </form>
+
+                <?php if (!$notes): ?>
+                  <div class="re-section">
+                    <p class="text-muted mb-0" style="font-size: .845rem;">
+                      No notes yet. Anything written here stays with the account for whoever picks it up next.
+                    </p>
+                  </div>
+                <?php else: ?>
+                  <?php foreach ($notes as $n): ?>
+                    <div class="re-note">
+                      <?= avatar_html($n, 32) ?>
+                      <div style="min-width: 0; flex: 1 1 auto;">
+                        <div class="re-note-head">
+                          <span class="re-note-author">
+                            <?= $n['admin_name'] !== null ? h($n['admin_name']) : 'An administrator' ?>
+                          </span>
+                          <span class="re-note-when"><?= h(time_ago($n['created_at'])) ?></span>
+                        </div>
+                        <p class="re-note-body"><?= h($n['body']) ?></p>
+                      </div>
+                      <?php if ((int) $n['admin_id'] === (int) $_SESSION['user_id']): ?>
+                        <?php /* Only the author can delete a note: someone who
+                             disagrees should add their own rather than quietly
+                             remove the first. */ ?>
+                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="js-confirm"
+                          data-confirm="Delete this note? It cannot be undone.">
+                          <?= csrf_field() ?>
+                          <input type="hidden" name="user_id" value="<?= (int) $userId ?>">
+                          <input type="hidden" name="note_id" value="<?= (int) $n['note_id'] ?>">
+                          <input type="hidden" name="action" value="delete_note">
+                          <button type="submit" class="re-note-delete" title="Delete this note"
+                            aria-label="Delete this note">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                          </button>
+                        </form>
+                      <?php endif; ?>
+                    </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
               </div>
             </div>
           </div>

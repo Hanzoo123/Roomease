@@ -330,6 +330,25 @@ CREATE TABLE admin_actions (
         REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---------------------------------------------------------
+-- 15. Table: account_notes
+-- Short notes an administrator leaves on a landlord's or boarder's account,
+-- seen only inside the admin panel. Separate from admin_actions because that
+-- table records what was *done* to an account and is written by the code,
+-- while a note is what an administrator *observed* and can be deleted by
+-- whoever wrote it. See database/migration_account_notes.sql.
+-- ---------------------------------------------------------
+CREATE TABLE account_notes (
+    note_id     INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT NOT NULL,
+    admin_id    INT NULL,
+    body        VARCHAR(1000) NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_account_notes (user_id, created_at),
+    CONSTRAINT fk_notes_user  FOREIGN KEY (user_id)  REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_notes_admin FOREIGN KEY (admin_id) REFERENCES users(user_id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- =========================================================
 -- SEED DATA

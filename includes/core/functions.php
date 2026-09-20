@@ -1341,6 +1341,91 @@ function admin_actions_for($targetType, $targetId, $limit = 20)
     }
 }
 
+/* ---------------------------------------------------------------------------
+ * Administrator notes on an account (database/migration_account_notes.sql)
+ *
+ * What an administrator observed about a landlord or boarder, as opposed to
+ * what the activity log records them doing. Never shown outside the admin
+ * panel: the person the note is about does not see it, so the wording stays
+ * between administrators.
+ *
+ * Every read is wrapped against a missing table, as the sign-in counters on
+ * admin/user.php are, so a database that has skipped this migration loses the
+ * notes card rather than the whole page.
+ * ------------------------------------------------------------------------ */
+
+/** Longest note accepted, matching account_notes.body. */
+const ACCOUNT_NOTE_MAX = 1000;
+
+/**
+ * Notes on one account, newest first, with each author's name and photo so
+ * the card can draw them the same way every other person is drawn.
+ */
+function account_notes($userId, $limit = 50)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT n.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+               FROM account_notes n
+               LEFT JOIN users u ON u.user_id = n.admin_id
+              WHERE n.user_id = ?
+              ORDER BY n.created_at DESC, n.note_id DESC
+              LIMIT " . (int) $limit
+        );
+        $stmt->execute([(int) $userId]);
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        error_log('RoomEase: account notes lookup failed - ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Write a note about $userId as the signed-in administrator. Returns false
+ * when the note is empty or the table is missing, so the caller can say so.
+ */
+function add_account_note($userId, $body)
+{
+    global $pdo;
+    $body = trim((string) $body);
+    if ($body === '') {
+        return false;
+    }
+    $body = mb_substr($body, 0, ACCOUNT_NOTE_MAX);
+
+    try {
+        $pdo->prepare('INSERT INTO account_notes (user_id, admin_id, body) VALUES (?, ?, ?)')
+            ->execute([(int) $userId, (int) $_SESSION['user_id'], $body]);
+        return true;
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not write account note - ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Delete one note, but only if the signed-in administrator wrote it.
+ *
+ * Any administrator could have been allowed to delete any note, and on a team
+ * this small that would rarely matter. Author-only is the rule because a note
+ * is a record of what one person observed: someone else disagreeing with it
+ * should add their own note, not quietly remove the first. Returns false when
+ * the note is missing or belongs to someone else.
+ */
+function delete_account_note($noteId)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare('DELETE FROM account_notes WHERE note_id = ? AND admin_id = ?');
+        $stmt->execute([(int) $noteId, (int) $_SESSION['user_id']]);
+        return $stmt->rowCount() > 0;
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not delete account note - ' . $e->getMessage());
+        return false;
+    }
+}
+
 /**
  * The decisions an administrator made on a landlord's listings in the last
  * $days days, newest first. Removed listings are included: telling the

@@ -156,6 +156,17 @@ photo uploads, search/filter, and account management.
    `assets/uploads/avatars/`, which the uploads `.htaccess` already covers.
    GD does the cropping; on a stack without it the original is kept instead.
 
+   **Notes on an account.** Administrators can leave short notes on a landlord
+   or boarder from that account's page — what was observed, as opposed to what
+   the activity log records being done. Only administrators ever see them.
+   Upgrading an existing database? Run this; it is safe to run twice:
+   ```
+   mysql -u root -p roomease < database/migration_account_notes.sql
+   ```
+   Without it the account page still works: the notes card reports itself
+   empty rather than taking the page down with it. A note can be deleted only
+   by whoever wrote it.
+
 5. **Set the administrator password.** The schema seeds the admin account with
    a placeholder that no password can ever match, so the account cannot be
    signed into until you choose one:

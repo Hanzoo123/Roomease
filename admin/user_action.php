@@ -1,7 +1,11 @@
 <?php
 /**
  * Administrator actions on an account: activate or deactivate it, remove it
- * (archive), or restore it. Every action is written to the activity log.
+ * (archive), restore it, or leave and delete notes about it.
+ *
+ * The first four are written to the activity log. Notes are not: each note
+ * already carries its author and its time, and a log entry per note would
+ * bury the approvals and removals the log exists for.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
@@ -35,7 +39,29 @@ if (!$target) {
 $fullName = trim($target['first_name'] . ' ' . $target['last_name']);
 $name = strip_tags($fullName);
 
-if ($action === 'toggle_status') {
+// Notes always come back to the account's own page with the Notes section
+// open, because that is the only place they are shown.
+$notesAnchor = 'admin/user.php?id=' . $userId . '#panel-overview';
+
+if ($action === 'add_note') {
+    if (add_account_note($userId, $_POST['body'] ?? '')) {
+        flash_set('Note added.', 'success');
+    } else {
+        flash_set('The note was empty, or could not be saved.', 'error');
+    }
+    redirect($notesAnchor);
+
+} elseif ($action === 'delete_note') {
+    // delete_account_note refuses a note this administrator did not write, so
+    // the "not yours" case and the "already gone" case read the same here.
+    if (delete_account_note((int) ($_POST['note_id'] ?? 0))) {
+        flash_set('Note deleted.', 'success');
+    } else {
+        flash_set('That note could not be deleted. You can only delete your own notes.', 'error');
+    }
+    redirect($notesAnchor);
+
+} elseif ($action === 'toggle_status') {
     if ($target['deleted_at'] !== null) {
         flash_set('Restore this account before changing its status.', 'error');
         redirect($back('admin/manage_users.php'));
