@@ -140,12 +140,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       );
   }
 
-  panel_page_header($fullName, [
-    'subtitle' => ($isLandlord ? 'Landlord' : 'Boarder') . ' · joined '
-      . date('F j, Y', strtotime($user['created_at'])),
+  // The heading names the kind of page, not the person on it. Whose page this
+  // is comes from the Profile card below, which carries the photo and the
+  // name at a size the header cannot match, and from the browser tab, which
+  // still reads as their name.
+  panel_page_header($isLandlord ? 'Landlord Profile' : 'Boarder Profile', [
     'back' => 'admin/manage_users.php' . ($removed ? '?view=archived' : ''),
     'backLabel' => 'Back to Manage Users',
-    'lead' => avatar_html($user, 44),
     'actions' => $pageActions,
     'tabs' => [
       ['id' => 'panel-overview', 'label' => 'Overview'],
