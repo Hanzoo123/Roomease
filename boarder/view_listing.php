@@ -126,8 +126,8 @@ $isSaved = can_save_listings()
 /* ---------------------------------------------------------------------------
  * Stay terms. Each is shown only when the landlord has stated it: NULL means
  * "not stated", and the page says nothing rather than guessing. `?? null`
- * keeps the page working on a database that has not run
- * migration_stay_terms.sql yet.
+ * keeps the page working on an older database imported before listings
+ * carried stay terms.
  * ------------------------------------------------------------------------ */
 $genderLabel = gender_policy_options()[$listing['gender_policy'] ?? ''] ?? null;
 

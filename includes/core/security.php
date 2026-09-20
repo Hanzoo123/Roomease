@@ -263,7 +263,7 @@ const REMEMBER_LIFETIME = 2592000; // 30 days
 
 const REMEMBER_COOKIE = 'roomease_remember';
 
-/** True when the remember_tokens table exists (migration_auth_extras.sql). */
+/** True when the remember_tokens table exists (database/boardinghouse.sql). */
 function remember_available()
 {
     global $pdo;
@@ -279,7 +279,7 @@ function remember_available()
         } catch (PDOException $e) {
             $available = false;
             error_log('RoomEase: remember_tokens table missing - "Remember me" is OFF. '
-                . 'Import database/migration_auth_extras.sql to enable it.');
+                . 'Import database/boardinghouse.sql to enable it.');
         }
     }
 
@@ -450,14 +450,14 @@ function restore_remembered_login()
  *
  * Login and password-reset are the two endpoints an outsider can hammer, and
  * neither costs an attacker anything to retry. Attempts are recorded in the
- * login_attempts table (database/migration_login_throttle.sql) and counted
- * over a rolling window.
+ * login_attempts table (database/boardinghouse.sql) and counted over a
+ * rolling window.
  * ------------------------------------------------------------------------ */
 
 /**
- * True when the throttle table is present. If the migration has not been run
- * the app keeps working rather than locking everyone out, but it says so in
- * the PHP error log so the gap does not stay invisible.
+ * True when the throttle table is present. If the schema has not been
+ * imported the app keeps working rather than locking everyone out, but it
+ * says so in the PHP error log so the gap does not stay invisible.
  */
 function throttle_available()
 {
@@ -471,7 +471,7 @@ function throttle_available()
         } catch (PDOException $e) {
             $available = false;
             error_log('RoomEase: login_attempts table missing - brute-force throttling is OFF. '
-                . 'Import database/migration_login_throttle.sql to enable it.');
+                . 'Import database/boardinghouse.sql to enable it.');
         }
     }
 

@@ -159,7 +159,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <?php if (!$settingsReady): ?>
             <div class="alert alert-warning">
               <i class="fas fa-exclamation-triangle mr-1"></i>
-              The <code>site_settings</code> table is missing. Import <code>database/migration_auth_extras.sql</code>,
+              The <code>site_settings</code> table is missing. Import <code>database/boardinghouse.sql</code>,
               then reload this page.
             </div>
             <?php else: ?>

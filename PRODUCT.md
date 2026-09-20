@@ -115,13 +115,6 @@ inquiry inbox as though it already ships.
   security headers, MIME-checked uploads with PHP disabled in the upload
   folder.
 
-**Binding constraints** (confirmed by the user)
-
-- **Runs offline.** The app must work on a local stack with no internet
-  reachable. Nothing may depend on an external service being available at
-  render time.
-- **Plain PHP 8 + MySQL, no framework.** PDO, no Composer, no build step, no
-  package manager in the request path. Roughly 39 PHP files.
 
 **Webfonts: resolved**
 

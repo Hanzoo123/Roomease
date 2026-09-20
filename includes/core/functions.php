@@ -397,7 +397,7 @@ const COVER_PHOTO_SELECT = '(SELECT img.image_path FROM images img
        LIMIT 1) AS cover_photo';
 
 /* ---------------------------------------------------------------------------
- * Rooms (database/migration_rooms.sql)
+ * Rooms (database/boardinghouse.sql)
  *
  * Rent, room type and capacity belong to each room. Whether a room is
  * available is never stored: it is open with a slot left, full, or closed.
@@ -1047,7 +1047,7 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
 }
 
 /* ---------------------------------------------------------------------------
- * Stay terms (database/migration_stay_terms.sql)
+ * Stay terms (database/boardinghouse.sql)
  *
  * What a boarder asks before visiting: curfew, deposit, minimum stay, how rent
  * is paid, who the house accepts, and whether visitors, pets and cooking are
@@ -1057,7 +1057,7 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
  * ------------------------------------------------------------------------ */
 
 /* ---------------------------------------------------------------------------
- * Administration (database/migration_admin_tools.sql)
+ * Administration (database/boardinghouse.sql)
  *
  * The activity log records what administrators do to listings and accounts,
  * and listing decisions are passed on to the landlord: by email, and on their
@@ -1491,7 +1491,7 @@ function can_save_listings()
 }
 
 /* ---------------------------------------------------------------------------
- * Password reset by emailed code (database/migration_reset_codes.sql)
+ * Password reset by emailed code (database/boardinghouse.sql)
  *
  * 1. auth/forgot_password.php takes an email address and emails a 6-digit
  *    code. The attempt is remembered in $_SESSION['password_reset'].
@@ -1771,7 +1771,7 @@ function send_password_reset_code($email, $firstName, $code, $scope = 'public')
 }
 
 /* ---------------------------------------------------------------------------
- * Site settings (database/migration_auth_extras.sql)
+ * Site settings (database/boardinghouse.sql)
  * ------------------------------------------------------------------------ */
 
 /**

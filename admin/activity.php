@@ -4,7 +4,7 @@
  *
  * Every approval, rejection, removal and restore of a listing, every change to
  * an account, and every export, with the administrator who did it and when.
- * Read from admin_actions (database/migration_admin_tools.sql). The log only
+ * Read from admin_actions (database/boardinghouse.sql). The log only
  * grows, so it is filtered and paged in the database rather than in the
  * browser.
  */

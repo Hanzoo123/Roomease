@@ -21,72 +21,28 @@ photo uploads, search/filter, and account management.
 2. **Start Apache and MySQL** from the WAMP or XAMPP control panel.
 
 3. **Create the database.** Open phpMyAdmin (`http://localhost/phpmyadmin`),
-   click **Import**, and select `database/roomease.sql`. This creates the
-   `roomease` database, all tables, the amenity/utility/room-type lookup
-   rows, and one administrator account with **no usable password** (see
-   step 5).
+   click **Import**, and select `database/boardinghouse.sql`. This creates the
+   `roomease` database, every table the application uses, the
+   amenity/utility/room-type lookup rows, and one administrator account
+   (see step 5).
 
    Alternatively, from a terminal:
    ```
-   mysql -u root -p < database/roomease.sql
+   mysql -u root -p < database/boardinghouse.sql
    ```
 
-4. **Run the login-throttle migration.**
+   The file drops and recreates every table before filling it, so it can be
+   imported over an existing copy — but that destroys whatever was there.
+   There are no separate migration steps: this one file is the whole schema.
 
-   ```
-   mysql -u root -p roomease < database/migration_login_throttle.sql
-   ```
+4. **Set up the optional features.** Nothing here touches the database —
+   step 3 already created every table, including brute-force throttling,
+   "Remember me", room photos, stay terms and the Appearance page. These are
+   the two features that need credentials of their own.
 
-   On a **fresh** import of `roomease.sql` this is the only migration that
-   adds anything: the base schema already contains favourites, password
-   resets, room types, moderation and the reservation fee. Without it the app
-   still runs, but brute-force protection is off and it says so in the PHP
-   error log.
-
-   The other `migration_*.sql` files are for upgrading a database created
-   before those features existed. Importing them into a fresh database is
-   harmless but not needed — `migration_moderation.sql` and
-   `migration_reservation_fee.sql` will report `Duplicate column name`,
-   which simply means the column is already there.
-
-   If you are upgrading a database created before these passes, also run
-   `migration_indexes.sql`, `migration_soft_delete.sql` and
-   `migration_room_type_fk.sql`; a fresh import already has all three.
-
-   Upgrading a database created before listings had stay terms (curfew,
-   security deposit, minimum stay, payment methods, who can stay, visitor /
-   pet / cooking rules) and a map pin? Run this too; it is safe to run twice:
-   ```
-   mysql -u root -p roomease < database/migration_stay_terms.sql
-   ```
    The listing map and the landlord's pin picker draw OpenStreetMap tiles, so
    they need an internet connection. Offline, the rest of the listing page
    works and the map says it could not load.
-
-   **Rooms, room photos, occupancy, and landlord utilities.** A boarding house
-   now has rooms, each with its own type, rent, capacity, slots taken, and
-   photos, and landlords can add their own utilities and amenities. Upgrading
-   an existing database? Run this; it is safe to run twice, and it gives every
-   existing listing a "Room 1" copied from its old rent, room type and capacity:
-   ```
-   mysql -u root -p roomease < database/migration_rooms.sql
-   ```
-   The old house-level rent, room type and capacity columns are left in place
-   and no longer used. Once every listing's rooms look right on the website,
-   remove them (this cannot be undone without a backup):
-   ```
-   mysql -u root -p roomease < database/migration_rooms_cleanup.sql
-   ```
-   A fresh import of `roomease.sql` already has rooms and none of the old
-   columns. The demo seed files add a few listings with several rooms and some
-   tenants, so the rooms section and "Fully occupied" badges have something to
-   show.
-
-   For "Remember me", Google sign-in, and the administrator's Appearance page
-   (the sign-in pages' background), run this as well; it is safe to run twice:
-   ```
-   mysql -u root -p roomease < database/migration_auth_extras.sql
-   ```
 
    **Optional: "Continue with Google".** The button always shows on the log
    in and sign up pages; until credentials are set, clicking it says Google
@@ -111,13 +67,8 @@ photo uploads, search/filter, and account management.
    no password; its owner can set one from their profile, which emails them a
    code. Google sign-in needs internet; email and password login does not.
 
-   **Password reset codes by email.** "Forgot password?" emails a 6-digit code
-   through Gmail. Upgrading an existing database? Run this; it is safe to run
-   twice:
-   ```
-   mysql -u root -p roomease < database/migration_reset_codes.sql
-   ```
-   Then give RoomEase a Gmail account to send from:
+   **Password reset codes by email.** "Forgot password?" emails a 6-digit
+   code through Gmail. Give RoomEase a Gmail account to send from:
    1. On that Google account, turn on **2-Step Verification**
       (<https://myaccount.google.com/security>).
    2. Create an **App Password** named "RoomEase"
@@ -132,29 +83,20 @@ photo uploads, search/filter, and account management.
    itself sees the code on screen instead. Every send is logged to
    `storage/mail.log`, with Gmail's reason when one fails.
 
-   **Admin tools.** Removing a listing archives it instead of deleting it, the
-   Activity Log records every administrator decision, and landlords are told
-   about approvals and rejections. Upgrading an existing database? Run this; it
-   is safe to run twice:
-   ```
-   mysql -u root -p roomease < database/migration_admin_tools.sql
-   ```
-   Without it the admin listing pages fail, because they filter on the new
-   `deleted_at` column.
-
-5. **Set the administrator password.** The schema seeds the admin account with
-   a placeholder that no password can ever match, so the account cannot be
-   signed into until you choose one:
+5. **Set the administrator password.** `boardinghouse.sql` seeds one
+   administrator, `admin@roomease.com`, whose password is already set. Choose
+   your own before using the site for anything real:
 
    ```
-   php database/set_admin_password.php "YourStrongPassword"
+   php database/set_admin_password.php "YourStrongPassword" admin@roomease.com
    ```
 
    The script is command-line only, requires at least 8 characters, and
    re-reads the stored hash afterwards to prove the new password actually
-   works before it reports success. Sign in at
-   `http://localhost/roomease/admin/login.php` with `admin@roomease.local` and
-   the password you just set.
+   works before it reports success. Pass the email as the second argument as
+   shown: without it the script looks for `admin@roomease.local`, which is
+   the address the older `roomease.sql` seeded. Sign in at
+   `http://localhost/roomease/admin/login.php`.
 
 6. **(Optional) Load the demo data.** For a walkthrough or a defence demo:
 
@@ -230,11 +172,24 @@ roomease/
 ├── assets/adminlte/           AdminLTE theme for the management panel
 ├── assets/uploads/            Uploaded listing photos (auto-created per listing)
 └── database/
-    ├── roomease.sql             Schema + lookup data + locked admin account
+    ├── boardinghouse.sql        THE schema: every table, lookup data, one admin
+    ├── roomease.sql             Older schema file; superseded, see the note below
     ├── seed_demo.sql            OPTIONAL demo accounts and sample listings
-    ├── set_admin_password.php   CLI tool to set the administrator password
-    └── migration_*.sql          Incremental schema changes (see setup step 4)
+    ├── seed_landlords.sql       OPTIONAL bulk demo landlords and listings
+    └── set_admin_password.php   CLI tool to set the administrator password
 ```
+
+**On the two schema files.** `boardinghouse.sql` is the one to import: it
+carries every table the application uses. `roomease.sql` is the older file it
+replaced — it predates the `login_attempts` table, so a database built from it
+runs with brute-force throttling silently off. It is kept only because older
+notes in the maintenance log below refer to it.
+
+The incremental `migration_*.sql` files that used to sit here have been
+removed. They existed to upgrade a database created before a given feature,
+and `boardinghouse.sql` now carries the whole schema in one file, so there is
+nothing left for them to add. They remain in the git history if an old
+database ever needs stepping forward.
 
 Both role panels render from the same `includes/layouts/panel*.php` shell,
 configured per role in `includes/layouts/panel.php`. There is exactly one copy of that shell; see
@@ -293,7 +248,7 @@ ask for it:
 - Signing in starts a genuinely new session, and changing a password issues a
   new session id, which invalidates any copy someone else was holding.
 
-**Rate limiting** (`database/migration_login_throttle.sql`)
+**Rate limiting** (the `login_attempts` table, in `database/boardinghouse.sql`)
 
 - Five failed sign-ins for one email address, or twenty from one IP, pause
   further attempts for fifteen minutes. The per-IP limit is the one that
@@ -358,6 +313,12 @@ not included, matching the "Limitations of the Study" section of the
 project document.
 
 ## Maintenance log
+
+> These entries record the project as it stood when each pass was done, so
+> they are left as written. Several of them name `migration_*.sql` files and
+> give commands that import them; those files have since been removed and the
+> whole schema now lives in `database/boardinghouse.sql`. Read the commands
+> below as history, not as instructions — see **Folder structure** above.
 
 ### Cleanup pass — removing dead weight (Part A of the improvement plan)
 
