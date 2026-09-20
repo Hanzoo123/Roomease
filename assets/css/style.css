@@ -2317,6 +2317,14 @@ input[type=checkbox] {
   font-weight: 700;
   font-size: 18px;
   letter-spacing: .02em;
+  overflow: hidden;
+}
+
+/* The same circle holding a photo instead of initials. The forest fill would
+   otherwise show through a PNG with transparency. */
+img.avatar {
+  background: none;
+  object-fit: cover;
 }
 
 .quick-host strong {

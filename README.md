@@ -142,6 +142,20 @@ photo uploads, search/filter, and account management.
    Without it the admin listing pages fail, because they filter on the new
    `deleted_at` column.
 
+   **Profile photos.** Every account can upload a photo on its own profile
+   page, and it is drawn wherever that person appears: the panel sidebar and
+   account menu, the admin user directory, the activity log, and the landlord
+   block on a public listing. Upgrading an existing database? Run this; it is
+   safe to run twice:
+   ```
+   mysql -u root -p roomease < database/migration_avatars.sql
+   ```
+   Without it every page that reads an account fails, because the session
+   refresh selects the new `avatar_path` column on each request. Photos are
+   cropped square and shrunk to 512px on upload and stored in
+   `assets/uploads/avatars/`, which the uploads `.htaccess` already covers.
+   GD does the cropping; on a stack without it the original is kept instead.
+
 5. **Set the administrator password.** The schema seeds the admin account with
    a placeholder that no password can ever match, so the account cannot be
    signed into until you choose one:
@@ -223,12 +237,15 @@ roomease/
 │   │   ├── auth_header.php / auth_footer.php  Sign-in pages
 │   │   └── panel*.php                         AdminLTE panel shell (admin and landlord)
 │   ├── components/              Pieces placed inside pages: listing card,
-│   │                            search bar, listing form, room rows, icons
+│   │                            search bar, listing form, room rows, icons,
+│   │                            avatar (one renderer for every profile photo)
 │   └── scripts/                 PHP files that print a <script> block: password
 │                                toggle, save heart, copy number, show more, room buttons
 ├── assets/css/style.css       Public theme styling
 ├── assets/adminlte/           AdminLTE theme for the management panel
-├── assets/uploads/            Uploaded listing photos (auto-created per listing)
+├── assets/uploads/            Uploaded photos: listings (a folder each),
+│                              profile photos in avatars/, site/ for the
+│                              sign-in background. PHP is off in this folder.
 └── database/
     ├── roomease.sql             Schema + lookup data + locked admin account
     ├── seed_demo.sql            OPTIONAL demo accounts and sample listings

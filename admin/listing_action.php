@@ -24,10 +24,15 @@ verify_csrf();
 $boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
 $action = $_POST['action'] ?? '';
 
-// Send the admin back to where they were working: the listing's own review
-// page, the Removed tab, or the approval tab they had open.
+// Send the admin back to where they were working: on to the next listing in
+// the approval queue, the listing's own review page, the Removed tab, or the
+// approval tab they had open.
+//
+// 'next' is worked out after the action below rather than here, because what
+// comes next depends on what this action just did.
 $returnStatus = $_POST['return_status'] ?? '';
-if (($_POST['return_to'] ?? '') === 'review' && $boardingHouseId > 0) {
+$goToNext = ($_POST['return_to'] ?? '') === 'next';
+if ($goToNext || (($_POST['return_to'] ?? '') === 'review' && $boardingHouseId > 0)) {
     $returnTo = 'admin/listing.php?id=' . $boardingHouseId;
 } elseif (($_POST['return_view'] ?? '') === 'removed') {
     $returnTo = 'admin/manage_listings.php?view=removed';
@@ -160,6 +165,17 @@ if ($action === 'approve') {
 
 } else {
     flash_set('Unknown listing action.', 'error');
+    $goToNext = false;
+}
+
+// Working the queue: go on to whatever has waited longest now that this one is
+// decided, carrying the flash about this decision with it. When the queue is
+// empty the pending tab says so, which is the right place to end up.
+if ($goToNext) {
+    $next = pending_queue_after($boardingHouseId)['next'];
+    $returnTo = $next === null
+        ? 'admin/manage_listings.php?status=pending'
+        : 'admin/listing.php?id=' . (int) $next['boarding_house_id'];
 }
 
 redirect($returnTo);

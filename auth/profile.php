@@ -32,6 +32,27 @@ $googleLinked = !empty($user['google_id']);
 // the same emailed code as "Forgot password", sent to this account's own
 // address. That code is the proof, exactly as it is for a reset.
 $wantsPasswordCode = $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'password_code';
+
+// A photo can be larger than post_max_size, which makes PHP throw away $_POST
+// and $_FILES entirely. Without this the page would report a CSRF failure
+// rather than the real problem, exactly as admin/appearance.php guards against.
+if (post_too_large()) {
+    flash_set('That photo is larger than this server accepts in one upload (about '
+        . format_bytes(ini_bytes(ini_get('post_max_size'))) . ').', 'error');
+    redirect('auth/profile.php');
+}
+
+// Removing the photo is its own small form, so it does not have to travel
+// through the profile form's validation to take effect.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remove_photo') {
+    verify_csrf();
+    delete_avatar($user['avatar_path'] ?? null);
+    $pdo->prepare('UPDATE users SET avatar_path = NULL WHERE user_id = ?')->execute([$userId]);
+    $_SESSION['avatar_path'] = null;
+    flash_set('Your photo was removed.', 'success');
+    redirect('auth/profile.php');
+}
+
 if ($wantsPasswordCode) {
     verify_csrf();
 
@@ -108,34 +129,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$wantsPasswordCode) {
         }
     }
 
+    // The photo is stored last, once the rest of the form is known to be good,
+    // so a rejected form never leaves a file behind on disk.
+    $newAvatar = null;
     if (!$errors) {
+        try {
+            $newAvatar = handle_avatar_upload('avatar', $userId);
+        } catch (RuntimeException $e) {
+            $errors[] = $e->getMessage();
+        }
+    }
+
+    if (!$errors) {
+        // Columns are built up rather than written out twice, because a
+        // password change and a new photo can arrive in the same submission.
+        $columns = ['first_name = ?', 'last_name = ?', 'email = ?', 'phone_number = ?'];
+        $values  = [
+            $old['first_name'],
+            $old['last_name'],
+            $old['email'],
+            $old['phone_number'] !== '' ? $old['phone_number'] : null,
+        ];
         if ($changePassword) {
-            $update = $pdo->prepare(
-                'UPDATE users 
-                 SET first_name = ?, last_name = ?, email = ?, phone_number = ?, password_hash = ?
-                 WHERE user_id = ?'
-            );
-            $update->execute([
-                $old['first_name'],
-                $old['last_name'],
-                $old['email'],
-                $old['phone_number'] !== '' ? $old['phone_number'] : null,
-                password_hash($newPassword, PASSWORD_DEFAULT),
-                $userId
-            ]);
-        } else {
-            $update = $pdo->prepare(
-                'UPDATE users 
-                 SET first_name = ?, last_name = ?, email = ?, phone_number = ?
-                 WHERE user_id = ?'
-            );
-            $update->execute([
-                $old['first_name'],
-                $old['last_name'],
-                $old['email'],
-                $old['phone_number'] !== '' ? $old['phone_number'] : null,
-                $userId
-            ]);
+            $columns[] = 'password_hash = ?';
+            $values[] = password_hash($newPassword, PASSWORD_DEFAULT);
+        }
+        if ($newAvatar !== null) {
+            $columns[] = 'avatar_path = ?';
+            $values[] = $newAvatar;
+        }
+        $values[] = $userId;
+
+        $update = $pdo->prepare('UPDATE users SET ' . implode(', ', $columns) . ' WHERE user_id = ?');
+        $update->execute($values);
+
+        // The old file goes only once the new path is safely saved, so a
+        // failure above leaves the account with the photo it already had.
+        if ($newAvatar !== null) {
+            delete_avatar($user['avatar_path'] ?? null);
+            $_SESSION['avatar_path'] = $newAvatar;
         }
 
         // A password change invalidates every other copy of this session, so
@@ -234,8 +266,46 @@ if ($usePanel) {
   </div>
 <?php endif; ?>
 
-<form method="post" novalidate>
+<form method="post" enctype="multipart/form-data" novalidate>
   <?= csrf_field() ?>
+
+  <?php
+  // The photo as it stands. avatar_html reads the row straight from the
+  // database rather than the session, so the picture below is the stored one
+  // even on the request that just changed it.
+  $hasPhoto = is_avatar_path($user['avatar_path'] ?? null)
+    && is_file(__DIR__ . '/../' . $user['avatar_path']);
+  ?>
+  <div class="profile-photo">
+    <div class="profile-photo-figure">
+      <?= avatar_html($user, 96, $usePanel ? 're-avatar' : 'avatar') ?>
+      <?php /* Hidden until a file is chosen, when the script below points it
+           at the chosen file so the crop is not a surprise after saving. */ ?>
+      <img class="profile-photo-preview" id="avatarPreview" alt="" hidden>
+    </div>
+    <div class="profile-photo-actions">
+      <h5 class="font-weight-bold mb-1">Profile photo</h5>
+      <p class="<?= $cls['hint'] ?> mb-2">
+        JPG, PNG, or WEBP, up to <?= h(format_bytes(max_upload_bytes())) ?>.
+        It is cropped to a square, so a head-and-shoulders photo works best.
+      </p>
+      <label class="<?= $cls['btn_small'] ?> profile-photo-pick" for="avatar">
+        <i class="fas fa-camera mr-1"></i> <?= $hasPhoto ? 'Change photo' : 'Choose photo' ?>
+      </label>
+      <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/webp"
+        class="profile-photo-input">
+      <?php if ($hasPhoto): ?>
+        <?php /* Submits the separate form at the foot of the page, so this
+             button cannot be tripped by pressing Enter in a text field. */ ?>
+        <button type="submit" form="remove-photo-form" class="<?= $cls['btn_small'] ?>">
+          Remove photo
+        </button>
+      <?php endif; ?>
+      <span class="profile-photo-chosen" id="avatarChosen" hidden></span>
+    </div>
+  </div>
+
+  <hr>
 
   <div class="<?= $cls['row'] ?>">
     <div class="<?= $cls['col'] ?>">
@@ -316,6 +386,35 @@ if ($usePanel) {
     <input type="hidden" name="action" value="password_code">
   </form>
 <?php endif; ?>
+
+<?php if ($hasPhoto): ?>
+  <form method="post" id="remove-photo-form" hidden>
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="remove_photo">
+  </form>
+<?php endif; ?>
+
+<script>
+  // Show the chosen file in place of the current photo before it is uploaded.
+  // Purely a preview: the square crop still happens on the server.
+  (function () {
+    var input = document.getElementById('avatar');
+    var preview = document.getElementById('avatarPreview');
+    var chosen = document.getElementById('avatarChosen');
+    if (!input || !preview) return;
+
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      if (preview.src) URL.revokeObjectURL(preview.src);
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+      preview.previousElementSibling.hidden = true;
+      chosen.textContent = 'Ready to save';
+      chosen.hidden = false;
+    });
+  })();
+</script>
 
 <?php if ($usePanel): ?>
               </div>

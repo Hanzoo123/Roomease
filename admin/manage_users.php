@@ -145,9 +145,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <?php foreach ($users as $u): ?>
                 <tr>
                   <td class="font-weight-bold">
-                    <i
-                      class="fas <?= $u['role'] === 'landlord' ? 'fa-user-tie text-info' : 'fa-user text-secondary' ?> mr-1"></i>
-                    <a href="<?= base_url('admin/user.php?id=' . (int) $u['user_id']) ?>"><?= h($u['full_name']) ?></a>
+                    <?php /* The photo replaces the role glyph that used to sit here;
+                         the Role column already says which role this is. */ ?>
+                    <span class="d-flex align-items-center" style="gap: 8px;">
+                      <?= avatar_html($u, 32) ?>
+                      <a href="<?= base_url('admin/user.php?id=' . (int) $u['user_id']) ?>"><?= h($u['full_name']) ?></a>
+                    </span>
                   </td>
                   <td>
                     <a href="mailto:<?= h($u['email']) ?>" class="text-muted"><?= h($u['email']) ?></a>

@@ -81,8 +81,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-7">
-          <h1 class="m-0 font-weight-bold"><?= h($fullName) ?></h1>
-          <p class="text-muted mb-0 mt-1"><?= $isLandlord ? 'Landlord' : 'Boarder' ?> &middot; joined <?= h(date('F j, Y', strtotime($user['created_at']))) ?></p>
+          <div class="d-flex align-items-center" style="gap: 14px;">
+            <?= avatar_html($user, 56) ?>
+            <div>
+              <h1 class="m-0 font-weight-bold"><?= h($fullName) ?></h1>
+              <p class="text-muted mb-0 mt-1"><?= $isLandlord ? 'Landlord' : 'Boarder' ?> &middot; joined <?= h(date('F j, Y', strtotime($user['created_at']))) ?></p>
+            </div>
+          </div>
         </div>
         <div class="col-sm-5">
           <ol class="breadcrumb float-sm-right">

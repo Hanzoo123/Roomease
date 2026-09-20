@@ -20,6 +20,7 @@ $stmt = $pdo->prepare(
           u.user_id AS landlord_id, u.first_name AS landlord_first_name, u.last_name AS landlord_last_name,
           u.email AS landlord_email, u.phone_number AS landlord_phone, u.is_active AS landlord_active,
           u.deleted_at AS landlord_deleted_at, u.created_at AS landlord_joined, u.google_id AS landlord_google_id,
+          u.avatar_path AS landlord_avatar,
           CONCAT(m.first_name, ' ', m.last_name) AS moderator_name
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
@@ -118,6 +119,17 @@ foreach (['visitors_allowed' => 'Visitors', 'pets_allowed' => 'Pets', 'cooking_a
 
 $hasMap = ($listing['latitude'] ?? null) !== null && ($listing['longitude'] ?? null) !== null;
 
+// The rest of the approval queue, so a decision here can lead straight to the
+// next listing instead of back to the table. Both come from the one helper
+// that listing_action.php uses after a decision, so the count in the button
+// and the listing it actually goes to can never disagree.
+$pendingQueue = pending_queue_after($listingId);
+
+// Where approving or rejecting lands. Removing is deliberately left out: it is
+// the heaviest of the three, and whoever does it should see the result rather
+// than be carried off to another listing.
+$decisionReturn = $pendingQueue['next'] !== null ? 'next' : 'review';
+
 $canApprove = !$archived && $listing['moderation_status'] !== 'approved' && $rooms && $landlordLive;
 $approveBlocked = '';
 if (!$archived && $listing['moderation_status'] !== 'approved') {
@@ -210,9 +222,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <?= csrf_field() ?>
                   <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
                   <input type="hidden" name="action" value="approve">
-                  <input type="hidden" name="return_to" value="review">
+                  <?php /* With a queue behind this one, deciding moves on to the next
+                       listing and the outcome arrives as a notification there. On the
+                       last one there is nowhere to go, so the page stays put. */ ?>
+                  <input type="hidden" name="return_to" value="<?= $decisionReturn ?>">
                   <button type="submit" class="btn btn-success" <?= $canApprove ? '' : 'disabled' ?>>
-                    <i class="fas fa-check mr-1"></i> Approve
+                    <i class="fas fa-check mr-1"></i>
+                    <?= $decisionReturn === 'next' ? 'Approve &amp; next' : 'Approve' ?>
                   </button>
                 </form>
               <?php endif; ?>
@@ -230,6 +246,15 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <a href="<?= base_url('boarder/view_listing.php?id=' . $listingId) ?>" target="_blank" class="btn btn-outline-secondary">
               <i class="fas fa-external-link-alt mr-1"></i> Public page
             </a>
+            <?php if ($pendingQueue['next'] !== null): ?>
+              <?php /* Skip this one for now. The queue is oldest first, so this is
+                   always the listing that has been waiting longest after this one. */ ?>
+              <a href="<?= base_url('admin/listing.php?id=' . (int) $pendingQueue['next']['boarding_house_id']) ?>"
+                class="btn btn-outline-primary" title="<?= h('Next: ' . $pendingQueue['next']['name']) ?>">
+                Next pending <span class="badge badge-light ml-1"><?= (int) $pendingQueue['count'] ?></span>
+                <i class="fas fa-arrow-right ml-1"></i>
+              </a>
+            <?php endif; ?>
           </div>
         </div>
       </div>
@@ -326,11 +351,19 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <div class="card shadow-sm">
             <div class="card-header"><h3 class="card-title font-weight-bold">Landlord</h3></div>
             <div class="card-body">
-              <p class="mb-1 font-weight-bold">
-                <a href="<?= base_url('admin/user.php?id=' . (int) $listing['landlord_id']) ?>"><?= h($landlordName) ?></a>
-              </p>
-              <p class="mb-1"><a href="mailto:<?= h($listing['landlord_email']) ?>"><?= h($listing['landlord_email']) ?></a></p>
-              <p class="mb-2 text-muted"><?= h($listing['landlord_phone'] ?: 'No phone number') ?></p>
+              <div class="d-flex align-items-center mb-2" style="gap: 12px;">
+                <?php /* The one place in the admin area a landlord's own photo is
+                     worth the room: deciding on their listing is where knowing
+                     who they are actually helps. */ ?>
+                <?= avatar_html(['full_name' => $landlordName, 'avatar_path' => $listing['landlord_avatar']], 44) ?>
+                <div style="min-width: 0;">
+                  <p class="mb-0 font-weight-bold">
+                    <a href="<?= base_url('admin/user.php?id=' . (int) $listing['landlord_id']) ?>"><?= h($landlordName) ?></a>
+                  </p>
+                  <p class="mb-0 text-truncate"><a href="mailto:<?= h($listing['landlord_email']) ?>"><?= h($listing['landlord_email']) ?></a></p>
+                  <p class="mb-0 text-muted"><?= h($listing['landlord_phone'] ?: 'No phone number') ?></p>
+                </div>
+              </div>
               <p class="mb-0">
                 <?php if ($listing['landlord_deleted_at'] !== null): ?>
                   <span class="badge badge-dark">Removed</span>
@@ -413,6 +446,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <?php
 $returnTo = 'review';
+$rejectReturnTo = $decisionReturn;
 require __DIR__ . '/../includes/components/listing_decision_modals.php';
 require __DIR__ . '/../includes/layouts/panel_footer.php';
 ?>

@@ -28,6 +28,7 @@ if ($statusFilter !== '') {
 
 $stmt = $pdo->prepare(
   "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ",
+          " . COVER_PHOTO_SELECT . ",
           CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
           u.email AS landlord_email,
           u.is_active AS landlord_active,
@@ -150,7 +151,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <table id="listingsTable" class="table table-bordered table-striped table-hover">
             <thead>
               <tr>
-                <th>Boarding House</th>
+                <?php /* The cover photo needs room beside the name, or the column
+                     collapses to the width of the thumbnail and breaks the name
+                     onto one word a line — slower to scan than plain text was.
+                     This is the only column here given a picture: eight columns
+                     of a table this dense cannot afford a second one. */ ?>
+                <th style="min-width: 215px;">Boarding House</th>
                 <th>Landlord</th>
                 <th>Address</th>
                 <th>Rooms</th>
@@ -170,9 +176,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 ?>
                 <tr>
                   <td class="font-weight-bold">
-                    <a href="<?= base_url('admin/listing.php?id=' . $l['boarding_house_id']) ?>" title="Review this listing">
-                      <?= h($l['name']) ?>
-                    </a>
+                    <span class="d-flex align-items-center" style="gap: 10px;">
+                      <?= listing_thumb_html($l) ?>
+                      <a href="<?= base_url('admin/listing.php?id=' . $l['boarding_house_id']) ?>" title="Review this listing">
+                        <?= h($l['name']) ?>
+                      </a>
+                    </span>
                   </td>
                   <td>
                     <span class="font-weight-bold"><?= h($l['landlord_name']) ?></span>

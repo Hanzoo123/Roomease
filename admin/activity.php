@@ -48,7 +48,7 @@ $pages = max(1, (int) ceil($total / $perPage));
 $page = min($pages, max(1, (int) ($_GET['page'] ?? 1)));
 
 $stmt = $pdo->prepare(
-  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name
+  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
      FROM admin_actions a
      LEFT JOIN users u ON u.user_id = a.admin_id
      $whereSql
@@ -156,7 +156,15 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                     <?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?>
                     <small class="text-muted d-block"><?= h(time_ago($e['created_at'])) ?></small>
                   </td>
-                  <td><?= $e['admin_name'] !== null ? h($e['admin_name']) : '<span class="text-muted">Unknown</span>' ?></td>
+                  <td>
+                    <?php if ($e['admin_name'] !== null): ?>
+                      <span class="d-flex align-items-center" style="gap: 8px;">
+                        <?= avatar_html($e, 26) ?><?= h($e['admin_name']) ?>
+                      </span>
+                    <?php else: ?>
+                      <span class="text-muted">Unknown</span>
+                    <?php endif; ?>
+                  </td>
                   <td><span class="badge <?= h($type['badge']) ?>"><?= h($type['label']) ?></span></td>
                   <td>
                     <?php $url = admin_target_url($e['target_type'], $e['target_id']); ?>

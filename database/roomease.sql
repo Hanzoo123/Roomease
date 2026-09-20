@@ -42,6 +42,9 @@ CREATE TABLE users (
     first_name      VARCHAR(100) NOT NULL,
     last_name       VARCHAR(100) NOT NULL,
     phone_number    VARCHAR(30) DEFAULT NULL,
+    -- Profile photo, as a path under assets/uploads/avatars/. NULL means the
+    -- account is drawn as its initials instead. See migration_avatars.sql.
+    avatar_path     VARCHAR(255) NULL DEFAULT NULL,
     role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     -- Set when an administrator removes the account. Archiving instead of

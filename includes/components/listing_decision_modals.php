@@ -6,14 +6,20 @@
  * and opens it.
  *
  * Set before including:
- *   $returnStatus  optional; the approval tab to come back to
- *   $returnTo      optional; 'review' to come back to the listing's review page
+ *   $returnStatus    optional; the approval tab to come back to
+ *   $returnTo        optional; 'review' to come back to the listing's review
+ *                    page, or 'next' to go on to the next listing waiting
+ *   $rejectReturnTo  optional; where rejecting goes when that differs from
+ *                    where removing goes. The review page sends a rejection on
+ *                    to the next listing in the queue but keeps a removal in
+ *                    place, because a removal is worth seeing land.
  *
  * Include it before panel_footer.php. Its script waits for DOMContentLoaded,
  * by which time the footer has loaded jQuery and Bootstrap.
  */
 $returnStatus = $returnStatus ?? '';
 $returnTo = $returnTo ?? '';
+$rejectReturnTo = $rejectReturnTo ?? $returnTo;
 ?>
 <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
@@ -29,7 +35,7 @@ $returnTo = $returnTo ?? '';
           <?= csrf_field() ?>
           <input type="hidden" name="action" value="reject">
           <input type="hidden" name="return_status" value="<?= h($returnStatus) ?>">
-          <input type="hidden" name="return_to" value="<?= h($returnTo) ?>">
+          <input type="hidden" name="return_to" value="<?= h($rejectReturnTo) ?>">
           <input type="hidden" name="boarding_house_id" class="js-modal-id" value="">
           <p class="mb-3">Rejecting <strong class="js-modal-name"></strong>. It stays hidden from boarders until the
             landlord fixes it and it is approved.</p>

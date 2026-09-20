@@ -13,7 +13,8 @@ $stmt = $pdo->prepare(
             u.phone_number AS landlord_phone,
             u.email AS landlord_email,
             u.is_active AS landlord_active,
-            u.deleted_at AS landlord_deleted_at
+            u.deleted_at AS landlord_deleted_at,
+            u.avatar_path AS landlord_avatar
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
      WHERE bh.boarding_house_id = ?"
@@ -183,9 +184,12 @@ if ($shownPhone === '' && is_logged_in()) {
 }
 $dialPhone = preg_replace('/[^0-9+]/', '', $shownPhone);
 
-$initials = mb_strtoupper(
-  mb_substr((string) $listing['landlord_first_name'], 0, 1) . mb_substr((string) $listing['landlord_last_name'], 0, 1)
-);
+// The landlord as the shared avatar renderer wants them, so their photo is
+// drawn here exactly as it is inside the panel.
+$landlordAvatar = [
+  'full_name'   => $listing['landlord_name'],
+  'avatar_path' => $listing['landlord_avatar'],
+];
 
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $pageUrl = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_url('boarder/view_listing.php?id=' . $listingId);
@@ -491,7 +495,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php endif; ?>
 
       <div class="quick-host">
-        <span class="avatar" aria-hidden="true"><?= h($initials) ?></span>
+        <?= avatar_html($landlordAvatar, 48, 'avatar') ?>
         <div>
           <strong><?= h($listing['landlord_name']) ?></strong>
           <span>Landlord</span>
