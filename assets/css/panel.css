@@ -692,34 +692,6 @@ a:hover {
   color: var(--re-ink-soft);
 }
 
-/* The bell: what is queued up for this role, on every page of the panel. */
-.main-header .nav-bell {
-  position: relative;
-  padding-right: .95rem;
-  font-size: 1.05rem;
-}
-
-.main-header .nav-bell:hover {
-  color: var(--re-forest);
-}
-
-/* Reuses the sidebar count's marigold so one number means one thing
-   wherever it appears. */
-.nav-bell-count {
-  position: absolute;
-  top: .35rem;
-  right: .15rem;
-  min-width: 17px;
-  padding: 0 4px;
-  font-size: .65rem;
-  font-weight: 700;
-  line-height: 17px;
-  text-align: center;
-  color: var(--re-on-marigold);
-  background: var(--re-marigold);
-  border-radius: 999px;
-}
-
 /* ---- Account menu ---- */
 .panel-account > .nav-link {
   display: flex;

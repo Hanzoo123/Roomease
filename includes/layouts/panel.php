@@ -15,13 +15,10 @@ require_once __DIR__ . '/../components/panel_page_header.php';
 /**
  * Panel settings for the currently logged-in user.
  * Returns the title suffix, the role label shown in the navbar and sidebar,
- * the panel's home page, the sidebar menu, and — for a role that has work
- * queueing up for it — the navbar bell.
+ * the panel's home page, and the sidebar menu.
  *
- * 'alert' describes that bell: the number on it, where it goes, and what to
- * say when it is clicked. A role without one simply leaves the key out, and
- * the navbar draws nothing. My Profile is not in either menu: it lives in the
- * navbar account menu, which is on every page of the panel.
+ * My Profile is not in either menu: it lives in the navbar account menu, which
+ * is on every page of the panel.
  */
 function panel_config()
 {
@@ -30,13 +27,6 @@ function panel_config()
             'name'  => 'Admin',
             'badge' => ['label' => 'Administrator'],
             'home'   => 'admin/dashboard.php',
-            'alert' => [
-                'count' => pending_listing_count(),
-                'url'   => 'admin/manage_listings.php?status=pending',
-                'one'   => 'listing is waiting for approval',
-                'many'  => 'listings are waiting for approval',
-                'empty' => 'Nothing is waiting for approval',
-            ],
             'menu'  => [
                 ['url' => 'admin/dashboard.php',       'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
                 // A listing's review page and an account's page stay under their list.
