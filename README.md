@@ -165,12 +165,15 @@ roomease/
 │   │   ├── auth_header.php / auth_footer.php  Sign-in pages
 │   │   └── panel*.php                         AdminLTE panel shell (admin and landlord)
 │   ├── components/              Pieces placed inside pages: listing card,
-│   │                            search bar, listing form, room rows, icons
+│   │                            search bar, listing form, room rows, icons,
+│   │                            avatar (one renderer for every profile photo)
 │   └── scripts/                 PHP files that print a <script> block: password
 │                                toggle, save heart, copy number, show more, room buttons
 ├── assets/css/style.css       Public theme styling
 ├── assets/adminlte/           AdminLTE theme for the management panel
-├── assets/uploads/            Uploaded listing photos (auto-created per listing)
+├── assets/uploads/            Uploaded photos: listings (a folder each),
+│                              profile photos in avatars/, site/ for the
+│                              sign-in background. PHP is off in this folder.
 └── database/
     ├── boardinghouse.sql        THE schema: every table, lookup data, one admin
     ├── roomease.sql             Older schema file; superseded, see the note below
@@ -211,7 +214,15 @@ the cleanup log below for why that is worth saying.
   and restore listings (removal archives, it never deletes). Every decision
   is written to the Activity Log with the administrator and the reason, and
   the landlord is told by email and on their dashboard.
-- All roles: edit their profile and change their own password.
+- All roles: edit their profile, upload a profile photo, and change their own
+  password. A photo is cropped square and shrunk to 512px on upload, stored
+  under `assets/uploads/avatars/`, and drawn wherever that person appears:
+  the panel sidebar and account menu, the admin user directory and account
+  pages, the activity log, and the landlord block on a public listing.
+- Admin: leave notes on a landlord or boarder from that account's page. Notes
+  record what was observed, as against the Activity Log recording what was
+  done, are never shown to the person they are about, and can be deleted only
+  by whoever wrote them.
 - Password reset by a 6-digit code emailed through Gmail. Codes are hashed,
   single use, expire after 10 minutes, and stop working after five wrong
   guesses.

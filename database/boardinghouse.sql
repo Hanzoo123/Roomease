@@ -35,6 +35,7 @@ USE roomease;
 -- constraint checks switched off rather than in a carefully chosen order.
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS account_notes;
 DROP TABLE IF EXISTS admin_actions;
 DROP TABLE IF EXISTS site_settings;
 DROP TABLE IF EXISTS login_attempts;
@@ -74,6 +75,9 @@ CREATE TABLE users (
     first_name      VARCHAR(100) NOT NULL,
     last_name       VARCHAR(100) NOT NULL,
     phone_number    VARCHAR(30) DEFAULT NULL,
+    -- Profile photo, as a path under assets/uploads/avatars/. NULL means the
+    -- account is drawn as its initials instead.
+    avatar_path     VARCHAR(255) NULL DEFAULT NULL,
     role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     deleted_at      DATETIME NULL DEFAULT NULL,
@@ -406,6 +410,26 @@ CREATE TABLE admin_actions (
         REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+-- ---------------------------------------------------------
+-- Table: account_notes
+-- Short notes an administrator leaves on a landlord's or boarder's account,
+-- seen only inside the admin panel. Separate from admin_actions because that
+-- table records what was *done* to an account and is written by the code,
+-- while a note is what an administrator *observed* and can be deleted by
+-- whoever wrote it.
+-- ---------------------------------------------------------
+CREATE TABLE account_notes (
+    note_id     INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT NOT NULL,
+    admin_id    INT NULL,
+    body        VARCHAR(1000) NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Serves the per-account lookup, newest first, which is the only read.
+    KEY idx_account_notes (user_id, created_at),
+    CONSTRAINT fk_notes_user  FOREIGN KEY (user_id)  REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_notes_admin FOREIGN KEY (admin_id) REFERENCES users(user_id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =========================================================
 -- SEED DATA

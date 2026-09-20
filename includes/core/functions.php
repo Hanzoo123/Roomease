@@ -11,6 +11,12 @@ require_once __DIR__ . "/security.php";
 // Outgoing email through Gmail, used for password reset codes.
 require_once __DIR__ . "/mailer.php";
 
+// Profile photos are drawn on nearly every page of both the panel and the
+// public site, so the one renderer is loaded with the helpers rather than
+// required page by page. It calls h(), base_url() and is_avatar_path() below,
+// which are all defined by the time anything calls it.
+require_once __DIR__ . "/../components/avatar.php";
+
 configure_session_security();
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -295,6 +301,181 @@ function handle_photo_uploads($fileField, $boardingHouseId)
     return $stored;
 }
 
+/* ---------------------------------------------------------------------------
+ * Profile photos (database/migration_avatars.sql)
+ *
+ * An account's photo is a file under assets/uploads/avatars/, and the path to
+ * it lives in users.avatar_path. That folder is covered by the same
+ * assets/uploads/.htaccess as listing photos, which takes PHP off the folder
+ * and pins the content type, so a profile photo cannot be made to run.
+ *
+ * A photo is always stored as a square, because every place that draws one
+ * draws a circle. Cropping once on upload beats cropping in CSS on every page,
+ * and it also caps what the server keeps: a 4000px phone photo becomes a
+ * 512px file of a few tens of kilobytes.
+ * ------------------------------------------------------------------------ */
+
+/** Where profile photos live, relative to the app root. */
+const AVATAR_UPLOAD_DIR = 'assets/uploads/avatars';
+
+/** The side, in pixels, of a stored profile photo. */
+const AVATAR_SIZE = 512;
+
+/** True for a path this app wrote into AVATAR_UPLOAD_DIR, and nothing else. */
+function is_avatar_path($path)
+{
+    return is_string($path)
+        && preg_match('#^assets/uploads/avatars/av-[0-9]+-[a-f0-9]{16}\.(jpg|png|webp)$#', $path) === 1;
+}
+
+/**
+ * The initials drawn in place of a photo: the first letter of the first two
+ * words of the name. Used by every avatar, on the panel and the public site,
+ * so an account without a photo looks the same everywhere.
+ */
+function avatar_initials($name)
+{
+    $words = preg_split('/\s+/u', trim((string) $name), -1, PREG_SPLIT_NO_EMPTY);
+    if (!$words) {
+        return '?';
+    }
+    $letters = '';
+    foreach (array_slice($words, 0, 2) as $word) {
+        $letters .= mb_substr($word, 0, 1);
+    }
+    return mb_strtoupper($letters);
+}
+
+/**
+ * Square-crop and shrink an uploaded image to AVATAR_SIZE, writing it back in
+ * its own format. Returns false when GD cannot handle the file, which leaves
+ * the caller to store the original untouched rather than reject the upload:
+ * GD is not guaranteed to be installed on every machine this project runs on.
+ */
+function resize_avatar_square($sourcePath, $destPath, $ext)
+{
+    if (!function_exists('imagecreatetruecolor')) {
+        return false;
+    }
+
+    $readers = ['jpg' => 'imagecreatefromjpeg', 'png' => 'imagecreatefrompng', 'webp' => 'imagecreatefromwebp'];
+    $reader = $readers[$ext] ?? null;
+    if ($reader === null || !function_exists($reader)) {
+        return false;
+    }
+
+    $source = @$reader($sourcePath);
+    if (!$source) {
+        return false;
+    }
+
+    // Phone cameras record the rotation rather than applying it, so a portrait
+    // photo arrives lying on its side unless the EXIF tag is honoured.
+    if ($ext === 'jpg' && function_exists('exif_read_data')) {
+        $exif = @exif_read_data($sourcePath);
+        $orientation = (int) ($exif['Orientation'] ?? 0);
+        $angle = [3 => 180, 6 => -90, 8 => 90][$orientation] ?? 0;
+        if ($angle !== 0) {
+            $rotated = @imagerotate($source, $angle, 0);
+            if ($rotated) {
+                $source = $rotated;
+            }
+        }
+    }
+
+    $width  = imagesx($source);
+    $height = imagesy($source);
+    $side   = min($width, $height);
+    // Crop from the centre horizontally, but from a third of the way down
+    // vertically: in a portrait photo of a person the face sits above centre.
+    $srcX = (int) (($width - $side) / 2);
+    $srcY = (int) (($height - $side) / 3);
+
+    $size = min(AVATAR_SIZE, $side);
+    $canvas = imagecreatetruecolor($size, $size);
+    if ($ext === 'png' || $ext === 'webp') {
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+        imagefill($canvas, 0, 0, imagecolorallocatealpha($canvas, 0, 0, 0, 127));
+    }
+
+    imagecopyresampled($canvas, $source, 0, 0, $srcX, $srcY, $size, $size, $side, $side);
+
+    $writers = ['jpg' => 'imagejpeg', 'png' => 'imagepng', 'webp' => 'imagewebp'];
+    $quality = ['jpg' => 88, 'png' => 6, 'webp' => 88];
+    $ok = @$writers[$ext]($canvas, $destPath, $quality[$ext]);
+
+    // No imagedestroy() here on purpose: a GdImage is an object and is freed
+    // when it goes out of scope. The call has done nothing since PHP 8.0 and
+    // raises a deprecation notice on PHP 8.5, which would print into the page.
+    return (bool) $ok;
+}
+
+/**
+ * Store one uploaded profile photo for $userId and return its relative path.
+ * Returns null when nothing was uploaded. Throws on validation failure, with a
+ * message meant to be shown to whoever tried.
+ *
+ * Every check runs before anything is written, in the same order as the
+ * listing photo upload above: the extension is decided by the sniffed MIME
+ * type and never by the name the browser sent.
+ */
+function handle_avatar_upload($fileField, $userId)
+{
+    $upload = $_FILES[$fileField] ?? null;
+    if (!is_array($upload) || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    $maxBytes = max_upload_bytes();
+
+    if ($upload['error'] === UPLOAD_ERR_INI_SIZE || $upload['error'] === UPLOAD_ERR_FORM_SIZE) {
+        throw new RuntimeException('That photo is larger than the ' . format_bytes($maxBytes) . ' limit.');
+    }
+    if ($upload['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($upload['tmp_name'])) {
+        throw new RuntimeException('The photo did not upload. Please try again.');
+    }
+    if ($upload['size'] > $maxBytes) {
+        throw new RuntimeException('That photo is larger than the ' . format_bytes($maxBytes) . ' limit.');
+    }
+
+    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime  = finfo_file($finfo, $upload['tmp_name']);
+    finfo_close($finfo);
+
+    if (!isset($allowed[$mime]) || @getimagesize($upload['tmp_name']) === false) {
+        throw new RuntimeException('Your photo must be a JPG, PNG, or WEBP image.');
+    }
+
+    $ext = $allowed[$mime];
+    $dir = __DIR__ . '/../../' . AVATAR_UPLOAD_DIR;
+    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+        throw new RuntimeException('Could not create the folder for profile photos.');
+    }
+
+    $stored = AVATAR_UPLOAD_DIR . '/av-' . (int) $userId . '-' . bin2hex(random_bytes(8)) . '.' . $ext;
+    $target = __DIR__ . '/../../' . $stored;
+
+    if (!move_uploaded_file($upload['tmp_name'], $target)) {
+        throw new RuntimeException('Could not save your photo.');
+    }
+
+    // Squaring is an improvement, not a requirement: on a machine without GD
+    // the original is kept and the circle crops it in CSS instead.
+    resize_avatar_square($target, $target, $ext);
+
+    return $stored;
+}
+
+/** Delete a profile photo from disk. Ignores anything outside the avatars folder. */
+function delete_avatar($path)
+{
+    if (is_avatar_path($path)) {
+        @unlink(__DIR__ . '/../../' . $path);
+    }
+}
+
 /** Format a peso amount for display. */
 function peso($amount)
 {
@@ -395,6 +576,25 @@ const COVER_PHOTO_SELECT = '(SELECT img.image_path FROM images img
        WHERE img.boarding_house_id = bh.boarding_house_id
        ORDER BY img.room_id IS NULL DESC, img.is_primary DESC, img.image_id ASC
        LIMIT 1) AS cover_photo';
+
+/**
+ * A listing's cover photo at thumbnail size, for the administrator's queue and
+ * tables. $l needs cover_photo (COVER_PHOTO_SELECT).
+ *
+ * A listing with no photo gets a drawn placeholder rather than an empty gap,
+ * because "this one has nothing to look at" is itself something a moderator
+ * wants to see at a glance. The picture is decorative: the listing's name is
+ * always the link beside it.
+ */
+function listing_thumb_html(array $l, $class = 'queue-thumb')
+{
+    if (!empty($l['cover_photo'])) {
+        return '<img class="' . h($class) . '" src="' . h(base_url($l['cover_photo']))
+            . '" alt="" loading="lazy" decoding="async">';
+    }
+    return '<span class="' . h($class) . ' ' . h($class) . '--empty" aria-hidden="true">'
+        . '<i class="fas fa-camera"></i></span>';
+}
 
 /* ---------------------------------------------------------------------------
  * Rooms (database/boardinghouse.sql)
@@ -1141,6 +1341,91 @@ function admin_actions_for($targetType, $targetId, $limit = 20)
     }
 }
 
+/* ---------------------------------------------------------------------------
+ * Administrator notes on an account (database/migration_account_notes.sql)
+ *
+ * What an administrator observed about a landlord or boarder, as opposed to
+ * what the activity log records them doing. Never shown outside the admin
+ * panel: the person the note is about does not see it, so the wording stays
+ * between administrators.
+ *
+ * Every read is wrapped against a missing table, as the sign-in counters on
+ * admin/user.php are, so a database that has skipped this migration loses the
+ * notes card rather than the whole page.
+ * ------------------------------------------------------------------------ */
+
+/** Longest note accepted, matching account_notes.body. */
+const ACCOUNT_NOTE_MAX = 1000;
+
+/**
+ * Notes on one account, newest first, with each author's name and photo so
+ * the card can draw them the same way every other person is drawn.
+ */
+function account_notes($userId, $limit = 50)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT n.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+               FROM account_notes n
+               LEFT JOIN users u ON u.user_id = n.admin_id
+              WHERE n.user_id = ?
+              ORDER BY n.created_at DESC, n.note_id DESC
+              LIMIT " . (int) $limit
+        );
+        $stmt->execute([(int) $userId]);
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        error_log('RoomEase: account notes lookup failed - ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Write a note about $userId as the signed-in administrator. Returns false
+ * when the note is empty or the table is missing, so the caller can say so.
+ */
+function add_account_note($userId, $body)
+{
+    global $pdo;
+    $body = trim((string) $body);
+    if ($body === '') {
+        return false;
+    }
+    $body = mb_substr($body, 0, ACCOUNT_NOTE_MAX);
+
+    try {
+        $pdo->prepare('INSERT INTO account_notes (user_id, admin_id, body) VALUES (?, ?, ?)')
+            ->execute([(int) $userId, (int) $_SESSION['user_id'], $body]);
+        return true;
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not write account note - ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Delete one note, but only if the signed-in administrator wrote it.
+ *
+ * Any administrator could have been allowed to delete any note, and on a team
+ * this small that would rarely matter. Author-only is the rule because a note
+ * is a record of what one person observed: someone else disagreeing with it
+ * should add their own note, not quietly remove the first. Returns false when
+ * the note is missing or belongs to someone else.
+ */
+function delete_account_note($noteId)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare('DELETE FROM account_notes WHERE note_id = ? AND admin_id = ?');
+        $stmt->execute([(int) $noteId, (int) $_SESSION['user_id']]);
+        return $stmt->rowCount() > 0;
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not delete account note - ' . $e->getMessage());
+        return false;
+    }
+}
+
 /**
  * The decisions an administrator made on a landlord's listings in the last
  * $days days, newest first. Removed listings are included: telling the
@@ -1326,6 +1611,42 @@ function pending_listing_count()
         error_log('RoomEase: pending listing count failed - ' . $e->getMessage());
         return 0;
     }
+}
+
+/**
+ * What is still waiting for a decision once $exceptId is set aside, so an
+ * administrator can go from one review straight to the next.
+ *
+ * Returns ['count' => int, 'next' => ['boarding_house_id' => int, 'name' =>
+ * string]|null]. Ordered oldest change first, matching the dashboard's queue
+ * and the sidebar's count, so "next" is genuinely the one that has waited
+ * longest rather than whichever the database happened to return.
+ *
+ * $exceptId is excluded whatever its state: called before a decision it skips
+ * the listing being looked at, and called after one it skips a listing whose
+ * new state may not have landed in this connection's view yet.
+ */
+function pending_queue_after($exceptId = 0)
+{
+    global $pdo;
+    $empty = ['count' => 0, 'next' => null];
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT bh.boarding_house_id, bh.name
+               FROM boarding_houses bh
+               JOIN users u ON u.user_id = bh.landlord_id AND u.is_active = 1 AND u.deleted_at IS NULL
+              WHERE bh.moderation_status = 'pending' AND bh.deleted_at IS NULL
+                AND bh.boarding_house_id <> ?
+              ORDER BY bh.updated_at ASC"
+        );
+        $stmt->execute([(int) $exceptId]);
+        $rows = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        error_log('RoomEase: pending queue lookup failed - ' . $e->getMessage());
+        return $empty;
+    }
+
+    return ['count' => count($rows), 'next' => $rows[0] ?? null];
 }
 
 /** The stay-term columns on boarding_houses, in the order the forms write them. */

@@ -134,23 +134,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-paint-brush text-primary mr-2"></i>Appearance
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item active">Appearance</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header('Appearance', [
+    'subtitle' => 'The background behind the sign-in pages, as a colour or an uploaded photo.',
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -168,13 +154,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-image mr-1"></i> Sign-in background
                 </h3>
+              <span class="card-subtitle">Shown behind log in, sign up and the password pages. A photo gets a dark green tint so the text above the form stays readable.</span>
               </div>
               <form method="post" enctype="multipart/form-data" id="appearance-form">
                 <div class="card-body">
-                  <p class="text-muted small">
-                    Shown behind the log in, sign up, forgot password, and reset password pages. Photos get a
-                    dark green tint so the text above the form stays readable.
-                  </p>
                   <?= csrf_field() ?>
 
                   <div class="form-group">
@@ -243,6 +226,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <div class="card-header d-flex align-items-center">
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-eye mr-1"></i> Preview
+              <span class="card-subtitle">How the sign-in page looks with these settings.</span>
                 </h3>
                 <a href="<?= base_url('auth/login.php?preview=1') ?>" target="_blank" rel="noopener"
                   class="btn btn-sm btn-outline-info ml-auto">

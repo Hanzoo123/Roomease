@@ -8,10 +8,17 @@
  * panels cannot drift apart.
  */
 
+// The page header, card header and field helpers every panel page uses. Loaded
+// with the shell rather than page by page, so a new page gets them for free.
+require_once __DIR__ . '/../components/panel_page_header.php';
+
 /**
  * Panel settings for the currently logged-in user.
  * Returns the title suffix, the role label shown in the navbar and sidebar,
  * the panel's home page, and the sidebar menu.
+ *
+ * My Profile is not in either menu: it lives in the navbar account menu, which
+ * is on every page of the panel.
  */
 function panel_config()
 {
@@ -34,7 +41,6 @@ function panel_config()
                 ['url' => 'admin/activity.php',        'icon' => 'fa-history',        'label' => 'Activity Log'],
                 ['url' => 'admin/extras.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
                 ['url' => 'admin/appearance.php',      'icon' => 'fa-paint-brush',    'label' => 'Appearance'],
-                ['url' => 'auth/profile.php',          'icon' => 'fa-user-cog',       'label' => 'My Profile'],
             ],
         ];
     }
@@ -50,7 +56,6 @@ function panel_config()
              'also' => ['edit_listing.php', 'room_form.php']],
             ['url' => 'landlord/add_listing.php', 'icon' => 'fa-plus-square',    'label' => 'Add Listing'],
             ['url' => 'landlord/extras.php',      'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
-            ['url' => 'auth/profile.php',         'icon' => 'fa-user-cog',       'label' => 'My Profile'],
         ],
     ];
 }

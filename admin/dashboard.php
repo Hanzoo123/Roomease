@@ -26,6 +26,7 @@ $live = live_listing_stats();
 // pending, so "waiting since" is its last change rather than when it was posted.
 $needsReview = $pdo->query(
   "SELECT bh.boarding_house_id, bh.name, bh.address, bh.created_at, bh.updated_at, " . ROOM_SUMMARY_COLUMNS . ",
+          " . COVER_PHOTO_SELECT . ",
           CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id AND u.is_active = 1 AND u.deleted_at IS NULL
@@ -64,7 +65,7 @@ $decided->execute([$since]);
 $decided = $decided->fetch();
 
 $recentActivity = $pdo->query(
-  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name
+  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
      FROM admin_actions a LEFT JOIN users u ON u.user_id = a.admin_id
     ORDER BY a.created_at DESC, a.action_id DESC
     LIMIT 6"
@@ -72,7 +73,8 @@ $recentActivity = $pdo->query(
 $types = admin_action_types();
 
 $recentUsers = $pdo->query(
-  "SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name, email, role, is_active, deleted_at, created_at
+  "SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name, email, role, is_active,
+          deleted_at, created_at, avatar_path
      FROM users
     WHERE role <> 'administrator'
     ORDER BY created_at DESC
@@ -101,16 +103,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold"><i class="fas fa-tachometer-alt text-primary mr-2"></i>Dashboard</h1>
-        </div>
-        
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header('Dashboard', [
+    'subtitle' => 'What needs you now, how the last 30 days went, and what administrators have done lately.',
+    'actions' => '<a href="' . base_url('admin/manage_listings.php?status=pending')
+      . '" class="btn btn-sm btn-primary"><i class="fas fa-clipboard-check mr-1"></i> Review queue</a>'
+      . '<a href="' . base_url('admin/reports.php') . '" class="btn btn-sm btn-outline-secondary">'
+      . '<i class="fas fa-chart-bar mr-1"></i> Reports</a>',
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -145,25 +144,31 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       <div class="row">
         <div class="col-lg-8">
           <div class="card card-warning card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-clipboard-check mr-1"></i> Needs your review</h3>
-              <div class="card-tools">
-                <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>" class="btn btn-tool">All pending</a>
-              </div>
-            </div>
+            <?php panel_card_header(
+              'Needs your review',
+              'Listings waiting for a decision, the one that has waited longest first.',
+              '<a href="' . base_url('admin/manage_listings.php?status=pending') . '" class="btn btn-tool">All pending</a>'
+            ); ?>
             <?php if (!$needsReview): ?>
-              <div class="card-body text-muted">Nothing is waiting for a decision.</div>
+              <?= re_empty(
+                'The queue is clear',
+                'Nothing is waiting for a decision. New listings will appear here as landlords post them.',
+                'fa-clipboard-check'
+              ) ?>
             <?php else: ?>
               <ul class="list-group list-group-flush review-queue">
                 <?php foreach ($needsReview as $l): ?>
                   <?php $avail = listing_availability($l); ?>
                   <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between" style="gap: 8px;">
-                    <div>
-                      <a class="font-weight-bold" href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>"><?= h($l['name']) ?></a>
-                      <small class="text-muted d-block">
-                        <?= h($l['landlord_name']) ?> &middot; <?= h($avail['summary']) ?>
-                        <?php if ($avail['rent_from'] !== null): ?> &middot; from <?= h(peso_round($avail['rent_from'])) ?><?php endif; ?>
-                      </small>
+                    <div class="d-flex align-items-center" style="gap: 12px;">
+                      <?= listing_thumb_html($l) ?>
+                      <div>
+                        <a class="font-weight-bold" href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>"><?= h($l['name']) ?></a>
+                        <small class="text-muted d-block">
+                          <?= h($l['landlord_name']) ?> &middot; <?= h($avail['summary']) ?>
+                          <?php if ($avail['rent_from'] !== null): ?> &middot; from <?= h(peso_round($avail['rent_from'])) ?><?php endif; ?>
+                        </small>
+                      </div>
                     </div>
                     <div class="d-flex align-items-center" style="gap: 12px;">
                       <small class="text-muted">waiting <?= h(preg_replace('/ ago$/', '', time_ago($l['updated_at']))) ?></small>
@@ -176,8 +181,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card card-primary card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-chart-bar mr-1"></i> Last 30 days</h3>
+            <div class="card-header card-header--split">
+              <div style="min-width: 0;">
+                <h3 class="card-title">Last 30 days</h3>
+                <span class="card-subtitle">New accounts and new listings, one bar per day.</span>
+              </div>
               <div class="card-tools">
                 <a href="<?= base_url('admin/reports.php') ?>" class="btn btn-tool">Reports</a>
               </div>
@@ -208,15 +216,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
         <div class="col-lg-4">
           <div class="card card-info card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-history mr-1"></i> Recent activity</h3>
-              <div class="card-tools">
-                <a href="<?= base_url('admin/activity.php') ?>" class="btn btn-tool">Full log</a>
-              </div>
-            </div>
-            <div class="card-body">
+            <?php panel_card_header(
+              'Recent activity',
+              'The last few things an administrator did.',
+              '<a href="' . base_url('admin/activity.php') . '" class="btn btn-tool">Full log</a>'
+            ); ?>
+            <div class="card-body<?= $recentActivity ? '' : ' p-0' ?>">
               <?php if (!$recentActivity): ?>
-                <p class="text-muted mb-0">No administrator actions yet.</p>
+                <?= re_empty('Nothing logged yet', 'Approvals, rejections and account changes will appear here.', 'fa-history') ?>
               <?php else: ?>
                 <ul class="review-history">
                   <?php foreach ($recentActivity as $e): ?>
@@ -229,8 +236,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <?php else: ?>
                         <?= h($e['target_label']) ?>
                       <?php endif; ?>
-                      <small class="text-muted d-block">
-                        <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'Unknown' ?> &middot; <?= h(time_ago($e['created_at'])) ?>
+                      <small class="text-muted d-flex align-items-center" style="gap: 6px;">
+                        <?php if ($e['admin_name'] !== null): ?>
+                          <?= avatar_html($e, 18) ?><?= h($e['admin_name']) ?>
+                        <?php else: ?>
+                          Unknown
+                        <?php endif; ?>
+                        &middot; <?= h(time_ago($e['created_at'])) ?>
                       </small>
                     </li>
                   <?php endforeach; ?>
@@ -240,24 +252,26 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card card-success card-outline shadow-sm">
-            <div class="card-header">
-              <h3 class="card-title font-weight-bold"><i class="fas fa-user-plus mr-1"></i> New accounts</h3>
-              <div class="card-tools">
-                <a href="<?= base_url('admin/manage_users.php') ?>" class="btn btn-tool">All users</a>
-              </div>
-            </div>
+            <?php panel_card_header(
+              'New accounts',
+              'The most recent landlords and boarders to sign up.',
+              '<a href="' . base_url('admin/manage_users.php') . '" class="btn btn-tool">All users</a>'
+            ); ?>
             <ul class="list-group list-group-flush">
               <?php if (!$recentUsers): ?>
-                <li class="list-group-item text-muted">No accounts yet.</li>
+                <li class="list-group-item p-0"><?= re_empty('No accounts yet', 'Landlords and boarders appear here as they sign up.', 'fa-user-plus') ?></li>
               <?php endif; ?>
               <?php foreach ($recentUsers as $ru): ?>
-                <li class="list-group-item">
-                  <a class="font-weight-bold" href="<?= base_url('admin/user.php?id=' . (int) $ru['user_id']) ?>"><?= h($ru['full_name']) ?></a>
-                  <span class="badge badge-light border float-right"><?= h(ucfirst($ru['role'])) ?></span>
-                  <small class="text-muted d-block">
-                    <?= h($ru['email']) ?> &middot; <?= h(time_ago($ru['created_at'])) ?>
-                    <?php if ($ru['deleted_at'] !== null): ?> &middot; removed<?php elseif (!$ru['is_active']): ?> &middot; deactivated<?php endif; ?>
-                  </small>
+                <li class="list-group-item d-flex align-items-center" style="gap: 10px;">
+                  <?= avatar_html($ru, 32) ?>
+                  <div class="flex-grow-1" style="min-width: 0;">
+                    <a class="font-weight-bold" href="<?= base_url('admin/user.php?id=' . (int) $ru['user_id']) ?>"><?= h($ru['full_name']) ?></a>
+                    <span class="badge badge-light border float-right"><?= h(ucfirst($ru['role'])) ?></span>
+                    <small class="text-muted d-block text-truncate">
+                      <?= h($ru['email']) ?> &middot; <?= h(time_ago($ru['created_at'])) ?>
+                      <?php if ($ru['deleted_at'] !== null): ?> &middot; removed<?php elseif (!$ru['is_active']): ?> &middot; deactivated<?php endif; ?>
+                    </small>
+                  </div>
                 </li>
               <?php endforeach; ?>
             </ul>

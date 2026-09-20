@@ -9,24 +9,22 @@
  */
 ?>
 <div class="card card-primary card-outline shadow-sm" id="myListings">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h3 class="card-title font-weight-bold">
-      <i class="fas fa-clipboard-list mr-1"></i> My Boarding Houses
-    </h3>
-    <a href="<?= base_url('landlord/add_listing.php') ?>" class="btn btn-sm btn-primary ml-auto">
-      <i class="fas fa-plus mr-1"></i> Add Listing
-    </a>
-  </div>
+  <?php panel_card_header(
+    'My boarding houses',
+    'Each listing, its rooms, and whether boarders can see it yet.',
+    '<a href="' . base_url('landlord/add_listing.php') . '" class="btn btn-sm btn-primary">'
+      . '<i class="fas fa-plus mr-1"></i> Add listing</a>'
+  ); ?>
 
-  <div class="card-body">
+  <div class="card-body<?= $listings ? '' : ' p-0' ?>">
     <?php if (!$listings): ?>
-      <div class="text-center text-muted py-5">
-        <i class="fas fa-house-user fa-3x mb-3 d-block text-secondary"></i>
-        <p class="mb-3">You haven't posted any boarding houses yet.</p>
-        <a href="<?= base_url('landlord/add_listing.php') ?>" class="btn btn-primary">
-          <i class="fas fa-plus mr-1"></i> Create your first listing
-        </a>
-      </div>
+      <?= re_empty(
+        'No boarding houses yet',
+        'Post your first listing and an administrator will review it before boarders can see it.',
+        'fa-house-user',
+        '<a href="' . base_url('landlord/add_listing.php') . '" class="btn btn-primary btn-sm">'
+          . '<i class="fas fa-plus mr-1"></i> Create your first listing</a>'
+      ) ?>
     <?php else: ?>
       <table id="listingsTable" class="table table-bordered table-striped table-hover">
         <thead>
@@ -125,8 +123,8 @@
                   </a>
 
                   <!-- Delete Button -->
-                  <form method="post" action="<?= base_url('landlord/delete_listing.php') ?>" class="d-inline"
-                    onsubmit="return confirm('Delete \'<?= h(addslashes($l['name'])) ?>\'? This cannot be undone.');">
+                  <form method="post" action="<?= base_url('landlord/delete_listing.php') ?>" class="d-inline js-confirm"
+                    data-confirm="Delete &quot;<?= h($l['name']) ?>&quot;? This cannot be undone.">
                     <?= csrf_field() ?>
                     <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
                     <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete Listing">

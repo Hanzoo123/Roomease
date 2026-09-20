@@ -122,26 +122,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-door-open text-primary mr-2"></i><?= $room ? 'Edit Room' : 'Add a Room' ?>
-          </h1>
-          <p class="text-muted mb-0 mt-1"><?= h($houseName) ?></p>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/listings.php') ?>">My Boarding Houses</a></li>
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/edit_listing.php?id=' . $houseId) ?>#rooms"><?= h($houseName) ?></a></li>
-            <li class="breadcrumb-item active"><?= $room ? h($room['name']) : 'Add room' ?></li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header($room ? 'Edit Room' : 'Add a Room', [
+    'subtitle' => $houseName,
+    'back' => 'landlord/edit_listing.php?id=' . $houseId . '#rooms',
+    'backLabel' => 'Back to ' . $houseName,
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -153,6 +138,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-clipboard-list mr-1"></i> Room Details
               </h3>
+              <span class="card-subtitle">Boarders see the rent, the type and how many slots are left.</span>
             </div>
 
             <?php if ($errors): ?>
@@ -274,6 +260,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-images mr-1"></i> Current Room Photos
+              <span class="card-subtitle">The main photo is the one shown beside this room.</span>
                 </h3>
               </div>
               <div class="card-body">
@@ -301,7 +288,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                           </form>
                         <?php endif; ?>
                         <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100"
-                          onsubmit="return confirm('Remove this photo? This cannot be undone.');">
+                          class="js-confirm" data-confirm="Remove this photo? This cannot be undone.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">
                           <input type="hidden" name="action" value="delete">

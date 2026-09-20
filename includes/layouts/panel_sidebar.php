@@ -9,10 +9,10 @@ $panel = $panel ?? panel_config();
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 $panelUser   = $_SESSION['full_name'] ?? $panel['badge']['label'];
 
-// Initials for the avatar: the first letter of the first two words of the name.
-$panelInitials = mb_strtoupper(implode('', array_map(function ($word) {
-    return mb_substr($word, 0, 1);
-}, array_slice(preg_split('/\s+/u', trim($panelUser)), 0, 2))));
+// The signed-in account as the avatar renderer wants it. The photo comes from
+// the session, which security.php refreshes from the database on every
+// request, so changing it shows here on the very next page.
+$panelAccount = ['full_name' => $panelUser, 'avatar_path' => $_SESSION['avatar_path'] ?? null];
 
 // Work out the highlighted item once. Two entries can share a page and differ
 // only by a query string (Manage Listings vs Pending Approvals), so the most
@@ -48,7 +48,7 @@ foreach ($panel['menu'] as $idx => $item) {
 }
 ?>
 <!-- Main Sidebar Container -->
-<aside class="main-sidebar sidebar-dark-primary">
+<aside class="main-sidebar sidebar-light-primary">
   <!-- Brand: the RoomEase wordmark, as on the public site. The single letter
        is what stays visible when the sidebar is collapsed. -->
   <a href="<?= base_url($panel['home']) ?>" class="brand-link">
@@ -61,7 +61,7 @@ foreach ($panel['menu'] as $idx => $item) {
     <!-- Sidebar user panel (optional) -->
     <div class="user-panel mt-3 pb-3 mb-3 d-flex">
       <div class="image">
-        <span class="panel-avatar" aria-hidden="true"><?= h($panelInitials) ?></span>
+        <?= avatar_html($panelAccount, 34, 'panel-avatar') ?>
       </div>
       <div class="info">
         <a href="<?= base_url($panel['home']) ?>" class="d-block text-truncate panel-user" title="<?= h($panelUser) ?>">

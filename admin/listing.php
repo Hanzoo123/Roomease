@@ -16,10 +16,11 @@ require_login('admin');
 $listingId = (int) ($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare(
-  "SELECT bh.*,
+  "SELECT bh.*, " . COVER_PHOTO_SELECT . ",
           u.user_id AS landlord_id, u.first_name AS landlord_first_name, u.last_name AS landlord_last_name,
           u.email AS landlord_email, u.phone_number AS landlord_phone, u.is_active AS landlord_active,
           u.deleted_at AS landlord_deleted_at, u.created_at AS landlord_joined, u.google_id AS landlord_google_id,
+          u.avatar_path AS landlord_avatar,
           CONCAT(m.first_name, ' ', m.last_name) AS moderator_name
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
@@ -118,6 +119,17 @@ foreach (['visitors_allowed' => 'Visitors', 'pets_allowed' => 'Pets', 'cooking_a
 
 $hasMap = ($listing['latitude'] ?? null) !== null && ($listing['longitude'] ?? null) !== null;
 
+// The rest of the approval queue, so a decision here can lead straight to the
+// next listing instead of back to the table. Both come from the one helper
+// that listing_action.php uses after a decision, so the count in the button
+// and the listing it actually goes to can never disagree.
+$pendingQueue = pending_queue_after($listingId);
+
+// Where approving or rejecting lands. Removing is deliberately left out: it is
+// the heaviest of the three, and whoever does it should see the result rather
+// than be carried off to another listing.
+$decisionReturn = $pendingQueue['next'] !== null ? 'next' : 'review';
+
 $canApprove = !$archived && $listing['moderation_status'] !== 'approved' && $rooms && $landlordLive;
 $approveBlocked = '';
 if (!$archived && $listing['moderation_status'] !== 'approved') {
@@ -135,25 +147,22 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-7">
-          <h1 class="m-0 font-weight-bold"><?= h($listing['name']) ?></h1>
-          <p class="text-muted mb-0 mt-1"><?= h($listing['address']) ?></p>
-        </div>
-        <div class="col-sm-5">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item">
-              <a href="<?= base_url('admin/manage_listings.php' . ($archived ? '?view=removed' : '')) ?>">Manage Listings</a>
-            </li>
-            <li class="breadcrumb-item active">Review</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php
+  // Only History is put behind a tab. Everything a decision rests on — the
+  // photos, the rooms, the terms, the landlord — stays on one screen, because
+  // making a moderator click between tabs to approve a listing would be a
+  // worse page than the one this replaced, however tidy it looked.
+  panel_page_header($listing['name'], [
+    'subtitle' => $listing['address'],
+    'back' => 'admin/manage_listings.php' . ($archived ? '?view=removed' : ''),
+    'backLabel' => 'Back to Manage Listings',
+    'lead' => listing_thumb_html($listing, 'queue-thumb'),
+    'tabs' => [
+      ['id' => 'panel-review', 'label' => 'Review'],
+      ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)],
+    ],
+  ]);
+  ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -210,9 +219,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <?= csrf_field() ?>
                   <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
                   <input type="hidden" name="action" value="approve">
-                  <input type="hidden" name="return_to" value="review">
+                  <?php /* With a queue behind this one, deciding moves on to the next
+                       listing and the outcome arrives as a notification there. On the
+                       last one there is nowhere to go, so the page stays put. */ ?>
+                  <input type="hidden" name="return_to" value="<?= $decisionReturn ?>">
                   <button type="submit" class="btn btn-success" <?= $canApprove ? '' : 'disabled' ?>>
-                    <i class="fas fa-check mr-1"></i> Approve
+                    <i class="fas fa-check mr-1"></i>
+                    <?= $decisionReturn === 'next' ? 'Approve &amp; next' : 'Approve' ?>
                   </button>
                 </form>
               <?php endif; ?>
@@ -230,20 +243,30 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <a href="<?= base_url('boarder/view_listing.php?id=' . $listingId) ?>" target="_blank" class="btn btn-outline-secondary">
               <i class="fas fa-external-link-alt mr-1"></i> Public page
             </a>
+            <?php if ($pendingQueue['next'] !== null): ?>
+              <?php /* Skip this one for now. The queue is oldest first, so this is
+                   always the listing that has been waiting longest after this one. */ ?>
+              <a href="<?= base_url('admin/listing.php?id=' . (int) $pendingQueue['next']['boarding_house_id']) ?>"
+                class="btn btn-outline-primary" title="<?= h('Next: ' . $pendingQueue['next']['name']) ?>">
+                Next pending <span class="badge badge-light ml-1"><?= (int) $pendingQueue['count'] ?></span>
+                <i class="fas fa-arrow-right ml-1"></i>
+              </a>
+            <?php endif; ?>
           </div>
         </div>
       </div>
 
-      <div class="row">
+      <div class="row re-tabpanel" id="panel-review" role="tabpanel" aria-labelledby="tab-panel-review">
         <div class="col-lg-8">
 
           <div class="card shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">Photos <span class="text-muted font-weight-normal">(<?= count($photos) ?>)</span></h3>
+              <h3 class="card-title">Photos <span class="text-muted font-weight-normal">(<?= count($photos) ?>)</span></h3>
+              <span class="card-subtitle">House photos first, then each room's. Select one to see it full size.</span>
             </div>
             <div class="card-body">
               <?php if (!$photos): ?>
-                <p class="text-muted mb-0">No photos uploaded.</p>
+                <?= re_empty('No photos', 'This landlord has not uploaded any photos, which is usually worth asking about before approving.', 'fa-camera') ?>
               <?php else: ?>
                 <div class="review-photos">
                   <?php foreach ($photos as $p): ?>
@@ -260,11 +283,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
           <div class="card shadow-sm">
             <div class="card-header">
-              <h3 class="card-title font-weight-bold">Rooms <span class="text-muted font-weight-normal">(<?= count($rooms) ?>)</span></h3>
+              <h3 class="card-title">Rooms <span class="text-muted font-weight-normal">(<?= count($rooms) ?>)</span></h3>
+              <span class="card-subtitle">A listing needs at least one room before it can be approved.</span>
             </div>
             <div class="card-body p-0 table-responsive">
               <?php if (!$rooms): ?>
-                <p class="text-muted m-3">No rooms yet, so this listing cannot be approved.</p>
+                <?= re_empty('No rooms yet', 'A listing needs at least one room before it can be approved.', 'fa-door-closed') ?>
               <?php else: ?>
                 <table class="table mb-0">
                   <thead>
@@ -288,7 +312,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Details</h3></div>
+            <div class="card-header"><h3 class="card-title">Details</h3>
+              <span class="card-subtitle">What the landlord wrote about the property.</span></div>
             <div class="card-body">
               <dl class="review-terms">
                 <dt>Contact number</dt>
@@ -324,13 +349,22 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
         <div class="col-lg-4">
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Landlord</h3></div>
+            <div class="card-header"><h3 class="card-title">Landlord</h3>
+              <span class="card-subtitle">Who posted this, and what else they have on RoomEase.</span></div>
             <div class="card-body">
-              <p class="mb-1 font-weight-bold">
-                <a href="<?= base_url('admin/user.php?id=' . (int) $listing['landlord_id']) ?>"><?= h($landlordName) ?></a>
-              </p>
-              <p class="mb-1"><a href="mailto:<?= h($listing['landlord_email']) ?>"><?= h($listing['landlord_email']) ?></a></p>
-              <p class="mb-2 text-muted"><?= h($listing['landlord_phone'] ?: 'No phone number') ?></p>
+              <div class="d-flex align-items-center mb-2" style="gap: 12px;">
+                <?php /* The one place in the admin area a landlord's own photo is
+                     worth the room: deciding on their listing is where knowing
+                     who they are actually helps. */ ?>
+                <?= avatar_html(['full_name' => $landlordName, 'avatar_path' => $listing['landlord_avatar']], 44) ?>
+                <div style="min-width: 0;">
+                  <p class="mb-0 font-weight-bold">
+                    <a href="<?= base_url('admin/user.php?id=' . (int) $listing['landlord_id']) ?>"><?= h($landlordName) ?></a>
+                  </p>
+                  <p class="mb-0 text-truncate"><a href="mailto:<?= h($listing['landlord_email']) ?>"><?= h($listing['landlord_email']) ?></a></p>
+                  <p class="mb-0 text-muted"><?= h($listing['landlord_phone'] ?: 'No phone number') ?></p>
+                </div>
+              </div>
               <p class="mb-0">
                 <?php if ($listing['landlord_deleted_at'] !== null): ?>
                   <span class="badge badge-dark">Removed</span>
@@ -364,7 +398,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">Location</h3></div>
+            <div class="card-header"><h3 class="card-title">Location</h3>
+              <span class="card-subtitle">The pin the landlord placed on the map.</span></div>
             <div class="card-body">
               <?php if ($hasMap): ?>
                 <div id="review-map" class="review-map" data-lat="<?= h($listing['latitude']) ?>"
@@ -377,32 +412,39 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                     target="_blank" rel="noopener">Open in OpenStreetMap</a>
                 </p>
               <?php else: ?>
-                <p class="text-muted mb-0">The landlord has not placed a pin on the map.</p>
+                <?= re_empty('No map pin', 'The landlord has not placed this property on the map.', 'fa-map-marker-alt') ?>
               <?php endif; ?>
             </div>
           </div>
 
-          <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title font-weight-bold">History</h3></div>
-            <div class="card-body">
-              <?php if (!$history): ?>
-                <p class="text-muted mb-0">No administrator has acted on this listing since the activity log started.</p>
-              <?php else: ?>
-                <ul class="review-history">
-                  <?php foreach ($history as $e): ?>
-                    <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
-                    <li>
-                      <span class="badge <?= h($type['badge']) ?>"><?= h(preg_replace('/ listing$/', '', $type['label'])) ?></span>
-                      by <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'an administrator' ?>
-                      <small class="text-muted d-block"><?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?></small>
-                      <?php if ($e['detail']): ?>
-                        <div class="mt-1"><?= h($e['detail']) ?></div>
-                      <?php endif; ?>
-                    </li>
-                  <?php endforeach; ?>
-                </ul>
-              <?php endif; ?>
-            </div>
+        </div>
+      </div>
+
+      <div class="re-tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-panel-history" hidden>
+        <div class="card shadow-sm">
+          <?php panel_card_header('History', 'Every decision made on this listing, and the reason given.'); ?>
+          <div class="card-body<?= $history ? '' : ' p-0' ?>">
+            <?php if (!$history): ?>
+              <?= re_empty(
+                'No decisions yet',
+                'No administrator has acted on this listing since the activity log started.',
+                'fa-history'
+              ) ?>
+            <?php else: ?>
+              <ul class="review-history">
+                <?php foreach ($history as $e): ?>
+                  <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
+                  <li>
+                    <span class="badge <?= h($type['badge']) ?>"><?= h(preg_replace('/ listing$/', '', $type['label'])) ?></span>
+                    by <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'an administrator' ?>
+                    <small class="text-muted d-block"><?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?></small>
+                    <?php if ($e['detail']): ?>
+                      <div class="mt-1"><?= h($e['detail']) ?></div>
+                    <?php endif; ?>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            <?php endif; ?>
           </div>
         </div>
       </div>
@@ -413,6 +455,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <?php
 $returnTo = 'review';
+$rejectReturnTo = $decisionReturn;
 require __DIR__ . '/../includes/components/listing_decision_modals.php';
 require __DIR__ . '/../includes/layouts/panel_footer.php';
 ?>

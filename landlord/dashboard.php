@@ -44,103 +44,55 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
   <!-- Content Header (Page header) -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-tachometer-alt text-primary mr-2"></i>Landlord Dashboard
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item active">Dashboard</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- /.content-header -->
+  <?php panel_page_header('Dashboard', [
+    'subtitle' => 'Your boarding houses, where each one stands with approval, and what an administrator decided lately.',
+    'actions' => '<a href="' . base_url('landlord/add_listing.php') . '" class="btn btn-sm btn-primary">'
+      . '<i class="fas fa-plus mr-1"></i> Add listing</a>',
+  ]); ?>
 
   <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
 
-      <!-- Small boxes (Stat box) -->
-      <div class="row">
-        <!-- Total listings -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-info shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['total'] ?></h3>
-
-              <p>My Boarding Houses</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-home"></i>
-            </div>
-            <a href="listings.php" class="small-box-footer">
-              View All <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Approved and live -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-success shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['approved'] ?></h3>
-              <p>Approved &amp; Listed</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-check-circle"></i>
-            </div>
-            <a href="#myListings" class="small-box-footer">
-              Visible to Boarders <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Awaiting review -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-warning shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['pending'] ?></h3>
-              <p>Awaiting Approval</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-clock"></i>
-            </div>
-            <a href="#myListings" class="small-box-footer">
-              Under Admin Review <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Rejected -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box <?= (int) $counts['rejected'] > 0 ? 'bg-danger' : 'bg-olive' ?> shadow-sm">
-            <div class="inner">
-              <h3><?= (int) $counts['rejected'] ?></h3>
-              <p>Needs Fixing</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <a href="#myListings" class="small-box-footer">
-              <?= (int) $counts['rejected'] > 0 ? 'See why' : 'Nothing rejected' ?>
-              <i class="fas fa-arrow-circle-right"></i>
-            </a>
-          </div>
-        </div>
+      <?php /* The same tiles as the administrator's dashboard. This used to be
+           AdminLTE's own small-box, which was the clearest sign that the two
+           panels had been built at different times: same job, two components,
+           two sets of spacing. */ ?>
+      <div class="stat-row">
+        <a class="stat stat--filled stat--teal" href="<?= base_url('landlord/listings.php') ?>">
+          <i class="fas fa-home stat-icon" aria-hidden="true"></i>
+          <span class="stat-value"><?= (int) $counts['total'] ?></span>
+          <span class="stat-label">My boarding houses</span>
+          <span class="stat-more">View all <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
+        </a>
+        <a class="stat stat--filled stat--green" href="#myListings">
+          <i class="fas fa-check-circle stat-icon" aria-hidden="true"></i>
+          <span class="stat-value"><?= (int) $counts['approved'] ?></span>
+          <span class="stat-label">Approved &amp; listed</span>
+          <span class="stat-more">Visible to boarders <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
+        </a>
+        <a class="stat stat--filled stat--attention" href="#myListings">
+          <i class="fas fa-clock stat-icon" aria-hidden="true"></i>
+          <span class="stat-value"><?= (int) $counts['pending'] ?></span>
+          <span class="stat-label">Awaiting approval</span>
+          <span class="stat-more">Under admin review <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
+        </a>
+        <a class="stat stat--filled <?= (int) $counts['rejected'] > 0 ? 'stat--danger' : 'stat--terracotta' ?>" href="#myListings">
+          <i class="fas fa-exclamation-triangle stat-icon" aria-hidden="true"></i>
+          <span class="stat-value"><?= (int) $counts['rejected'] ?></span>
+          <span class="stat-label">Needs fixing</span>
+          <span class="stat-more">
+            <?= (int) $counts['rejected'] > 0 ? 'See why' : 'Nothing rejected' ?>
+            <i class="fas fa-arrow-circle-right" aria-hidden="true"></i>
+          </span>
+        </a>
       </div>
-      <!-- /.row -->
 
       <?php if ($decisions): ?>
         <div class="card card-outline card-secondary shadow-sm">
           <div class="card-header">
-            <h3 class="card-title font-weight-bold">Updates from RoomEase</h3>
+            <h3 class="card-title">Updates from RoomEase</h3>
+              <span class="card-subtitle">What an administrator decided about your listings lately.</span>
           </div>
           <ul class="list-group list-group-flush decision-list">
             <?php foreach ($decisions as $d): ?>

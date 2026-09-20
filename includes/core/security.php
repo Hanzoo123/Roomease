@@ -201,7 +201,7 @@ function enforce_session_policy()
     }
 
     try {
-        $stmt = $pdo->prepare('SELECT role, is_active, deleted_at FROM users WHERE user_id = ?');
+        $stmt = $pdo->prepare('SELECT role, is_active, deleted_at, avatar_path FROM users WHERE user_id = ?');
         $stmt->execute([$_SESSION['user_id']]);
         $account = $stmt->fetch();
     } catch (PDOException $e) {
@@ -225,13 +225,19 @@ function enforce_session_policy()
 
     // The session is a cache of the account, never the source of truth for it.
     $_SESSION['role'] = $account['role'];
+    $_SESSION['avatar_path'] = $account['avatar_path'];
 }
 
 /**
  * Begin a signed-in session for a user row (user_id, role, first_name,
- * last_name, email). Used by the password login, Google sign-in, and
- * "Remember me", so all three start a session the same way: a brand new
- * session id and nothing carried over from whatever session came before.
+ * last_name, email, and avatar_path where the caller selected it). Used by the
+ * password login, Google sign-in, and "Remember me", so all three start a
+ * session the same way: a brand new session id and nothing carried over from
+ * whatever session came before.
+ *
+ * A caller that selected only the columns above still gets a working session:
+ * the avatar falls back to null here and is filled in by the per-request
+ * refresh above, which reads it from the account on the very next page.
  */
 function start_user_session(array $user)
 {
@@ -245,6 +251,7 @@ function start_user_session(array $user)
     $_SESSION['last_name'] = $user['last_name'];
     $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
     $_SESSION['email'] = $user['email'];
+    $_SESSION['avatar_path'] = $user['avatar_path'] ?? null;
 }
 
 /* ---------------------------------------------------------------------------

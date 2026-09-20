@@ -53,30 +53,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-bolt text-primary mr-2"></i>Utilities &amp; Amenities
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('admin/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item active">Utilities &amp; Amenities</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <?php panel_page_header('Utilities & Amenities', [
+    'subtitle' => 'Items here are available to every landlord. Landlords can also add their own, '
+      . 'which only they see, and you can make any of those available to everyone.',
+  ]); ?>
 
   <section class="content">
     <div class="container-fluid">
-      <p class="text-muted">
-        Items here are available to every landlord. Landlords can also add their own, which only they see; you can
-        make any of those available to everyone.
-      </p>
 
       <div class="row">
         <?php foreach (['utility', 'amenity'] as $kind): ?>
@@ -98,6 +81,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <i class="fas <?= $kind === 'utility' ? 'fa-bolt' : 'fa-concierge-bell' ?> mr-1"></i>
                   <?= $k['Plural'] ?> for every landlord
                 </h3>
+              <span class="card-subtitle">Available to every landlord on RoomEase.</span>
               </div>
               <div class="card-body">
                 <?php if (!$shared): ?>
@@ -117,8 +101,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                               class="form-control form-control-sm" aria-label="Name of <?= h($item['name']) ?>" required>
                             <button type="submit" class="btn btn-sm btn-outline-primary">Rename</button>
                           </form>
-                          <form method="post"
-                            onsubmit="return confirm('Delete &quot;<?= h(addslashes($item['name'])) ?>&quot; for every landlord?');">
+                          <form method="post" class="js-confirm"
+                            data-confirm="Delete &quot;<?= h($item['name']) ?>&quot; for every landlord?">
                             <?= csrf_field() ?>
                             <input type="hidden" name="kind" value="<?= $kind ?>">
                             <input type="hidden" name="action" value="delete">
@@ -153,11 +137,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-user-tie mr-1"></i> <?= $k['Plural'] ?> landlords added
+              <span class="card-subtitle">Their own items. Make one available to everyone to merge same-name copies.</span>
                 </h3>
               </div>
               <div class="card-body p-0">
                 <?php if (!$landlordItems): ?>
-                  <p class="text-muted small p-3 mb-0">No landlord has added their own <?= $k['plural'] ?> yet.</p>
+                  <?= re_empty('Nothing to review', 'No landlord has added a ' . $k['singular'] . ' of their own yet.', 'fa-user-tie') ?>
                 <?php else: ?>
                   <table class="table table-sm mb-0">
                     <thead>

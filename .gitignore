@@ -9,6 +9,10 @@ assets/uploads/boarding_houses/
 # Background photos an administrator uploads in Appearance. Same reasoning.
 assets/uploads/site/
 
+# Profile photos people upload on their own profile page. Same reasoning, and
+# these are pictures of real people, which have no business in a repository.
+assets/uploads/avatars/
+
 # Composer, if and when it is added.
 /vendor/
 composer.lock

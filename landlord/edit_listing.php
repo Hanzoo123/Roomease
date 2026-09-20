@@ -163,25 +163,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
   <!-- Content Header (Page header) -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0 font-weight-bold">
-            <i class="fas fa-edit text-primary mr-2"></i>Edit Boarding House
-          </h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/dashboard.php') ?>">Home</a></li>
-            <li class="breadcrumb-item"><a href="<?= base_url('landlord/listings.php') ?>">My Boarding Houses</a></li>
-            <li class="breadcrumb-item active"><?= h($listing['name']) ?></li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- /.content-header -->
+  <?php panel_page_header($listing['name'], [
+    'subtitle' => 'Editing this listing sends it back to an administrator for approval.',
+    'back' => 'landlord/listings.php',
+    'backLabel' => 'Back to my boarding houses',
+    'actions' => '<a href="' . base_url('boarder/view_listing.php?id=' . (int) $listing['boarding_house_id'])
+      . '" target="_blank" class="btn btn-sm btn-outline-secondary">'
+      . '<i class="fas fa-external-link-alt mr-1"></i> Public page</a>',
+  ]); ?>
 
   <!-- Main content -->
   <section class="content">
@@ -195,6 +184,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <h3 class="card-title font-weight-bold mb-0">
                 <i class="fas fa-door-open mr-1"></i> Rooms
               </h3>
+              <span class="card-subtitle">Each room has its own rent, capacity and photos.</span>
               <span class="text-muted small" data-rooms-summary><?= h($summary['summary']) ?></span>
               <a href="<?= base_url('landlord/room_form.php?house=' . $boardingHouseId) ?>" class="btn btn-sm btn-primary ml-auto">
                 <i class="fas fa-plus mr-1"></i> Add room
@@ -315,6 +305,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-clipboard-list mr-1"></i> House Details
+              <span class="card-subtitle">Changing these sends the listing back for approval.</span>
               </h3>
               <a href="<?= base_url('boarder/view_listing.php?id=' . $boardingHouseId) ?>" target="_blank"
                 class="btn btn-sm btn-outline-info ml-auto">
@@ -376,6 +367,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <div class="card card-outline card-secondary shadow-sm">
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
+              <span class="card-subtitle">The cover photo is the one boarders see first in browse.</span>
                   <i class="fas fa-images mr-1"></i> Current House Photos
                 </h3>
               </div>
@@ -405,7 +397,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                           </form>
                         <?php endif; ?>
                         <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100"
-                          onsubmit="return confirm('Remove this photo? This cannot be undone.');">
+                          class="js-confirm" data-confirm="Remove this photo? This cannot be undone.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">
                           <input type="hidden" name="action" value="delete">
