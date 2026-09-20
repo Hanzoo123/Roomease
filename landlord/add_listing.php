@@ -204,6 +204,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-clipboard-list mr-1"></i> New Listing Details
               </h3>
+              <span class="card-subtitle">It goes to an administrator for approval before boarders can see it.</span>
             </div>
 
             <?php if ($errors): ?>

@@ -138,6 +138,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-clipboard-list mr-1"></i> Room Details
               </h3>
+              <span class="card-subtitle">Boarders see the rent, the type and how many slots are left.</span>
             </div>
 
             <?php if ($errors): ?>
@@ -259,6 +260,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-images mr-1"></i> Current Room Photos
+              <span class="card-subtitle">The main photo is the one shown beside this room.</span>
                 </h3>
               </div>
               <div class="card-body">
@@ -286,7 +288,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                           </form>
                         <?php endif; ?>
                         <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100"
-                          onsubmit="return confirm('Remove this photo? This cannot be undone.');">
+                          class="js-confirm" data-confirm="Remove this photo? This cannot be undone.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">
                           <input type="hidden" name="action" value="delete">

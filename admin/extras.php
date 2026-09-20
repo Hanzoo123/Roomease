@@ -81,6 +81,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <i class="fas <?= $kind === 'utility' ? 'fa-bolt' : 'fa-concierge-bell' ?> mr-1"></i>
                   <?= $k['Plural'] ?> for every landlord
                 </h3>
+              <span class="card-subtitle">Available to every landlord on RoomEase.</span>
               </div>
               <div class="card-body">
                 <?php if (!$shared): ?>
@@ -100,8 +101,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                               class="form-control form-control-sm" aria-label="Name of <?= h($item['name']) ?>" required>
                             <button type="submit" class="btn btn-sm btn-outline-primary">Rename</button>
                           </form>
-                          <form method="post"
-                            onsubmit="return confirm('Delete &quot;<?= h(addslashes($item['name'])) ?>&quot; for every landlord?');">
+                          <form method="post" class="js-confirm"
+                            data-confirm="Delete &quot;<?= h($item['name']) ?>&quot; for every landlord?">
                             <?= csrf_field() ?>
                             <input type="hidden" name="kind" value="<?= $kind ?>">
                             <input type="hidden" name="action" value="delete">
@@ -136,11 +137,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-user-tie mr-1"></i> <?= $k['Plural'] ?> landlords added
+              <span class="card-subtitle">Their own items. Make one available to everyone to merge same-name copies.</span>
                 </h3>
               </div>
               <div class="card-body p-0">
                 <?php if (!$landlordItems): ?>
-                  <p class="text-muted small p-3 mb-0">No landlord has added their own <?= $k['plural'] ?> yet.</p>
+                  <?= re_empty('Nothing to review', 'No landlord has added a ' . $k['singular'] . ' of their own yet.', 'fa-user-tie') ?>
                 <?php else: ?>
                   <table class="table table-sm mb-0">
                     <thead>

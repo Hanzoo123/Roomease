@@ -199,8 +199,8 @@ $pageActions .= $showArchived
                         </form>
 
                         <!-- Remove (archive) Button -->
-                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline"
-                          onsubmit="return confirm('Remove <?= h(addslashes($u['full_name'])) ?>? Their account and listings will be hidden from the site. Nothing is deleted, and you can restore it from the Removed tab.');">
+                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline js-confirm"
+                          data-confirm="Remove <?= h($u['full_name']) ?>? Their account and listings will be hidden from the site. Nothing is deleted, and you can restore it from the Removed tab.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                           <input type="hidden" name="action" value="delete">

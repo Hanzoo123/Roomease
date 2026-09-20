@@ -18,6 +18,14 @@
  *     'actions'  string  ready-made HTML for the buttons on the right
  *     'lead'     string  ready-made HTML placed before the title, such as an
  *                        avatar or a listing's cover photo
+ *     'tabs'     array   the sections of this record, for a page that shows one
+ *                        thing from several angles. Each entry:
+ *                          'id'    the id of the matching .re-tabpanel
+ *                          'label' what the tab says
+ *                          'count' optional number drawn beside the label
+ *                        The first is the one shown, and every panel is
+ *                        rendered whether or not its tab is current, so the
+ *                        page still works with no JavaScript.
  */
 
 /** Print the page header. See the notes above for $options. */
@@ -28,6 +36,7 @@ function panel_page_header($title, array $options = [])
     $subtitle  = $options['subtitle'] ?? '';
     $actions   = $options['actions'] ?? '';
     $lead      = $options['lead'] ?? '';
+    $tabs      = $options['tabs'] ?? [];
     ?>
     <div class="content-header">
       <div class="container-fluid">
@@ -51,6 +60,21 @@ function panel_page_header($title, array $options = [])
             <div class="page-actions no-print"><?= $actions ?></div>
           <?php endif; ?>
         </div>
+
+        <?php if ($tabs): ?>
+          <div class="re-tabs no-print" role="tablist" data-panel-tabs>
+            <?php foreach (array_values($tabs) as $i => $tab): ?>
+              <a class="re-tab <?= $i === 0 ? 'is-active' : '' ?>" role="tab"
+                id="tab-<?= h($tab['id']) ?>" href="#<?= h($tab['id']) ?>"
+                aria-controls="<?= h($tab['id']) ?>" aria-selected="<?= $i === 0 ? 'true' : 'false' ?>">
+                <?= h($tab['label']) ?>
+                <?php if (isset($tab['count'])): ?>
+                  <span class="re-tab-count"><?= (int) $tab['count'] ?></span>
+                <?php endif; ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
     <?php

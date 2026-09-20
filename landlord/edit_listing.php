@@ -184,6 +184,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <h3 class="card-title font-weight-bold mb-0">
                 <i class="fas fa-door-open mr-1"></i> Rooms
               </h3>
+              <span class="card-subtitle">Each room has its own rent, capacity and photos.</span>
               <span class="text-muted small" data-rooms-summary><?= h($summary['summary']) ?></span>
               <a href="<?= base_url('landlord/room_form.php?house=' . $boardingHouseId) ?>" class="btn btn-sm btn-primary ml-auto">
                 <i class="fas fa-plus mr-1"></i> Add room
@@ -304,6 +305,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-clipboard-list mr-1"></i> House Details
+              <span class="card-subtitle">Changing these sends the listing back for approval.</span>
               </h3>
               <a href="<?= base_url('boarder/view_listing.php?id=' . $boardingHouseId) ?>" target="_blank"
                 class="btn btn-sm btn-outline-info ml-auto">
@@ -365,6 +367,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <div class="card card-outline card-secondary shadow-sm">
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
+              <span class="card-subtitle">The cover photo is the one boarders see first in browse.</span>
                   <i class="fas fa-images mr-1"></i> Current House Photos
                 </h3>
               </div>
@@ -394,7 +397,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                           </form>
                         <?php endif; ?>
                         <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100"
-                          onsubmit="return confirm('Remove this photo? This cannot be undone.');">
+                          class="js-confirm" data-confirm="Remove this photo? This cannot be undone.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">
                           <input type="hidden" name="action" value="delete">

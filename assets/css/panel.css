@@ -1667,3 +1667,82 @@ a:hover {
 .table .re-empty {
   padding: 28px 20px;
 }
+
+/* =========================================================
+   Record tabs (includes/components/panel_page_header.php)
+   ---------------------------------------------------------
+   The sections of one record, under its title. A track with
+   the current section drawn as a raised white tab, which is
+   quieter than a row of underlines and reads as a control
+   rather than as navigation away from the page.
+
+   The panels are all rendered; only the script hides the ones
+   that are not current. With no JavaScript every section is
+   simply visible, which is the right fallback for a page whose
+   job is to show everything about one thing.
+   ========================================================= */
+.re-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 14px;
+  padding: 3px;
+  background: var(--re-muted-bg);
+  border-radius: 10px;
+}
+
+.re-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: .82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--re-ink-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.re-tab:hover,
+.re-tab:focus {
+  color: var(--re-ink);
+  text-decoration: none;
+}
+
+.re-tab.is-active {
+  font-weight: 600;
+  color: var(--re-ink);
+  background: var(--re-panel);
+  box-shadow: 0 1px 2px rgba(31, 42, 40, .10);
+}
+
+/* How many things are behind a tab, so a section that is empty says so
+   before it is opened. */
+.re-tab-count {
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: .7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  color: var(--re-ink-soft);
+  background: rgba(31, 42, 40, .08);
+  border-radius: 999px;
+}
+
+.re-tab.is-active .re-tab-count {
+  color: var(--re-forest);
+  background: var(--re-leaf);
+}
+
+/* Added by the script, so the panels only start hiding once something can
+   show them again. */
+.re-tabbed .re-tabpanel[hidden] {
+  display: none;
+}

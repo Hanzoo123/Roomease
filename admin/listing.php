@@ -147,12 +147,22 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <?php panel_page_header($listing['name'], [
+  <?php
+  // Only History is put behind a tab. Everything a decision rests on — the
+  // photos, the rooms, the terms, the landlord — stays on one screen, because
+  // making a moderator click between tabs to approve a listing would be a
+  // worse page than the one this replaced, however tidy it looked.
+  panel_page_header($listing['name'], [
     'subtitle' => $listing['address'],
     'back' => 'admin/manage_listings.php' . ($archived ? '?view=removed' : ''),
     'backLabel' => 'Back to Manage Listings',
     'lead' => listing_thumb_html($listing, 'queue-thumb'),
-  ]); ?>
+    'tabs' => [
+      ['id' => 'panel-review', 'label' => 'Review'],
+      ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)],
+    ],
+  ]);
+  ?>
 
   <section class="content">
     <div class="container-fluid">
@@ -246,7 +256,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
       </div>
 
-      <div class="row">
+      <div class="row re-tabpanel" id="panel-review" role="tabpanel" aria-labelledby="tab-panel-review">
         <div class="col-lg-8">
 
           <div class="card shadow-sm">
@@ -256,7 +266,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             </div>
             <div class="card-body">
               <?php if (!$photos): ?>
-                <p class="text-muted mb-0">No photos uploaded.</p>
+                <?= re_empty('No photos', 'This landlord has not uploaded any photos, which is usually worth asking about before approving.', 'fa-camera') ?>
               <?php else: ?>
                 <div class="review-photos">
                   <?php foreach ($photos as $p): ?>
@@ -278,7 +288,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             </div>
             <div class="card-body p-0 table-responsive">
               <?php if (!$rooms): ?>
-                <p class="text-muted m-3">No rooms yet, so this listing cannot be approved.</p>
+                <?= re_empty('No rooms yet', 'A listing needs at least one room before it can be approved.', 'fa-door-closed') ?>
               <?php else: ?>
                 <table class="table mb-0">
                   <thead>
@@ -402,33 +412,39 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                     target="_blank" rel="noopener">Open in OpenStreetMap</a>
                 </p>
               <?php else: ?>
-                <p class="text-muted mb-0">The landlord has not placed a pin on the map.</p>
+                <?= re_empty('No map pin', 'The landlord has not placed this property on the map.', 'fa-map-marker-alt') ?>
               <?php endif; ?>
             </div>
           </div>
 
-          <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title">History</h3>
-              <span class="card-subtitle">Every decision made on this listing.</span></div>
-            <div class="card-body">
-              <?php if (!$history): ?>
-                <p class="text-muted mb-0">No administrator has acted on this listing since the activity log started.</p>
-              <?php else: ?>
-                <ul class="review-history">
-                  <?php foreach ($history as $e): ?>
-                    <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
-                    <li>
-                      <span class="badge <?= h($type['badge']) ?>"><?= h(preg_replace('/ listing$/', '', $type['label'])) ?></span>
-                      by <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'an administrator' ?>
-                      <small class="text-muted d-block"><?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?></small>
-                      <?php if ($e['detail']): ?>
-                        <div class="mt-1"><?= h($e['detail']) ?></div>
-                      <?php endif; ?>
-                    </li>
-                  <?php endforeach; ?>
-                </ul>
-              <?php endif; ?>
-            </div>
+        </div>
+      </div>
+
+      <div class="re-tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-panel-history" hidden>
+        <div class="card shadow-sm">
+          <?php panel_card_header('History', 'Every decision made on this listing, and the reason given.'); ?>
+          <div class="card-body<?= $history ? '' : ' p-0' ?>">
+            <?php if (!$history): ?>
+              <?= re_empty(
+                'No decisions yet',
+                'No administrator has acted on this listing since the activity log started.',
+                'fa-history'
+              ) ?>
+            <?php else: ?>
+              <ul class="review-history">
+                <?php foreach ($history as $e): ?>
+                  <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
+                  <li>
+                    <span class="badge <?= h($type['badge']) ?>"><?= h(preg_replace('/ listing$/', '', $type['label'])) ?></span>
+                    by <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'an administrator' ?>
+                    <small class="text-muted d-block"><?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?></small>
+                    <?php if ($e['detail']): ?>
+                      <div class="mt-1"><?= h($e['detail']) ?></div>
+                    <?php endif; ?>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            <?php endif; ?>
           </div>
         </div>
       </div>

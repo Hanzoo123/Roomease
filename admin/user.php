@@ -77,18 +77,58 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <?php panel_page_header($fullName, [
+  <?php
+  // The account's own actions belong in the header, beside its name, rather
+  // than buried in the card below: they are what this page is for.
+  $csrf = csrf_field();
+  $act = function ($action, $class, $icon, $label, $confirm = null) use ($userId, $csrf) {
+      return '<form method="post" action="' . base_url('admin/user_action.php') . '"'
+          . ($confirm !== null ? ' class="js-confirm" data-confirm="' . h($confirm) . '"' : '') . '>'
+          . $csrf
+          . '<input type="hidden" name="user_id" value="' . (int) $userId . '">'
+          . '<input type="hidden" name="action" value="' . $action . '">'
+          . '<input type="hidden" name="return_to" value="user">'
+          . '<button type="submit" class="btn btn-sm ' . $class . '">'
+          . '<i class="fas ' . $icon . ' mr-1"></i> ' . $label . '</button></form>';
+  };
+
+  if ($removed) {
+      $pageActions = $act('restore', 'btn-success', 'fa-trash-restore', 'Restore account');
+  } else {
+      $pageActions = $user['is_active']
+          ? $act('toggle_status', 'btn-outline-warning', 'fa-user-slash', 'Deactivate')
+          : $act('toggle_status', 'btn-success', 'fa-user-check', 'Activate');
+      $pageActions .= $act(
+          'delete',
+          'btn-outline-danger',
+          'fa-trash',
+          'Remove',
+          'Remove ' . $fullName . '? Their account' . ($isLandlord ? ' and listings' : '')
+            . ' will be hidden from the site. Nothing is deleted, and it can be restored.'
+      );
+  }
+
+  panel_page_header($fullName, [
     'subtitle' => ($isLandlord ? 'Landlord' : 'Boarder') . ' · joined '
       . date('F j, Y', strtotime($user['created_at'])),
     'back' => 'admin/manage_users.php' . ($removed ? '?view=archived' : ''),
     'backLabel' => 'Back to Manage Users',
     'lead' => avatar_html($user, 44),
-  ]); ?>
+    'actions' => $pageActions,
+    'tabs' => [
+      ['id' => 'panel-overview', 'label' => 'Overview'],
+      $isLandlord
+        ? ['id' => 'panel-things', 'label' => 'Listings', 'count' => count($listings)]
+        : ['id' => 'panel-things', 'label' => 'Saved', 'count' => count($saved)],
+      ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)],
+    ],
+  ]);
+  ?>
 
   <section class="content">
     <div class="container-fluid">
-      <div class="row">
-        <div class="col-lg-4">
+      <div class="row re-tabpanel" id="panel-overview" role="tabpanel" aria-labelledby="tab-panel-overview">
+        <div class="col-lg-5">
           <div class="card shadow-sm">
             <div class="card-header"><h3 class="card-title">Account</h3>
               <span class="card-subtitle">How this person signs in, and what you can do about it.</span></div>
@@ -102,76 +142,57 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <span class="badge badge-danger px-2 py-1"><i class="fas fa-ban mr-1"></i> Deactivated</span>
                 <?php endif; ?>
               </p>
-              <dl class="review-terms review-terms--stacked">
-                <dt>Email</dt>
-                <dd><a href="mailto:<?= h($user['email']) ?>"><?= h($user['email']) ?></a></dd>
-                <dt>Phone</dt>
-                <dd><?= h($user['phone_number'] ?: 'Not given') ?></dd>
-                <dt>Signs in with</dt>
-                <dd><?= $user['google_id'] ? 'Google, and a password if one was set' : 'Email and password' ?></dd>
-                <dt>Remembered devices</dt>
-                <dd class="tabular"><?= $devices ?></dd>
-                <dt>Failed sign-ins, last 24 hours</dt>
-                <dd class="tabular"><?= $failedLogins ?></dd>
-              </dl>
-
-              <div class="d-flex flex-wrap mt-3" style="gap: 8px;">
-                <?php if ($removed): ?>
-                  <form method="post" action="<?= base_url('admin/user_action.php') ?>">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="user_id" value="<?= (int) $userId ?>">
-                    <input type="hidden" name="action" value="restore">
-                    <input type="hidden" name="return_to" value="user">
-                    <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-trash-restore mr-1"></i> Restore account</button>
-                  </form>
-                <?php else: ?>
-                  <form method="post" action="<?= base_url('admin/user_action.php') ?>">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="user_id" value="<?= (int) $userId ?>">
-                    <input type="hidden" name="action" value="toggle_status">
-                    <input type="hidden" name="return_to" value="user">
-                    <?php if ($user['is_active']): ?>
-                      <button type="submit" class="btn btn-outline-warning btn-sm"><i class="fas fa-user-slash mr-1"></i> Deactivate</button>
-                    <?php else: ?>
-                      <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-user-check mr-1"></i> Activate</button>
-                    <?php endif; ?>
-                  </form>
-                  <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="js-confirm"
-                    data-confirm="Remove <?= h($fullName) ?>? Their account<?= $isLandlord ? ' and listings' : '' ?> will be hidden from the site. Nothing is deleted, and it can be restored.">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="user_id" value="<?= (int) $userId ?>">
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="return_to" value="user">
-                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash mr-1"></i> Remove</button>
-                  </form>
-                <?php endif; ?>
+              <div class="re-fields">
+                <?= re_field('Email', '<a href="mailto:' . h($user['email']) . '">' . h($user['email']) . '</a>', true) ?>
+                <?= re_field('Phone', $user['phone_number'] ?: 'Not given') ?>
+                <?= re_field('Signs in with', $user['google_id'] ? 'Google, and a password if one was set' : 'Email and password') ?>
+                <?= re_field('Remembered devices', '<span class="tabular">' . $devices . '</span>', true) ?>
+                <?= re_field('Failed sign-ins, last 24h', '<span class="tabular">' . $failedLogins . '</span>', true) ?>
               </div>
-            </div>
-          </div>
 
-          <div class="card shadow-sm">
-            <div class="card-header"><h3 class="card-title">History</h3>
-              <span class="card-subtitle">Changes an administrator made to this account.</span></div>
-            <div class="card-body">
-              <?php if (!$history): ?>
-                <p class="text-muted mb-0">No administrator has changed this account since the activity log started.</p>
-              <?php else: ?>
-                <ul class="review-history">
-                  <?php foreach ($history as $e): ?>
-                    <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
-                    <li>
-                      <span class="badge <?= h($type['badge']) ?>"><?= h(preg_replace('/ account$/', '', $type['label'])) ?></span>
-                      by <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'an administrator' ?>
-                      <small class="text-muted d-block"><?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?></small>
-                    </li>
-                  <?php endforeach; ?>
-                </ul>
-              <?php endif; ?>
             </div>
           </div>
         </div>
 
-        <div class="col-lg-8">
+        <div class="col-lg-7">
+          <div class="card shadow-sm">
+            <?php panel_card_header(
+              'At a glance',
+              $isLandlord
+                ? 'What this landlord has on RoomEase right now.'
+                : 'What this boarder has done on RoomEase so far.'
+            ); ?>
+            <div class="card-body">
+              <div class="re-fields">
+                <?php if ($isLandlord): ?>
+                  <?php
+                  $live = 0;
+                  $waiting = 0;
+                  foreach ($listings as $l) {
+                      if ($l['deleted_at'] !== null) {
+                          continue;
+                      }
+                      if ($l['moderation_status'] === 'approved') {
+                          $live++;
+                      } elseif ($l['moderation_status'] === 'pending') {
+                          $waiting++;
+                      }
+                  }
+                  ?>
+                  <?= re_field('Listings posted', '<span class="tabular">' . count($listings) . '</span>', true) ?>
+                  <?= re_field('Approved', '<span class="tabular">' . $live . '</span>', true) ?>
+                  <?= re_field('Waiting on approval', '<span class="tabular">' . $waiting . '</span>', true) ?>
+                <?php else: ?>
+                  <?= re_field('Listings saved', '<span class="tabular">' . count($saved) . '</span>', true) ?>
+                <?php endif; ?>
+                <?= re_field('Administrator changes', '<span class="tabular">' . count($history) . '</span>', true) ?>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="re-tabpanel" id="panel-things" role="tabpanel" aria-labelledby="tab-panel-things" hidden>
           <?php if ($isLandlord): ?>
             <div class="card shadow-sm">
               <div class="card-header">
@@ -180,7 +201,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               </div>
               <div class="card-body p-0 table-responsive">
                 <?php if (!$listings): ?>
-                  <p class="text-muted m-3">This landlord has not added a listing.</p>
+                  <?= re_empty('No listings yet', 'This landlord has not posted a boarding house.', 'fa-home') ?>
                 <?php else: ?>
                   <table class="table mb-0">
                     <thead><tr><th>Boarding house</th><th>Rooms</th><th>Approval</th><th>Posted</th></tr></thead>
@@ -216,7 +237,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               </div>
               <div class="card-body p-0 table-responsive">
                 <?php if (!$saved): ?>
-                  <p class="text-muted m-3">This boarder has not saved a listing.</p>
+                  <?= re_empty('Nothing saved yet', 'This boarder has not shortlisted a boarding house.', 'fa-heart') ?>
                 <?php else: ?>
                   <table class="table mb-0">
                     <thead><tr><th>Boarding house</th><th>Approval</th><th>Saved</th></tr></thead>
@@ -242,18 +263,37 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               </div>
             </div>
           <?php endif; ?>
+      </div>
+
+      <div class="re-tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-panel-history" hidden>
+        <div class="card shadow-sm">
+          <?php panel_card_header('History', 'Changes an administrator made to this account.'); ?>
+          <div class="card-body<?= $history ? '' : ' p-0' ?>">
+            <?php if (!$history): ?>
+              <?= re_empty(
+                'Nothing recorded',
+                'No administrator has changed this account since the activity log started.',
+                'fa-history'
+              ) ?>
+            <?php else: ?>
+              <ul class="review-history">
+                <?php foreach ($history as $e): ?>
+                  <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
+                  <li>
+                    <span class="badge <?= h($type['badge']) ?>"><?= h(preg_replace('/ account$/', '', $type['label'])) ?></span>
+                    by <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'an administrator' ?>
+                    <small class="text-muted d-block"><?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?></small>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
     </div>
   </section>
 </div>
 
+<?php /* The confirmation listener now lives in includes/scripts/panel_tabs.php,
+     which the footer loads on every panel page. */ ?>
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
-<script>
-  // Removing asks first. The question is text in an attribute, not script.
-  document.querySelectorAll('form.js-confirm').forEach(function (form) {
-    form.addEventListener('submit', function (event) {
-      if (!window.confirm(form.getAttribute('data-confirm'))) event.preventDefault();
-    });
-  });
-</script>

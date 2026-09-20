@@ -239,6 +239,7 @@ if ($usePanel) {
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-id-card mr-1"></i> Account Information
                 </h3>
+              <span class="card-subtitle">Changes take effect as soon as you save.</span>
               </div>
               <div class="card-body">
 <?php else: ?>
