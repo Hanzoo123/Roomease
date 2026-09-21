@@ -13,6 +13,17 @@ Options -Indexes
   # A second, complete copy of the app checked out inside the webroot would be
   # servable at its own URL, and would carry none of these fixes.
   RedirectMatch 404 (?i)^/(?:.*/)?roomease/roomease/
+  # Same for .claude/worktrees/, where Claude Code keeps full copies of the
+  # app on other branches: each would run older code against the live database.
+  RedirectMatch 404 (?i)^/(?:.*/)?\.claude(/|$)
+</IfModule>
+
+# Composer's vendor/ at the app root is library code, never a page. A rewrite
+# rule matches it relative to this folder, so assets/vendor/ (Leaflet) is
+# unaffected.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^vendor(/|$) - [NC,R=404,L]
 </IfModule>
 
 # --- File types that are never meant to be downloaded ---------------------
