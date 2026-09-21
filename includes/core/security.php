@@ -572,6 +572,63 @@ function throttle_retry_after($kind, $identifier)
     return max(0, $wait);
 }
 
+/* ---------------------------------------------------------------------------
+ * Checking the password on the two sign-in pages
+ *
+ * With no account for the typed email there is nothing to check, and a page
+ * that answered at once would let anyone time it to learn which emails are
+ * registered. So a missing account is checked against a hash nobody knows
+ * the password to, which takes as long as checking a real one.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * password_hash() of random strings that were thrown away, one for each cost
+ * PHP has used by default: 10 up to PHP 8.3 and 12 from PHP 8.4. A hash's cost
+ * decides how long checking it takes, so the dummy has to have the same cost
+ * as the stored hashes, which is this server's default once
+ * upgrade_password_hash() has moved them to it.
+ */
+const DUMMY_PASSWORD_HASHES = [
+    10 => '$2y$10$JUoyE50X7TaGZNYaVHc7BOpQUUE9r/XMmsHGJ.Wl8iCOdp.ui2/hS',
+    12 => '$2y$12$k3ieTaYZzIOp/UNoS2s84eqsAafSe7Qm54VLUGyZ.n0TzYns0xTau',
+];
+
+/**
+ * True when $password is right for $user, the row a sign-in page looked up,
+ * or false when there was no such row. Either way it takes the same time.
+ */
+function check_login_password($password, $user)
+{
+    if ($user) {
+        return password_verify($password, $user['password_hash']);
+    }
+    $dummy = DUMMY_PASSWORD_HASHES[PASSWORD_BCRYPT_DEFAULT_COST] ?? DUMMY_PASSWORD_HASHES[12];
+    password_verify($password, $dummy);
+    return false;
+}
+
+/**
+ * After a successful sign-in, store the password again if its hash's cost is
+ * not this server's default, so every account costs the same to check as the
+ * dummy above. Old accounts were hashed at 10 before PHP 8.4 made 12 the
+ * default; a hash made by a different PHP than the web server's, such as the
+ * command line running database/set_admin_password.php, can be off the other
+ * way. The WHERE clause leaves a password changed in the meantime alone.
+ */
+function upgrade_password_hash(array $user, $password)
+{
+    global $pdo;
+    if (!password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
+        return;
+    }
+    try {
+        $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ? AND password_hash = ?')
+            ->execute([password_hash($password, PASSWORD_DEFAULT), $user['user_id'], $user['password_hash']]);
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not upgrade a password hash - ' . $e->getMessage());
+    }
+}
+
 /** "3 minutes" / "45 seconds", for telling someone how long they must wait. */
 function format_wait($seconds)
 {

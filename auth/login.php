@@ -47,7 +47,7 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':login_id' => $loginId]);
         $user = $stmt->fetch();
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (!check_login_password($password, $user)) {
             record_failed_attempt('login', $loginId);
             $error = "Invalid email or password.";
         } elseif (empty($user['is_active'])) {
@@ -55,6 +55,7 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Your account is deactivated. Please contact support.";
         } else {
             clear_failed_attempts('login', $loginId);
+            upgrade_password_hash($user, $password);
             start_user_session($user);
             if ($remember) {
                 remember_login((int) $user['user_id']);

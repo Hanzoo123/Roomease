@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$loginId]);
         $user = $stmt->fetch();
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (!check_login_password($password, $user)) {
             record_failed_attempt('login', $loginId);
             $error = 'Invalid email or password.';
         } elseif (empty($user['is_active'])) {
@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Your account is deactivated. Please contact another administrator.';
         } else {
             clear_failed_attempts('login', $loginId);
+            upgrade_password_hash($user, $password);
             start_user_session($user);
             flash_set('Welcome back, ' . $user['first_name'] . '!', 'success');
             redirect('admin/dashboard.php');
