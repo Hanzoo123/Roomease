@@ -2,10 +2,10 @@
 /**
  * Database connection.
  *
- * Credentials come from the environment when it supplies them, so a deployed
- * copy never has to keep its real password in a file that ships with the code.
- * The values below are the stock WAMP/XAMPP defaults and are only a fallback
- * for local development.
+ * Credentials come from the project's .env file (read by vlucas/phpdotenv) or
+ * from real environment variables, so a deployed copy never has to keep its
+ * real password in a file that ships with the code. The values below are the
+ * stock WAMP/XAMPP defaults and are only a fallback for local development.
  *
  * The connection settings are built inside a closure so that $host, $dbname,
  * $username and $password stay local to it. They used to be plain globals, and
@@ -14,11 +14,29 @@
  * the moment it required this file. Only $pdo escapes into the global scope.
  */
 
+// vendor/ and .env both sit in the project root, one level above config/.
+// Without `composer install` the site still runs on the defaults below, and
+// safeLoad() (unlike load()) doesn't throw when there is no .env file.
+$autoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (is_file($autoload)) {
+    require_once $autoload;
+    Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
+}
+unset($autoload);
+
 $pdo = (static function (): PDO {
-    $host     = getenv('ROOMEASE_DB_HOST') ?: 'localhost';
-    $dbname   = getenv('ROOMEASE_DB_NAME') ?: 'roomease';
-    $username = getenv('ROOMEASE_DB_USER') ?: 'root';
-    $password = getenv('ROOMEASE_DB_PASS') !== false ? getenv('ROOMEASE_DB_PASS') : '';
+    $env = static function (string $key, string $default): string {
+        if (isset($_ENV[$key])) {
+            return $_ENV[$key];
+        }
+        $value = getenv($key);
+        return $value !== false ? $value : $default;
+    };
+
+    $host     = $env('ROOMEASE_DB_HOST', 'localhost');
+    $dbname   = $env('ROOMEASE_DB_NAME', 'roomease');
+    $username = $env('ROOMEASE_DB_USER', 'root');
+    $password = $env('ROOMEASE_DB_PASS', '');
 
     try {
         return new PDO(
