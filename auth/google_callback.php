@@ -59,7 +59,7 @@ try {
 $profile = google_profile_from_claims($claims);
 $remember = !empty($pending['remember']);
 
-[$user, $error] = google_find_account($profile['google_id'], $profile['email']);
+[$user, $error, $linked] = google_find_account($profile['google_id'], $profile['email']);
 if ($error) {
     $fail($error);
 }
@@ -83,4 +83,4 @@ if (!$user) {
     }
 }
 
-$fail(google_sign_in($user, $remember, $created));
+$fail(google_sign_in($user, $remember, $created, $linked));

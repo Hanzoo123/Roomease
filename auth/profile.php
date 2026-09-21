@@ -332,7 +332,8 @@ if ($usePanel) {
 
   <?php if ($googleLinked): ?>
     <div class="<?= $cls['note'] ?>">
-      Signed up with Google? Then you have no password yet, and one would let you sign in without Google too.
+      Signed up with Google, or connected it to this account? Then you have no password yet, and one would let
+      you sign in without Google too.
       <div style="margin-top:8px;">
         <?php /* Submits the separate form below the profile form, so pressing Enter in a
              profile field still saves the profile rather than sending this code. */ ?>

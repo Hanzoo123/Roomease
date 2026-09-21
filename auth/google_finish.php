@@ -48,14 +48,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // The same person may have finished in another tab meanwhile. Then
         // there is an account already, and they are signed in to it instead.
-        [$user, $error] = google_find_account($pending['google_id'], $pending['email']);
+        [$user, $error, $linked] = google_find_account($pending['google_id'], $pending['email']);
         $created = false;
         if (!$user && !$error) {
             try {
                 $user = google_create_account($pending, $role, $phone !== '' ? $phone : null);
                 $created = true;
             } catch (PDOException $e) {
-                [$user, $error] = google_find_account($pending['google_id'], $pending['email']);
+                [$user, $error, $linked] = google_find_account($pending['google_id'], $pending['email']);
                 if (!$user && !$error) {
                     error_log('RoomEase: Google account creation failed - ' . $e->getMessage());
                     $error = 'Your account could not be created. Please continue with Google again.';
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($user) {
-            $error = google_sign_in($user, !empty($pending['remember']), $created);
+            $error = google_sign_in($user, !empty($pending['remember']), $created, $linked);
         }
 
         flash_set($error, 'error');

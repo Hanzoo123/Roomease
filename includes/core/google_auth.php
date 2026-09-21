@@ -228,9 +228,11 @@ function google_profile_from_claims(array $claims)
 }
 
 /**
- * The RoomEase account a Google sign-in belongs to. Returns [$user, $error]:
- * $user is null when there is no account yet, and $error is set when there is
- * one that this Google account must not be let into.
+ * The RoomEase account a Google sign-in belongs to. Returns
+ * [$user, $error, $linked]: $user is null when there is no account yet,
+ * $error is set when there is one that this Google account must not be let
+ * into, and $linked is true when an existing account was linked to Google
+ * just now.
  *
  * Matched by Google account id first, then by the email Google has verified.
  * An account found by email is linked to the Google account on the way.
@@ -242,28 +244,58 @@ function google_find_account($googleId, $email)
     $byGoogle = $pdo->prepare('SELECT * FROM users WHERE google_id = ? LIMIT 1');
     $byGoogle->execute([$googleId]);
     $user = $byGoogle->fetch();
-    if ($user) {
-        return [$user, null];
-    }
 
-    $byEmail = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-    $byEmail->execute([$email]);
-    $user = $byEmail->fetch();
     if (!$user) {
-        return [null, null];
+        $byEmail = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+        $byEmail->execute([$email]);
+        $user = $byEmail->fetch();
+    }
+    if (!$user) {
+        return [null, null, false];
     }
 
-    if ($user['google_id'] !== null && $user['google_id'] !== $googleId) {
-        return [null, 'That email address is already linked to a different Google account.'];
+    // Administrators sign in only at admin/login.php, which has no Google and
+    // no "Remember me". Checked before anything is linked, so Google never
+    // touches an administrator account at all.
+    if ($user['role'] === 'administrator') {
+        return [null, 'Administrators sign in on the admin sign-in page, with their email and password.', false];
+    }
+
+    if ($user['google_id'] === $googleId) {
+        return [$user, null, false];
+    }
+    if ($user['google_id'] !== null) {
+        return [null, 'That email address is already linked to a different Google account.', false];
+    }
+
+    // A deactivated or removed account is left exactly as it is, and
+    // google_sign_in() then refuses it with the usual message.
+    if (!empty($user['deleted_at']) || empty($user['is_active'])) {
+        return [$user, null, false];
     }
 
     // Google has verified this address belongs to whoever just signed in,
     // which is the same proof a password reset email relies on.
-    $pdo->prepare('UPDATE users SET google_id = ? WHERE user_id = ? AND google_id IS NULL')
-        ->execute([$googleId, $user['user_id']]);
+    //
+    // Sign-up never checked it, though, so whoever chose this account's
+    // password may not be the person Google just vouched for. Anyone could
+    // have registered someone else's address in advance and waited for its
+    // real owner to arrive through Google. The password is therefore
+    // replaced and every remembered device forgotten, so nobody keeps a way
+    // in that the owner does not know about. The owner can choose a new
+    // password from their profile, with a code sent to this address.
+    $link = $pdo->prepare(
+        'UPDATE users SET google_id = ?, password_hash = ? WHERE user_id = ? AND google_id IS NULL'
+    );
+    $link->execute([$googleId, password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT), $user['user_id']]);
+    if ($link->rowCount() !== 1) {
+        // Another request linked it first; start over from the fresh row.
+        return google_find_account($googleId, $email);
+    }
+    forget_all_remembered_logins($user['user_id']);
     $user['google_id'] = $googleId;
 
-    return [$user, null];
+    return [$user, null, true];
 }
 
 /**
@@ -297,8 +329,12 @@ function google_create_account(array $profile, $role, $phone = null)
  * Sign in to the account a Google sign-in resolved to and go to its home
  * page. Deactivated and removed accounts are refused exactly as the password
  * login refuses them: the reason is returned and nothing else happens.
+ *
+ * $linked is google_find_account()'s third value: the account was only just
+ * linked to Google, so its old password has stopped working and the owner is
+ * told so.
  */
-function google_sign_in(array $user, $remember, $created)
+function google_sign_in(array $user, $remember, $created, $linked = false)
 {
     if (!empty($user['deleted_at'])) {
         return 'That account has been removed. Please contact support.';
@@ -312,7 +348,12 @@ function google_sign_in(array $user, $remember, $created)
         remember_login((int) $user['user_id']);
     }
 
-    flash_set(($created ? 'Welcome to RoomEase, ' : 'Welcome back, ') . $user['first_name'] . '!', 'success');
+    $welcome = ($created ? 'Welcome to RoomEase, ' : 'Welcome back, ') . $user['first_name'] . '!';
+    if ($linked) {
+        $welcome .= ' Your account now signs in with Google, so your old password no longer works.'
+            . ' You can set a new one from your profile.';
+    }
+    flash_set($welcome, 'success');
     redirect('index.php');
 }
 
