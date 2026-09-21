@@ -1841,14 +1841,26 @@ function password_reset_ttl_minutes()
     return 10;
 }
 
-/**
- * True when the request came from this machine. Reset codes are only ever
- * shown on screen for loopback requests, so a deployed copy of RoomEase can
- * never hand a stranger a working code just by typing somebody's email.
- */
+/** True when the request came from this machine. */
 function is_local_request()
 {
     return in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+}
+
+/**
+ * True when a reset code that could not be emailed may be shown on screen
+ * instead. A development convenience only: it needs ROOMEASE_SHOW_RESET_CODES
+ * turned on in .env AND a request from this machine, and it is off otherwise.
+ *
+ * A request from this machine used to be enough on its own. It is not: share
+ * the site through ngrok, Cloudflare Tunnel or any other proxy running on the
+ * same computer and every visitor arrives from 127.0.0.1, so anyone could
+ * have read the code for any account, an administrator's included.
+ */
+function show_reset_codes_on_screen()
+{
+    $setting = $_ENV['ROOMEASE_SHOW_RESET_CODES'] ?? getenv('ROOMEASE_SHOW_RESET_CODES');
+    return is_local_request() && filter_var($setting, FILTER_VALIDATE_BOOLEAN);
 }
 
 /**
@@ -1889,8 +1901,8 @@ function password_reset_account($email, $scope)
  * visitor's own, may tell anyone which of those happened; the public pages say
  * the same thing every time.
  *
- * When sending fails and the visitor is at the server itself, the code is kept
- * in the session so the next page can show it. A remote visitor never sees it.
+ * When sending fails and show_reset_codes_on_screen() allows it, the code is
+ * kept in the session so the next page can show it. Nobody else ever sees it.
  */
 function issue_password_reset_code($email, $scope)
 {
@@ -1901,7 +1913,7 @@ function issue_password_reset_code($email, $scope)
     if ($account) {
         $code = create_password_reset_code($account['user_id']);
         $sent = send_password_reset_code($account['email'], $account['first_name'], $code, $scope);
-        if (!$sent && is_local_request()) {
+        if (!$sent && show_reset_codes_on_screen()) {
             $localCode = $code;
         }
     } elseif (mail_enabled()) {

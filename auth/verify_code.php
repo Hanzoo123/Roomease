@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Only the profile page may admit that sending failed: there the
             // address is the visitor's own account.
-            if ($scope === 'profile' && $sent === false && !is_local_request()) {
+            if ($scope === 'profile' && $sent === false && !show_reset_codes_on_screen()) {
                 flash_set('The email could not be sent. Please try again later.', 'error');
             } else {
                 flash_set('A new code is on its way. Only the newest code works.');
@@ -120,8 +120,8 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
     <div class="alert alert-error">
       <strong><?= mail_enabled() ? 'The email could not be sent.' : 'Gmail is not set up on this server.' ?></strong>
       <p class="alert-note">
-        So the code is shown here instead. It only ever appears for someone browsing from the server itself;
-        a remote visitor sees only the message above.
+        So the code is shown here instead, because <code>ROOMEASE_SHOW_RESET_CODES</code> is on in <code>.env</code>
+        and you are browsing from the server itself. Turn it off before anyone else can reach this site.
         <?php if (mail_enabled()): ?>
           Gmail's reason is in <code>storage/mail.log</code>.
         <?php else: ?>

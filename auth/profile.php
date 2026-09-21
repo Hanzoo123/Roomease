@@ -67,9 +67,10 @@ if ($wantsPasswordCode) {
     }
     record_failed_attempt('reset', $user['email']);
 
-    // If sending fails, someone at this machine still gets the code on the
-    // next page, as on "Forgot password"; anyone else is told it failed.
-    if (issue_password_reset_code($user['email'], 'profile') === false && !is_local_request()) {
+    // If sending fails, a developer who turned on ROOMEASE_SHOW_RESET_CODES
+    // still gets the code on the next page, as on "Forgot password"; anyone
+    // else is told it failed.
+    if (issue_password_reset_code($user['email'], 'profile') === false && !show_reset_codes_on_screen()) {
         unset($_SESSION['password_reset']);
         flash_set('The email could not be sent. Please try again later.', 'error');
         redirect('auth/profile.php');
