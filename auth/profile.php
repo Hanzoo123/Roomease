@@ -152,8 +152,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$wantsPasswordCode) {
             $old['phone_number'] !== '' ? $old['phone_number'] : null,
         ];
         if ($changePassword) {
+            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
             $columns[] = 'password_hash = ?';
-            $values[] = password_hash($newPassword, PASSWORD_DEFAULT);
+            $values[] = $newHash;
         }
         if ($newAvatar !== null) {
             $columns[] = 'avatar_path = ?';
@@ -176,6 +177,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$wantsPasswordCode) {
         // is the whole point of changing the password after a scare.
         if ($changePassword) {
             session_regenerate_id(true);
+
+            // Every other session of the account, in any browser, is signed
+            // out on its next page, because the password it was signed in
+            // under is gone (see enforce_session_policy()). This one records
+            // the new password, so it is the one that stays signed in.
+            $_SESSION['password_fingerprint'] = password_fingerprint($newHash);
 
             // Same for "Remember me": every remembered device is forgotten.
             // This device keeps being remembered if it already was.

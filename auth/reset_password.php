@@ -46,8 +46,9 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
+        $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
         $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ?')
-            ->execute([password_hash($newPassword, PASSWORD_DEFAULT), $reset['user_id']]);
+            ->execute([$newHash, $reset['user_id']]);
 
         // Burn this reset, and any other that was outstanding for the account,
         // so it can never be reused.
@@ -59,13 +60,18 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // A new password signs the account out of every remembered device, so
         // whoever prompted the reset loses any "Remember me" cookie they held.
+        // Every session still open for the account ends on its next page too
+        // (see enforce_session_policy()).
         $rememberedHere = $signedIn && isset($_COOKIE[REMEMBER_COOKIE]);
         forget_all_remembered_logins($reset['user_id']);
 
-        // Signed in, it counts as a password change: a new session id, and
-        // this device stays remembered if it was (as on the profile page).
+        // Signed in, it counts as a password change: a new session id, this
+        // session records the new password so it is the one that stays
+        // signed in, and this device stays remembered if it was (as on the
+        // profile page).
         if ($signedIn) {
             session_regenerate_id(true);
+            $_SESSION['password_fingerprint'] = password_fingerprint($newHash);
             if ($rememberedHere) {
                 remember_login((int) $reset['user_id']);
             }

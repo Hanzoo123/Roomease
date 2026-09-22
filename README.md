@@ -258,6 +258,14 @@ ask for it:
   effect on that user's very next click rather than whenever they log out.
 - Signing in starts a genuinely new session, and changing a password issues a
   new session id, which invalidates any copy someone else was holding.
+- A password change also signs the account out everywhere else. Each session
+  keeps a fingerprint of the stored password hash, and one that no longer
+  matches ends on its next request, however the password changed: on the
+  profile page, by a reset, by the first Google sign-in to an existing
+  account (which replaces the password), or with
+  `database/set_admin_password.php`. The pages that change it also forget
+  every "Remember me" device. Only the browser that made the change stays
+  signed in.
 
 **Rate limiting** (the `login_attempts` table, in `database/boardinghouse.sql`)
 

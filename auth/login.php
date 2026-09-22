@@ -55,7 +55,9 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Your account is deactivated. Please contact support.";
         } else {
             clear_failed_attempts('login', $loginId);
-            upgrade_password_hash($user, $password);
+            // The session must start from the hash stored now, which the
+            // upgrade may just have replaced; see start_user_session().
+            $user['password_hash'] = upgrade_password_hash($user, $password);
             start_user_session($user);
             if ($remember) {
                 remember_login((int) $user['user_id']);

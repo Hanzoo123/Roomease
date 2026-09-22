@@ -282,18 +282,26 @@ function google_find_account($googleId, $email)
     // have registered someone else's address in advance and waited for its
     // real owner to arrive through Google. The password is therefore
     // replaced and every remembered device forgotten, so nobody keeps a way
-    // in that the owner does not know about. The owner can choose a new
-    // password from their profile, with a code sent to this address.
+    // in that the owner does not know about, and any session still signed in
+    // under the old password ends on its next page (enforce_session_policy()).
+    // The owner can choose a new password from their profile, with a code
+    // sent to this address.
+    $replacement = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
     $link = $pdo->prepare(
         'UPDATE users SET google_id = ?, password_hash = ? WHERE user_id = ? AND google_id IS NULL'
     );
-    $link->execute([$googleId, password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT), $user['user_id']]);
+    $link->execute([$googleId, $replacement, $user['user_id']]);
     if ($link->rowCount() !== 1) {
         // Another request linked it first; start over from the fresh row.
         return google_find_account($googleId, $email);
     }
     forget_all_remembered_logins($user['user_id']);
+
+    // google_sign_in() starts the session from this row, so it has to carry
+    // the new hash: a session started from the old one would be signed out
+    // on its next page, like every other session of the account.
     $user['google_id'] = $googleId;
+    $user['password_hash'] = $replacement;
 
     return [$user, null, true];
 }

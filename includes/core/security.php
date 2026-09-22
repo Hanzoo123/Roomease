@@ -161,7 +161,8 @@ function force_logout($message, $wasAdmin = null)
  * stops being a way in. And the account is re-read from the database, so an
  * administrator deactivating a user, deleting them, or changing their role
  * takes effect on that user's very next click instead of whenever they happen
- * to log out.
+ * to log out. A changed password is noticed the same way: every session that
+ * was signed in under the old password ends on its next request.
  */
 function enforce_session_policy()
 {
@@ -201,7 +202,9 @@ function enforce_session_policy()
     }
 
     try {
-        $stmt = $pdo->prepare('SELECT role, is_active, deleted_at, avatar_path FROM users WHERE user_id = ?');
+        $stmt = $pdo->prepare(
+            'SELECT role, is_active, deleted_at, avatar_path, password_hash FROM users WHERE user_id = ?'
+        );
         $stmt->execute([$_SESSION['user_id']]);
         $account = $stmt->fetch();
     } catch (PDOException $e) {
@@ -223,21 +226,61 @@ function enforce_session_policy()
         force_logout('Your account has been deactivated. Please contact support.');
     }
 
+    // A password change ends every other session of the account. Each session
+    // holds a fingerprint of the password it was signed in under, so one that
+    // no longer matches was started before the change, possibly by whoever the
+    // change was meant to shut out. The session that made the change stored
+    // the new fingerprint as it saved (auth/profile.php, auth/reset_password.php),
+    // so it is the one that stays signed in. A session with no fingerprint was
+    // either already open when this check was added or started from a row
+    // without password_hash; it takes the current one and is covered from
+    // then on.
+    //
+    // Only this device's "Remember me" goes, inside force_logout(). The pages
+    // that change a password have already forgotten every remembered device,
+    // and forgetting them all again here would also throw away the new one
+    // that the device making the change was just given.
+    $fingerprint = password_fingerprint($account['password_hash']);
+    if (!isset($_SESSION['password_fingerprint'])) {
+        $_SESSION['password_fingerprint'] = $fingerprint;
+    } elseif (!hash_equals($_SESSION['password_fingerprint'], $fingerprint)) {
+        force_logout('Your password was changed, so you were signed out. Please log in again.');
+    }
+
     // The session is a cache of the account, never the source of truth for it.
     $_SESSION['role'] = $account['role'];
     $_SESSION['avatar_path'] = $account['avatar_path'];
 }
 
 /**
- * Begin a signed-in session for a user row (user_id, role, first_name,
- * last_name, email, and avatar_path where the caller selected it). Used by the
- * password login, Google sign-in, and "Remember me", so all three start a
- * session the same way: a brand new session id and nothing carried over from
- * whatever session came before.
+ * What a session remembers about the password it was signed in under, so
+ * enforce_session_policy() can tell when that password has been changed. It
+ * is a SHA-256 of the stored hash rather than the hash itself: session files
+ * are guarded less carefully than the database, and a bcrypt hash copied out
+ * of one could be used to guess the password offline, where this cannot.
+ */
+function password_fingerprint($passwordHash)
+{
+    return hash('sha256', $passwordHash);
+}
+
+/**
+ * Begin a signed-in session for a user row: user_id, role, first_name,
+ * last_name and email, plus avatar_path and password_hash where the caller
+ * selected them. Used by the password login, Google sign-in, and "Remember
+ * me", so all three start a session the same way: a brand new session id and
+ * nothing carried over from whatever session came before.
  *
- * A caller that selected only the columns above still gets a working session:
- * the avatar falls back to null here and is filled in by the per-request
- * refresh above, which reads it from the account on the very next page.
+ * The session keeps a fingerprint of password_hash, and the per-request check
+ * above signs it out as soon as the stored hash stops matching. So the row
+ * has to carry the hash the account has now, not one read before it was
+ * saved again: the login pages take the hash upgrade_password_hash() returns,
+ * and google_find_account() copies in the password it replaces. A stale hash
+ * would end the session on its very next page.
+ *
+ * A caller that left out avatar_path or password_hash still gets a working
+ * session: the per-request refresh above fills either one in from the
+ * account on the very next page.
  */
 function start_user_session(array $user)
 {
@@ -252,6 +295,9 @@ function start_user_session(array $user)
     $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
     $_SESSION['email'] = $user['email'];
     $_SESSION['avatar_path'] = $user['avatar_path'] ?? null;
+    $_SESSION['password_fingerprint'] = isset($user['password_hash'])
+        ? password_fingerprint($user['password_hash'])
+        : null;
 }
 
 /* ---------------------------------------------------------------------------
@@ -411,7 +457,8 @@ function restore_remembered_login()
     try {
         $stmt = $pdo->prepare(
             'SELECT rt.token_id, rt.validator_hash, rt.expires_at > NOW() AS is_live,
-                    u.user_id, u.role, u.first_name, u.last_name, u.email, u.is_active, u.deleted_at
+                    u.user_id, u.role, u.first_name, u.last_name, u.email, u.password_hash,
+                    u.is_active, u.deleted_at
                FROM remember_tokens rt
                JOIN users u ON u.user_id = rt.user_id
               WHERE rt.selector = ?'
@@ -614,19 +661,35 @@ function check_login_password($password, $user)
  * default; a hash made by a different PHP than the web server's, such as the
  * command line running database/set_admin_password.php, can be off the other
  * way. The WHERE clause leaves a password changed in the meantime alone.
+ *
+ * Returns the hash to hand to start_user_session(): the new one if it was
+ * stored, otherwise the one passed in. If the password was changed in the
+ * meantime, the one passed in is already out of date, and the session it
+ * starts is signed out on its next page, as it should be.
+ *
+ * To enforce_session_policy() a hash stored again looks exactly like a new
+ * password, so any other session open for the account at that moment is
+ * signed out as though the password had changed. That happens at most once
+ * per account each time the server's default cost moves, and is the price of
+ * noticing password changes without adding a column to users.
  */
 function upgrade_password_hash(array $user, $password)
 {
     global $pdo;
     if (!password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
-        return;
+        return $user['password_hash'];
     }
+    $newHash = password_hash($password, PASSWORD_DEFAULT);
     try {
-        $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ? AND password_hash = ?')
-            ->execute([password_hash($password, PASSWORD_DEFAULT), $user['user_id'], $user['password_hash']]);
+        $update = $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ? AND password_hash = ?');
+        $update->execute([$newHash, $user['user_id'], $user['password_hash']]);
+        if ($update->rowCount() === 1) {
+            return $newHash;
+        }
     } catch (PDOException $e) {
         error_log('RoomEase: could not upgrade a password hash - ' . $e->getMessage());
     }
+    return $user['password_hash'];
 }
 
 /** "3 minutes" / "45 seconds", for telling someone how long they must wait. */

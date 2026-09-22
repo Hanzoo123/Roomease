@@ -47,7 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Your account is deactivated. Please contact another administrator.';
         } else {
             clear_failed_attempts('login', $loginId);
-            upgrade_password_hash($user, $password);
+            // The session must start from the hash stored now, which the
+            // upgrade may just have replaced; see start_user_session().
+            $user['password_hash'] = upgrade_password_hash($user, $password);
             start_user_session($user);
             flash_set('Welcome back, ' . $user['first_name'] . '!', 'success');
             redirect('admin/dashboard.php');
