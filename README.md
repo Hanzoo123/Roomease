@@ -164,7 +164,6 @@ roomease/
 ├── about.php / contact.php    Who RoomEase is, and how to reach the team
 ├── terms.php / privacy.php    The two standing legal pages
 ├── 404.php                    Shown for an address that matches nothing
-├── robots.txt / sitemap.php   What crawlers may read; sitemap.php answers /sitemap.xml
 ├── admin/                     Admin panel: dashboard, manage users, manage listings
 ├── auth/                      Register, login, logout, profile, password reset by code
 ├── landlord/                  Dashboard, add/edit/delete listing, photo actions

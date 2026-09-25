@@ -162,13 +162,24 @@ Walk the three roles once on the live site:
 - [ ] **Accounts:** password reset by email, Google sign-in, changing a
       password signs the account out of other browsers.
 - [ ] **The public pages:** `/about.php`, `/contact.php`, `/terms.php`,
-      `/privacy.php`, `/robots.txt`, `/sitemap.xml`, and the favicon in the tab.
+      `/privacy.php`, and the favicon in the tab.
 
 ## 10. Finishing touches
 
-- [ ] **Fix the sitemap line in `robots.txt`.** It currently reads
-      `Sitemap: /sitemap.xml`; the standard wants the full address, so change
-      it to `Sitemap: https://yourdomain/sitemap.xml` once you know the domain.
+- [ ] **Put the sitemap back, if you want the site found by search.** A
+      `robots.txt` and a `sitemap.php` that lists every approved listing were
+      built and tested, then set aside until there was a real address to point
+      them at. Restoring them takes one command:
+
+      git checkout 0213b85 -- robots.txt sitemap.php
+
+      then add this line back inside the `mod_rewrite` block in `.htaccess`,
+      above the 404 rule:
+
+      RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+      and change `Sitemap: /sitemap.xml` in `robots.txt` to the full address,
+      `https://yourdomain/sitemap.xml`, which is what the standard wants.
 - [ ] **Check the link preview.** Paste a listing's address into Facebook's
       Sharing Debugger (`developers.facebook.com/tools/debug/`) and into
       Messenger. You should see the listing's name, its description and its

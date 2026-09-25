@@ -25,10 +25,6 @@ Options -Indexes
   RewriteEngine On
   RewriteRule ^vendor(/|$) - [NC,R=404,L]
 
-  # The sitemap is built from the database on each request, but search engines
-  # expect to find it at /sitemap.xml.
-  RewriteRule ^sitemap\.xml$ sitemap.php [L]
-
   # An address that matches no file and no folder is answered by the site's own
   # 404 page instead of Apache's grey default. The target is written without a
   # leading slash on purpose: a relative rewrite resolves against this folder,
