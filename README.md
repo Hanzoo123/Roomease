@@ -12,6 +12,11 @@ photo uploads, search/filter, and account management.
 - A local server stack: **WAMP** or **XAMPP**. The steps below work for
   either; only the webroot path differs.
 
+These steps set up a copy on your own machine. To put RoomEase on a real
+address instead, follow [DEPLOYMENT.md](DEPLOYMENT.md), which covers what a
+host must provide, what must never be uploaded, and the checks to run once
+the site is live.
+
 ## Setup
 
 1. **Copy the project** into your webroot: `C:\wamp64\www\roomease` for WAMP,
