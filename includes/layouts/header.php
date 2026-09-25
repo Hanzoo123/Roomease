@@ -37,6 +37,7 @@ $navCurrent = function ($path) {
        at the top of the screen instead of under a grey strip. */ ?>
   <meta name="theme-color" content="#184A3F">
   <title><?= h($pageTitle) ?> · RoomEase</title>
+  <?php require __DIR__ . '/../components/head_meta.php'; ?>
   <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <?php /* Before the first paint, so the collapsed navigation is only ever drawn
        where the script that opens it is running. With JavaScript off the links

@@ -57,9 +57,7 @@ function google_enabled()
  */
 function google_redirect_uri()
 {
-    $scheme = is_https_request() ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    return $scheme . '://' . $host . base_url('auth/google_callback.php');
+    return absolute_url('auth/google_callback.php');
 }
 
 function base64url_encode($bytes)

@@ -45,6 +45,8 @@
 
     <div class="footer-base">
       &copy; <?= date('Y') ?> RoomEase &middot; A web-based boarding house information and listing system
+      &middot; <a href="<?= base_url('about.php') ?>">About</a>
+      &middot; <a href="<?= base_url('contact.php') ?>">Contact</a>
       &middot; <a href="<?= base_url('terms.php') ?>">Terms &amp; Conditions</a>
       &middot; <a href="<?= base_url('privacy.php') ?>">Privacy Policy</a>
     </div>

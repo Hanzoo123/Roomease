@@ -1511,11 +1511,25 @@ function time_ago($datetime)
     return 'just now';
 }
 
-/** An absolute URL to a page of this site, which is what an email link needs. */
+/**
+ * An absolute URL to a page of this site, which is what an email link needs,
+ * and what a link-preview tag or the sitemap needs as well: a relative
+ * address means nothing to a mail client, to Facebook or to a crawler.
+ */
 function absolute_url($path)
 {
     $scheme = is_https_request() ? 'https' : 'http';
     return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_url($path);
+}
+
+/**
+ * The full address of the page being served, query string and all, which is
+ * what og:url has to carry: a link preview names the page it was made from.
+ */
+function current_url()
+{
+    $scheme = is_https_request() ? 'https' : 'http';
+    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '/');
 }
 
 /**

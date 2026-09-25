@@ -24,6 +24,23 @@ Options -Indexes
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^vendor(/|$) - [NC,R=404,L]
+
+  # The sitemap is built from the database on each request, but search engines
+  # expect to find it at /sitemap.xml.
+  RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+  # An address that matches no file and no folder is answered by the site's own
+  # 404 page instead of Apache's grey default. The target is written without a
+  # leading slash on purpose: a relative rewrite resolves against this folder,
+  # so it keeps working whether RoomEase sits at a domain root or in
+  # http://localhost/roomease/, which ErrorDocument cannot do.
+  #
+  # Missing images and stylesheets are left alone: a broken <img> should cost a
+  # short 404, not a rendered page.
+  RewriteCond %{REQUEST_URI} !(^|/)assets/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . 404.php [L]
 </IfModule>
 
 # --- File types that are never meant to be downloaded ---------------------

@@ -43,6 +43,8 @@ $newest = $newestStmt->fetchAll();
 $savedIds = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
 
 $pageTitle = 'Rooms for rent in Baybay City';
+$metaDescription = 'Find boarding houses, bedspaces and dorm rooms for rent in Baybay City, Leyte. '
+  . 'Compare rooms by price and type, see photos and locations, and contact the landlord yourself.';
 $bleed = true;
 require __DIR__ . '/includes/layouts/header.php';
 ?>

@@ -10,6 +10,8 @@ require __DIR__ . '/config/db.php';
 require __DIR__ . '/includes/core/functions.php';
 
 $pageTitle = 'Terms & Conditions';
+$metaDescription = 'The rules for using RoomEase: what the site does, what it does not do, '
+  . 'and what boarders and landlords are each responsible for.';
 $band = [
   'title' => 'Terms & Conditions',
   'lede' => 'The rules for using RoomEase, in plain language.',

@@ -14,6 +14,8 @@ $pageTitle = $pageTitle ?? $panel['name'] . ' Dashboard';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($pageTitle) ?> | RoomEase <?= h($panel['name']) ?></title>
+  <?php /* Icons only: the panel is behind a sign-in. */ ?>
+  <?php $metaSocial = false; require __DIR__ . '/../components/head_meta.php'; ?>
 
   <link rel="preload" href="<?= base_url('assets/fonts/ibm-plex-sans-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <!-- Font Awesome Icons -->

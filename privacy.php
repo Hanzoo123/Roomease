@@ -11,6 +11,8 @@ require __DIR__ . '/config/db.php';
 require __DIR__ . '/includes/core/functions.php';
 
 $pageTitle = 'Privacy Policy';
+$metaDescription = 'What RoomEase keeps about boarders and landlords, why it keeps it, who can see it, '
+  . 'and how to ask for a copy or a deletion.';
 $band = [
   'title' => 'Privacy Policy',
   'lede' => 'What RoomEase keeps about you, why, and who can see it.',

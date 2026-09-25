@@ -30,6 +30,8 @@ $flash = $authPreview ? null : flash_get();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= h($pageTitle) ?> · RoomEase<?= $authAdmin ? ' Admin' : '' ?></title>
+  <?php /* Icons only: a sign-in page is not something anyone shares. */ ?>
+  <?php $metaSocial = false; require __DIR__ . '/../components/head_meta.php'; ?>
   <?php if ($authAdmin): ?>
     <meta name="robots" content="noindex, nofollow">
   <?php endif; ?>

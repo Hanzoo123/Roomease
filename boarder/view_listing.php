@@ -191,8 +191,7 @@ $landlordAvatar = [
   'avatar_path' => $listing['landlord_avatar'],
 ];
 
-$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$pageUrl = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_url('boarder/view_listing.php?id=' . $listingId);
+$pageUrl = absolute_url('boarder/view_listing.php?id=' . $listingId);
 
 $galleryPhotos = [];
 foreach ($photos as $i => $p) {
@@ -226,6 +225,22 @@ if ($listing['deleted_at'] !== null) {
 }
 
 $pageTitle = $listing['name'];
+
+// What a shared link shows: the landlord's own description where there is one,
+// otherwise the facts. The first photo stands in for the picture, so a listing
+// posted in a group chat arrives looking like the room it is.
+$metaDescription = trim((string) $listing['description']) !== ''
+  ? mb_substr(trim(preg_replace('/\s+/', ' ', $listing['description'])), 0, 155)
+  : $listing['name'] . ' in ' . $listing['address'] . '. '
+    . ($rooms ? count($rooms) . ' room type' . (count($rooms) === 1 ? '' : 's') . ' listed on RoomEase.' : 'Listed on RoomEase.');
+// Only a photo that is really on disk: a database row can outlive its file,
+// and a preview pointing at a missing picture shows worse than no picture,
+// so the RoomEase card stands in for it.
+if ($galleryPhotos && is_file(__DIR__ . '/../' . ltrim($photos[0]['image_path'], '/'))) {
+  $ogImage = absolute_url(ltrim($photos[0]['image_path'], '/'));
+}
+$ogType = 'article';
+
 $bleed = true;
 require __DIR__ . '/../includes/layouts/header.php';
 ?>

@@ -86,6 +86,8 @@ $shown = count($listings);
 $moreUrl = '?' . http_build_query($filters + ['page' => $page + 1]) . '#chunk-' . ($page + 1);
 
 $pageTitle = 'Browse rooms';
+$metaDescription = 'Browse every approved boarding house in Baybay City, Leyte. '
+  . 'Filter by name, room type and budget, and see what each room includes before you visit.';
 $band = [
   'title' => 'Rooms in Baybay City',
   'lede' => 'Every boarding house here is approved. Filter by name, or by the room type and budget you need.',

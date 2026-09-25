@@ -155,6 +155,11 @@ been changed.
 
 ```
 roomease/
+├── index.php                  Home page: search, newest listings
+├── about.php / contact.php    Who RoomEase is, and how to reach the team
+├── terms.php / privacy.php    The two standing legal pages
+├── 404.php                    Shown for an address that matches nothing
+├── robots.txt / sitemap.php   What crawlers may read; sitemap.php answers /sitemap.xml
 ├── admin/                     Admin panel: dashboard, manage users, manage listings
 ├── auth/                      Register, login, logout, profile, password reset by code
 ├── landlord/                  Dashboard, add/edit/delete listing, photo actions
@@ -173,10 +178,13 @@ roomease/
 │   │   └── panel*.php                         AdminLTE panel shell (admin and landlord)
 │   ├── components/              Pieces placed inside pages: listing card,
 │   │                            search bar, listing form, room rows, icons,
-│   │                            avatar (one renderer for every profile photo)
+│   │                            avatar (one renderer for every profile photo),
+│   │                            head_meta (icons and link-preview tags)
 │   └── scripts/                 PHP files that print a <script> block: password
 │                                toggle, save heart, copy number, show more, room buttons
 ├── assets/css/style.css       Public theme styling
+├── assets/img/                The RoomEase mark: favicon.svg, the PNG fallbacks,
+│                              and og-default.png for link previews
 ├── assets/adminlte/           AdminLTE theme for the management panel
 ├── assets/uploads/            Uploaded photos: listings (a folder each),
 │                              profile photos in avatars/, site/ for the
