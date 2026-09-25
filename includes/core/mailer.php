@@ -29,7 +29,10 @@ function mail_config()
             'password'  => (string) env_value('ROOMEASE_MAIL_PASSWORD'),
             'from_name' => 'RoomEase',
             'host'      => 'smtp.gmail.com',
-            'port'      => 465,
+            // 465 talks TLS from the first byte; 587 connects in the clear and
+            // starts TLS with STARTTLS, which is the way through a network
+            // that blocks 465. send_mail() reads the number to tell which.
+            'port'      => (int) (env_value('ROOMEASE_MAIL_PORT') ?: 465),
             'ca_bundle' => '',
         ];
 
@@ -48,7 +51,9 @@ function mail_config()
                         $config[$key] = trim($file[$key]);
                     }
                 }
-                if (isset($file['port']) && (int) $file['port'] > 0) {
+                // As with the credentials, the file only fills a port that
+                // .env and the environment have said nothing about.
+                if (env_value('ROOMEASE_MAIL_PORT') === '' && isset($file['port']) && (int) $file['port'] > 0) {
                     $config['port'] = (int) $file['port'];
                 }
             }

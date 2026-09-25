@@ -81,7 +81,9 @@ photo uploads, search/filter, and account management.
       (`.env.example` lists them, and git ignores `.env`). The same two names
       work as real environment variables on a deployed copy, and
       `config/mail.local.php` still works as before; `.env` wins if both are
-      set.
+      set. On a network that blocks Gmail's port 465, add
+      `ROOMEASE_MAIL_PORT=587`, which connects first and starts TLS with
+      STARTTLS instead.
 
    Until that is done no email is sent, and someone browsing from the server
    itself sees the code on screen instead. Every send is logged to
