@@ -1319,7 +1319,14 @@ input[type=checkbox] {
   margin-bottom: 0;
 }
 
+/* The button carries a magnifying glass beside its label, so the two are laid
+   out in a row here, the way .btn-google does it, rather than sitting on the
+   text baseline with a gap that depends on the space between the tags. */
 .search-bar .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 46px;
   padding: 0 28px;
 }
