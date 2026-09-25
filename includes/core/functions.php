@@ -3,6 +3,10 @@
  * Shared helper functions used across RoomEase.
  */
 
+// Settings read from .env or the environment, such as the one below that
+// decides whether a reset code may be shown on screen.
+require_once __DIR__ . "/env.php";
+
 // Session cookie flags can only be chosen before the session exists, so the
 // hardening file is loaded and applied first. It also sends the response
 // security headers, and defines the login/reset throttle helpers.
@@ -1859,7 +1863,7 @@ function is_local_request()
  */
 function show_reset_codes_on_screen()
 {
-    $setting = $_ENV['ROOMEASE_SHOW_RESET_CODES'] ?? getenv('ROOMEASE_SHOW_RESET_CODES');
+    $setting = env_value('ROOMEASE_SHOW_RESET_CODES');
     return is_local_request() && filter_var($setting, FILTER_VALIDATE_BOOLEAN);
 }
 

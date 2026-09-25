@@ -7,9 +7,9 @@
  * smtp.gmail.com directly instead: an encrypted, certificate-checked
  * connection, signed in with a Gmail address and an App Password.
  *
- * Credentials never live in a tracked file. They come from the environment
- * (ROOMEASE_MAIL_USERNAME / ROOMEASE_MAIL_PASSWORD), or from
- * config/mail.local.php, which .gitignore excludes; copy
+ * Credentials never live in a tracked file. They come from the project's .env
+ * or from the environment (ROOMEASE_MAIL_USERNAME / ROOMEASE_MAIL_PASSWORD),
+ * or from config/mail.local.php, which .gitignore excludes; copy
  * config/mail.local.example.php to start.
  *
  * Every attempt is logged to storage/mail.log with the recipient and the
@@ -17,14 +17,16 @@
  * are never logged.
  */
 
+require_once __DIR__ . '/env.php';
+
 function mail_config()
 {
     static $config = null;
 
     if ($config === null) {
         $config = [
-            'username'  => (string) (getenv('ROOMEASE_MAIL_USERNAME') ?: ''),
-            'password'  => (string) (getenv('ROOMEASE_MAIL_PASSWORD') ?: ''),
+            'username'  => (string) env_value('ROOMEASE_MAIL_USERNAME'),
+            'password'  => (string) env_value('ROOMEASE_MAIL_PASSWORD'),
             'from_name' => 'RoomEase',
             'host'      => 'smtp.gmail.com',
             'port'      => 465,

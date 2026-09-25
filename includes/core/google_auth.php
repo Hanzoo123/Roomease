@@ -7,12 +7,15 @@
  * auth/google_callback.php with a one-time code, which is exchanged for an ID
  * token over a direct, certificate-checked HTTPS request to Google.
  *
- * Credentials never live in a tracked file. They come from the environment
- * (ROOMEASE_GOOGLE_CLIENT_ID / ROOMEASE_GOOGLE_CLIENT_SECRET), or from
- * config/google.local.php, which .gitignore excludes; copy
- * config/google.local.example.php to start. With neither, the Google button
- * still shows, and auth/google_start.php answers it with "not set up yet".
+ * Credentials never live in a tracked file. They come from the project's .env
+ * or from the environment (ROOMEASE_GOOGLE_CLIENT_ID /
+ * ROOMEASE_GOOGLE_CLIENT_SECRET), or from config/google.local.php, which
+ * .gitignore excludes; copy config/google.local.example.php to start. With
+ * neither, the Google button still shows, and auth/google_start.php answers
+ * it with "not set up yet".
  */
+
+require_once __DIR__ . '/env.php';
 
 function google_config()
 {
@@ -20,8 +23,8 @@ function google_config()
 
     if ($config === null) {
         $config = [
-            'client_id'     => (string) (getenv('ROOMEASE_GOOGLE_CLIENT_ID') ?: ''),
-            'client_secret' => (string) (getenv('ROOMEASE_GOOGLE_CLIENT_SECRET') ?: ''),
+            'client_id'     => (string) env_value('ROOMEASE_GOOGLE_CLIENT_ID'),
+            'client_secret' => (string) env_value('ROOMEASE_GOOGLE_CLIENT_SECRET'),
             'ca_bundle'     => '',
         ];
 

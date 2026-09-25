@@ -56,10 +56,12 @@ photo uploads, search/filter, and account management.
       `http://localhost/roomease/auth/google_callback.php`. It must match the
       address the site is opened with exactly: `127.0.0.1` instead of
       `localhost`, or a renamed folder, needs its own entry.
-   3. Copy `config/google.local.example.php` to `config/google.local.php`
-      (ignored by git) and fill in the client ID and secret, or set the
+   3. Put the client ID and secret in the project's `.env` as
       `ROOMEASE_GOOGLE_CLIENT_ID` and `ROOMEASE_GOOGLE_CLIENT_SECRET`
-      environment variables.
+      (`.env.example` lists them, and git ignores `.env`). The same two names
+      work as real environment variables on a deployed copy, and
+      `config/google.local.php` still works as before; `.env` wins if both
+      are set.
 
    Someone new who continues with Google from the sign-up page gets the role
    picked there. From the log-in page they are asked "One more step": boarder
@@ -74,10 +76,12 @@ photo uploads, search/filter, and account management.
    2. Create an **App Password** named "RoomEase"
       (<https://myaccount.google.com/apppasswords>). Gmail does not accept the
       account's normal password here.
-   3. Copy `config/mail.local.example.php` to `config/mail.local.php` (ignored
-      by git) and fill in the Gmail address and the 16-letter App Password, or
-      set the `ROOMEASE_MAIL_USERNAME` and `ROOMEASE_MAIL_PASSWORD`
-      environment variables.
+   3. Put the Gmail address and the 16-letter App Password in the project's
+      `.env` as `ROOMEASE_MAIL_USERNAME` and `ROOMEASE_MAIL_PASSWORD`
+      (`.env.example` lists them, and git ignores `.env`). The same two names
+      work as real environment variables on a deployed copy, and
+      `config/mail.local.php` still works as before; `.env` wins if both are
+      set.
 
    Until that is done no email is sent, and someone browsing from the server
    itself sees the code on screen instead. Every send is logged to
@@ -159,7 +163,8 @@ roomease/
 │   │   ├── functions.php          Helpers; also boots security.php and the session
 │   │   ├── security.php           Session hardening, headers, login/reset throttling
 │   │   ├── mailer.php             Sends email through Gmail (reset codes)
-│   │   └── google_auth.php        "Continue with Google"
+│   │   ├── google_auth.php        "Continue with Google"
+│   │   └── env.php                Reads a setting from .env or the environment
 │   ├── layouts/                 The outer shell of each kind of page
 │   │   ├── header.php / footer.php            Public theme (guests and boarders)
 │   │   ├── auth_header.php / auth_footer.php  Sign-in pages
