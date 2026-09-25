@@ -34,8 +34,7 @@ RoomEase needs all of these. Ask before paying:
 - [ ] **Apache with `.htaccess` honoured** and `mod_rewrite` enabled. This one
       is not optional: the protection for `config/`, `database/`, `includes/`,
       `storage/` and `.env`, the ban on running PHP inside `assets/uploads/`,
-      the security headers, `/sitemap.xml` and the 404 page are all `.htaccess`
-      rules. **On nginx none of them apply** and every one has to be rewritten
+      the security headers and the 404 page are all `.htaccess` rules. **On nginx none of them apply** and every one has to be rewritten
       as server rules before the site is safe to expose.
 - [ ] **HTTPS**, usually a free Let's Encrypt certificate in the control panel.
 - [ ] **Outgoing SMTP allowed.** Many shared hosts block outbound mail to
@@ -185,8 +184,8 @@ Walk the three roles once on the live site:
       Messenger. You should see the listing's name, its description and its
       photo. The debugger also clears Facebook's cache if you change the tags
       later.
-- [ ] **Submit the site** to Google Search Console and give it the sitemap, if
-      you want it found by search.
+- [ ] **Submit the site** to Google Search Console, and give it the sitemap if
+      you restored it above.
 
 ## 11. Backups and updates
 
