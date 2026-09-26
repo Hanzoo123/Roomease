@@ -83,12 +83,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$wantsPasswordCode) {
 
     $old['first_name']   = trim($_POST['first_name'] ?? '');
     $old['last_name']    = trim($_POST['last_name'] ?? '');
-    $old['email']        = trim($_POST['email'] ?? '');
+    // A Google account's email is the one Google verified, and where its
+    // password code is sent, so it is kept as it is whatever the form says.
+    // Its password changes only by emailed code (above), never by these
+    // fields, since the password it was given is one nobody knows.
+    $old['email']        = $googleLinked ? $user['email'] : trim($_POST['email'] ?? '');
     $old['phone_number'] = trim($_POST['phone_number'] ?? '');
-    
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword     = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
+
+    $currentPassword = $googleLinked ? '' : ($_POST['current_password'] ?? '');
+    $newPassword     = $googleLinked ? '' : ($_POST['new_password'] ?? '');
+    $confirmPassword = $googleLinked ? '' : ($_POST['confirm_password'] ?? '');
 
     // Standard profile validation
     if ($old['first_name'] === '') {
@@ -319,12 +323,18 @@ if ($usePanel) {
 
   <div class="<?= $cls['group'] ?>">
     <label for="email">Email address</label>
-    <input type="email" class="<?= $cls['input'] ?>" id="email" name="email" value="<?= h($old['email']) ?>" required>
     <?php if ($googleLinked): ?>
+      <?php /* Read-only, not disabled: it is still announced and can be selected
+           and copied, but it is not sent, and the server ignores it anyway. */ ?>
+      <input type="email" class="<?= $cls['input'] ?>" id="email" value="<?= h($user['email']) ?>"
+        readonly aria-describedby="email-google-note" style="background:#F3F1EC; cursor:default;">
       <?php /* Inline layout: this page renders on both the panel and the public theme. */ ?>
-      <p class="<?= $cls['hint'] ?>" style="display:flex; align-items:center; gap:6px;">
-        <?= google_logo_svg(14) ?> Connected to Google. You can sign in with &ldquo;Continue with Google&rdquo;.
+      <p class="<?= $cls['hint'] ?>" id="email-google-note" style="display:flex; align-items:center; gap:6px;">
+        <?= google_logo_svg(14) ?> Managed by your Google account, so it cannot be changed here.
+        You sign in with &ldquo;Continue with Google&rdquo;.
       </p>
+    <?php else: ?>
+      <input type="email" class="<?= $cls['input'] ?>" id="email" name="email" value="<?= h($old['email']) ?>" required>
     <?php endif; ?>
   </div>
 
@@ -336,12 +346,16 @@ if ($usePanel) {
 
   <hr>
 
-  <h5 class="font-weight-bold">Change Password</h5>
-
   <?php if ($googleLinked): ?>
+    <?php /* A Google account has no password anyone knows, so there is nothing to
+         type into "Current password". It sets one, or changes one it set
+         before, with an emailed code: the same proof "Forgot password" uses. */ ?>
+    <h5 class="font-weight-bold">Password</h5>
+
     <div class="<?= $cls['note'] ?>">
-      Signed up with Google, or connected it to this account? Then you have no password yet, and one would let
-      you sign in without Google too.
+      You sign in with Google, so there is no password to change here. If you want one as well, so you can
+      also sign in with your email, we will send a code to <strong><?= h($user['email']) ?></strong>. The same
+      code changes a password you set before.
       <div style="margin-top:8px;">
         <?php /* Submits the separate form below the profile form, so pressing Enter in a
              profile field still saves the profile rather than sending this code. */ ?>
@@ -350,7 +364,8 @@ if ($usePanel) {
         </button>
       </div>
     </div>
-  <?php endif; ?>
+  <?php else: ?>
+  <h5 class="font-weight-bold">Change Password</h5>
 
   <p class="<?= $cls['hint'] ?> mb-3">Leave these blank if you do not wish to change your password.</p>
 
@@ -372,6 +387,7 @@ if ($usePanel) {
       autocomplete="new-password">
     </div>
   </div>
+  <?php endif; ?>
 
   <button type="submit" class="<?= $cls['btn'] ?>" style="margin-top:8px;">
     <i class="fas fa-save mr-1"></i> Save Profile Changes
