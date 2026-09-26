@@ -107,7 +107,7 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
     <?= password_reset_ttl_minutes() ?> minutes to choose the new password.
   </div>
   <?php if ($signedIn): ?>
-    <a href="<?= base_url('auth/profile.php') ?>" class="btn btn-primary btn-block btn-auth">Get a new code from your profile</a>
+    <a href="<?= base_url('auth/change_password.php') ?>" class="btn btn-primary btn-block btn-auth">Get a new code</a>
   <?php else: ?>
     <a href="<?= base_url(password_reset_start_path($forAdmin ? 'admin' : 'public')) ?>" class="btn btn-primary btn-block btn-auth">Get a new code</a>
   <?php endif; ?>

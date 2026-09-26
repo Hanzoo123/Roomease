@@ -1,4 +1,11 @@
 <?php
+/**
+ * My Profile: the account as it stands, with the way to change it.
+ *
+ * Nothing is edited here. Edit Profile (auth/edit_profile.php) changes the
+ * photo and details, and Change Password (auth/change_password.php) the
+ * password, each on its own page, and both come back here once saved.
+ */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
 require __DIR__ . '/../includes/core/google_auth.php';
@@ -6,10 +13,7 @@ require __DIR__ . '/../includes/core/google_auth.php';
 require_login();
 
 $userId = $_SESSION['user_id'];
-$errors = [];
-$success = '';
 
-// Retrieve current user details
 $stmt = $pdo->prepare('SELECT * FROM users WHERE user_id = ?');
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
@@ -18,428 +22,107 @@ if (!$user) {
     die('User not found.');
 }
 
-$old = [
-    'first_name'   => $user['first_name'],
-    'last_name'    => $user['last_name'],
-    'email'        => $user['email'],
-    'phone_number' => $user['phone_number'] ?? ''
-];
-
 $googleLinked = !empty($user['google_id']);
+$role = $user['role'];
+$roleLabels = ['administrator' => 'Administrator', 'landlord' => 'Landlord', 'boarder' => 'Boarder'];
+$fullName = trim($user['first_name'] . ' ' . $user['last_name']);
 
-// An account made with Google has a password nobody knows, so "Change
-// password" (which asks for the current one) is no use to it. Its owner gets
-// the same emailed code as "Forgot password", sent to this account's own
-// address. That code is the proof, exactly as it is for a reset.
-$wantsPasswordCode = $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'password_code';
-
-// A photo can be larger than post_max_size, which makes PHP throw away $_POST
-// and $_FILES entirely. Without this the page would report a CSRF failure
-// rather than the real problem, exactly as admin/appearance.php guards against.
-if (post_too_large()) {
-    flash_set('That photo is larger than this server accepts in one upload (about '
-        . format_bytes(ini_bytes(ini_get('post_max_size'))) . ').', 'error');
-    redirect('auth/profile.php');
+// What the account has on RoomEase, so the page is worth opening for more
+// than a copy of the form. Administrators have neither.
+$activity = null;
+if ($role === 'boarder') {
+    $saved = count(saved_listing_ids($userId));
+    $activity = [
+        'label' => 'Saved rooms',
+        'value' => $saved === 0 ? 'None yet' : (string) $saved,
+        'link'  => ['href' => $saved === 0 ? 'boarder/browse.php' : 'boarder/saved.php',
+                    'label' => $saved === 0 ? 'Browse rooms' : 'View'],
+    ];
+} elseif ($role === 'landlord') {
+    // "Live" as boarders see it: approved and open, the same test as browse.
+    $countStmt = $pdo->prepare(
+        "SELECT COUNT(*) AS total,
+                COALESCE(SUM(moderation_status = 'approved' AND availability_status = 'available'), 0) AS live
+           FROM boarding_houses
+          WHERE landlord_id = ? AND deleted_at IS NULL"
+    );
+    $countStmt->execute([$userId]);
+    $counts = $countStmt->fetch();
+    $total = (int) $counts['total'];
+    $activity = [
+        'label' => 'Listings',
+        'value' => $total === 0 ? 'None yet' : $total . ', ' . (int) $counts['live'] . ' live',
+        'link'  => ['href' => $total === 0 ? 'landlord/add_listing.php' : 'landlord/listings.php',
+                    'label' => $total === 0 ? 'Add a listing' : 'Manage'],
+    ];
 }
 
-// Removing the photo is its own small form, so it does not have to travel
-// through the profile form's validation to take effect.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remove_photo') {
-    verify_csrf();
-    delete_avatar($user['avatar_path'] ?? null);
-    $pdo->prepare('UPDATE users SET avatar_path = NULL WHERE user_id = ?')->execute([$userId]);
-    $_SESSION['avatar_path'] = null;
-    flash_set('Your photo was removed.', 'success');
-    redirect('auth/profile.php');
-}
+$pageTitle = 'My Profile';
+$profileSubtitle = 'Your account on RoomEase, and how you sign in.';
+require __DIR__ . '/../includes/layouts/profile_top.php';
 
-if ($wantsPasswordCode) {
-    verify_csrf();
-
-    if (!$googleLinked) {
-        redirect('auth/profile.php');
-    }
-
-    $retryAfter = throttle_retry_after('reset', $user['email']);
-    if ($retryAfter > 0) {
-        flash_set('A code was already requested several times. Please try again in ' . format_wait($retryAfter) . '.', 'error');
-        redirect('auth/profile.php');
-    }
-    record_failed_attempt('reset', $user['email']);
-
-    // If sending fails, a developer who turned on ROOMEASE_SHOW_RESET_CODES
-    // still gets the code on the next page, as on "Forgot password"; anyone
-    // else is told it failed.
-    if (issue_password_reset_code($user['email'], 'profile') === false && !show_reset_codes_on_screen()) {
-        unset($_SESSION['password_reset']);
-        flash_set('The email could not be sent. Please try again later.', 'error');
-        redirect('auth/profile.php');
-    }
-    redirect('auth/verify_code.php');
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$wantsPasswordCode) {
-    verify_csrf();
-
-    $old['first_name']   = trim($_POST['first_name'] ?? '');
-    $old['last_name']    = trim($_POST['last_name'] ?? '');
-    // A Google account's email is the one Google verified, and where its
-    // password code is sent, so it is kept as it is whatever the form says.
-    // Its password changes only by emailed code (above), never by these
-    // fields, since the password it was given is one nobody knows.
-    $old['email']        = $googleLinked ? $user['email'] : trim($_POST['email'] ?? '');
-    $old['phone_number'] = trim($_POST['phone_number'] ?? '');
-
-    $currentPassword = $googleLinked ? '' : ($_POST['current_password'] ?? '');
-    $newPassword     = $googleLinked ? '' : ($_POST['new_password'] ?? '');
-    $confirmPassword = $googleLinked ? '' : ($_POST['confirm_password'] ?? '');
-
-    // Standard profile validation
-    if ($old['first_name'] === '') {
-        $errors[] = 'First name is required.';
-    }
-    if ($old['last_name'] === '') {
-        $errors[] = 'Last name is required.';
-    }
-    if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'A valid email is required.';
-    }
-
-    // Check unique email
-    if (!$errors) {
-        $check = $pdo->prepare('SELECT user_id FROM users WHERE email = ? AND user_id != ?');
-        $check->execute([$old['email'], $userId]);
-        if ($check->fetch()) {
-            $errors[] = 'That email address is already in use by another account.';
-        }
-    }
-
-    // Password change validation. The trigger is deliberately the NEW password
-    // fields, not the current one: browsers autofill saved credentials into
-    // "Current password", and that alone must not turn an ordinary profile
-    // edit into a failed password change.
-    $changePassword = false;
-    if ($newPassword !== '' || $confirmPassword !== '') {
-        $changePassword = true;
-        if ($currentPassword === '') {
-            $errors[] = 'Enter your current password to set a new one.';
-        } elseif (!password_verify($currentPassword, $user['password_hash'])) {
-            $errors[] = 'Incorrect current password.';
-        }
-        if (strlen($newPassword) < 8) {
-            $errors[] = 'New password must be at least 8 characters.';
-        }
-        if ($newPassword !== $confirmPassword) {
-            $errors[] = 'New passwords do not match.';
-        }
-    }
-
-    // The photo is stored last, once the rest of the form is known to be good,
-    // so a rejected form never leaves a file behind on disk.
-    $newAvatar = null;
-    if (!$errors) {
-        try {
-            $newAvatar = handle_avatar_upload('avatar', $userId);
-        } catch (RuntimeException $e) {
-            $errors[] = $e->getMessage();
-        }
-    }
-
-    if (!$errors) {
-        // Columns are built up rather than written out twice, because a
-        // password change and a new photo can arrive in the same submission.
-        $columns = ['first_name = ?', 'last_name = ?', 'email = ?', 'phone_number = ?'];
-        $values  = [
-            $old['first_name'],
-            $old['last_name'],
-            $old['email'],
-            $old['phone_number'] !== '' ? $old['phone_number'] : null,
-        ];
-        if ($changePassword) {
-            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            $columns[] = 'password_hash = ?';
-            $values[] = $newHash;
-        }
-        if ($newAvatar !== null) {
-            $columns[] = 'avatar_path = ?';
-            $values[] = $newAvatar;
-        }
-        $values[] = $userId;
-
-        $update = $pdo->prepare('UPDATE users SET ' . implode(', ', $columns) . ' WHERE user_id = ?');
-        $update->execute($values);
-
-        // The old file goes only once the new path is safely saved, so a
-        // failure above leaves the account with the photo it already had.
-        if ($newAvatar !== null) {
-            delete_avatar($user['avatar_path'] ?? null);
-            $_SESSION['avatar_path'] = $newAvatar;
-        }
-
-        // A password change invalidates every other copy of this session, so
-        // anyone who had already got hold of the old session id loses it. This
-        // is the whole point of changing the password after a scare.
-        if ($changePassword) {
-            session_regenerate_id(true);
-
-            // Every other session of the account, in any browser, is signed
-            // out on its next page, because the password it was signed in
-            // under is gone (see enforce_session_policy()). This one records
-            // the new password, so it is the one that stays signed in.
-            $_SESSION['password_fingerprint'] = password_fingerprint($newHash);
-
-            // Same for "Remember me": every remembered device is forgotten.
-            // This device keeps being remembered if it already was.
-            $rememberedHere = isset($_COOKIE[REMEMBER_COOKIE]);
-            forget_all_remembered_logins($userId);
-            if ($rememberedHere) {
-                remember_login((int) $userId);
-            }
-        }
-
-        // Update session info
-        $_SESSION['first_name'] = $old['first_name'];
-        $_SESSION['last_name']  = $old['last_name'];
-        $_SESSION['full_name']  = trim($old['first_name'] . ' ' . $old['last_name']);
-        $_SESSION['email']      = $old['email'];
-
-        flash_set('Profile updated successfully.', 'success');
-        redirect('auth/profile.php');
-    }
-}
-
-$pageTitle = 'Edit Profile';
-
-// Admins and landlords work inside the management panel, so their profile page
-// renders there too. Boarders only ever see the public site, so theirs stays on
-// the public theme. The form below is written once; only the class names differ.
-$usePanel = is_admin() || current_role() === 'landlord';
-
-$cls = $usePanel
-    ? ['row' => 'form-row', 'col' => 'col-md-6 form-group', 'group' => 'form-group',
-       'input' => 'form-control', 'hint' => 'form-text text-muted',
-       'alert' => 'alert alert-danger', 'btn' => 'btn btn-primary',
-       'note' => 'alert alert-light border', 'btn_small' => 'btn btn-sm btn-outline-secondary']
-    : ['row' => 'field-row', 'col' => '', 'group' => '',
-       'input' => '', 'hint' => 'field-hint',
-       'alert' => 'alert alert-error', 'btn' => 'btn btn-primary btn-block',
-       'note' => 'alert alert-success', 'btn_small' => 'btn btn-ghost btn-sm'];
-
-if ($usePanel) {
-    require __DIR__ . '/../includes/layouts/panel_head.php';
-    require __DIR__ . '/../includes/layouts/panel_navbar.php';
-    require __DIR__ . '/../includes/layouts/panel_sidebar.php';
-} else {
-    require __DIR__ . '/../includes/layouts/header.php';
-}
+$roleBadge = $usePanel
+    ? ['administrator' => 'badge badge-primary', 'landlord' => 'badge badge-info', 'boarder' => 'badge badge-secondary'][$role]
+    : 'profile-role';
 ?>
 
-<?php if ($usePanel): ?>
-  <div class="content-wrapper">
-    <?php panel_page_header('My Profile', [
-      'subtitle' => 'Your photo, your contact details, and your password.',
-      'back' => panel_config()['home'],
-      'backLabel' => 'Back to the dashboard',
-    ]); ?>
-
-    <section class="content">
-      <div class="container-fluid">
-        <div class="row justify-content-center">
-          <div class="col-lg-12">
-            <div class="card card-primary card-outline shadow-sm">
-              <div class="card-header">
-                <h3 class="card-title font-weight-bold">
-                  <i class="fas fa-id-card mr-1"></i> Account Information
-                </h3>
-              <span class="card-subtitle">Changes take effect as soon as you save.</span>
-              </div>
-              <div class="card-body">
-<?php else: ?>
-  <div class="auth-wrap auth-wrap--wide panel panel-pad on-seam">
-    <h1>Edit Profile</h1>
-    <p class="auth-sub">Manage your account information and change your password.</p>
-<?php endif; ?>
-
-<?php if ($errors): ?>
-  <div class="<?= $cls['alert'] ?>">
-    <?php foreach ($errors as $e)
-      echo h($e) . '<br>'; ?>
-  </div>
-<?php endif; ?>
-
-<form method="post" enctype="multipart/form-data" novalidate>
-  <?= csrf_field() ?>
-
-  <?php
-  // The photo as it stands. avatar_html reads the row straight from the
-  // database rather than the session, so the picture below is the stored one
-  // even on the request that just changed it.
-  $hasPhoto = is_avatar_path($user['avatar_path'] ?? null)
-    && is_file(__DIR__ . '/../' . $user['avatar_path']);
-  ?>
-  <div class="profile-photo">
-    <div class="profile-photo-figure">
-      <?= avatar_html($user, 96, $usePanel ? 're-avatar' : 'avatar') ?>
-      <?php /* Hidden until a file is chosen, when the script below points it
-           at the chosen file so the crop is not a surprise after saving. */ ?>
-      <img class="profile-photo-preview" id="avatarPreview" alt="" hidden>
+<div class="<?= $usePanel ? 'card profile-card' : 'panel on-seam profile-card' ?>">
+  <?php if ($usePanel): ?>
+    <div class="card-header">
+      <h3 class="card-title">Account</h3>
+      <span class="card-subtitle">Only you and the administrators can see this page.</span>
     </div>
-    <div class="profile-photo-actions">
-      <h5 class="font-weight-bold mb-1">Profile photo</h5>
-      <p class="<?= $cls['hint'] ?> mb-2">
-        JPG, PNG, or WEBP, up to <?= h(format_bytes(max_upload_bytes())) ?>.
-        It is cropped to a square, so a head-and-shoulders photo works best.
-      </p>
-      <label class="<?= $cls['btn_small'] ?> profile-photo-pick" for="avatar">
-        <i class="fas fa-camera mr-1"></i> <?= $hasPhoto ? 'Change photo' : 'Choose photo' ?>
-      </label>
-      <input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/webp"
-        class="profile-photo-input">
-      <?php if ($hasPhoto): ?>
-        <?php /* Submits the separate form at the foot of the page, so this
-             button cannot be tripped by pressing Enter in a text field. */ ?>
-        <button type="submit" form="remove-photo-form" class="<?= $cls['btn_small'] ?>">
-          Remove photo
-        </button>
-      <?php endif; ?>
-      <span class="profile-photo-chosen" id="avatarChosen" hidden></span>
-    </div>
-  </div>
-
-  <hr>
-
-  <div class="<?= $cls['row'] ?>">
-    <div class="<?= $cls['col'] ?>">
-      <label for="first_name">First name</label>
-      <input type="text" class="<?= $cls['input'] ?>" id="first_name" name="first_name"
-        value="<?= h($old['first_name']) ?>" required>
-    </div>
-    <div class="<?= $cls['col'] ?>">
-      <label for="last_name">Last name</label>
-      <input type="text" class="<?= $cls['input'] ?>" id="last_name" name="last_name"
-        value="<?= h($old['last_name']) ?>" required>
-    </div>
-  </div>
-
-  <div class="<?= $cls['group'] ?>">
-    <label for="email">Email address</label>
-    <?php if ($googleLinked): ?>
-      <?php /* Read-only, not disabled: it is still announced and can be selected
-           and copied, but it is not sent, and the server ignores it anyway. */ ?>
-      <input type="email" class="<?= $cls['input'] ?>" id="email" value="<?= h($user['email']) ?>"
-        readonly aria-describedby="email-google-note" style="background:#F3F1EC; cursor:default;">
-      <?php /* Inline layout: this page renders on both the panel and the public theme. */ ?>
-      <p class="<?= $cls['hint'] ?>" id="email-google-note" style="display:flex; align-items:center; gap:6px;">
-        <?= google_logo_svg(14) ?> Managed by your Google account, so it cannot be changed here.
-        You sign in with &ldquo;Continue with Google&rdquo;.
-      </p>
-    <?php else: ?>
-      <input type="email" class="<?= $cls['input'] ?>" id="email" name="email" value="<?= h($old['email']) ?>" required>
-    <?php endif; ?>
-  </div>
-
-  <div class="<?= $cls['group'] ?>">
-    <label for="phone_number">Phone number</label>
-    <input type="tel" class="<?= $cls['input'] ?>" id="phone_number" name="phone_number"
-      value="<?= h($old['phone_number']) ?>" placeholder="e.g. 09171234567">
-  </div>
-
-  <hr>
-
-  <?php if ($googleLinked): ?>
-    <?php /* A Google account has no password anyone knows, so there is nothing to
-         type into "Current password". It sets one, or changes one it set
-         before, with an emailed code: the same proof "Forgot password" uses. */ ?>
-    <h5 class="font-weight-bold">Password</h5>
-
-    <div class="<?= $cls['note'] ?>">
-      You sign in with Google, so there is no password to change here. If you want one as well, so you can
-      also sign in with your email, we will send a code to <strong><?= h($user['email']) ?></strong>. The same
-      code changes a password you set before.
-      <div style="margin-top:8px;">
-        <?php /* Submits the separate form below the profile form, so pressing Enter in a
-             profile field still saves the profile rather than sending this code. */ ?>
-        <button type="submit" form="password-code-form" class="<?= $cls['btn_small'] ?>">
-          Email me a code to set a password
-        </button>
-      </div>
-    </div>
-  <?php else: ?>
-  <h5 class="font-weight-bold">Change Password</h5>
-
-  <p class="<?= $cls['hint'] ?> mb-3">Leave these blank if you do not wish to change your password.</p>
-
-  <div class="<?= $cls['group'] ?>">
-    <label for="current_password">Current password</label>
-    <input type="password" class="<?= $cls['input'] ?>" id="current_password" name="current_password"
-      autocomplete="new-password">
-  </div>
-
-  <div class="<?= $cls['row'] ?>">
-    <div class="<?= $cls['col'] ?>">
-      <label for="new_password">New password</label>
-      <input type="password" class="<?= $cls['input'] ?>" id="new_password" name="new_password"
-      autocomplete="new-password">
-    </div>
-    <div class="<?= $cls['col'] ?>">
-      <label for="confirm_password">Confirm new password</label>
-      <input type="password" class="<?= $cls['input'] ?>" id="confirm_password" name="confirm_password"
-      autocomplete="new-password">
-    </div>
-  </div>
   <?php endif; ?>
 
-  <button type="submit" class="<?= $cls['btn'] ?>" style="margin-top:8px;">
-    <i class="fas fa-save mr-1"></i> Save Profile Changes
-  </button>
-</form>
+  <div class="profile-head">
+    <div class="profile-avatar"><?= avatar_html($user, 112, $cls['avatar']) ?></div>
+    <div class="profile-id">
+      <h2 class="profile-name"><?= h($fullName) ?></h2>
+      <p class="profile-email"><?= h($user['email']) ?></p>
+      <span class="<?= $roleBadge ?>"><?= h($roleLabels[$role] ?? ucfirst($role)) ?></span>
+    </div>
+    <div class="profile-actions">
+      <a href="<?= base_url('auth/edit_profile.php') ?>" class="<?= $cls['btn'] ?>">Edit profile</a>
+      <a href="<?= base_url('auth/change_password.php') ?>" class="<?= $cls['btn_quiet'] ?>">Change password</a>
+    </div>
+  </div>
 
-<?php if ($googleLinked): ?>
-  <form method="post" id="password-code-form" hidden>
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="password_code">
-  </form>
-<?php endif; ?>
-
-<?php if ($hasPhoto): ?>
-  <form method="post" id="remove-photo-form" hidden>
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="remove_photo">
-  </form>
-<?php endif; ?>
-
-<script>
-  // Show the chosen file in place of the current photo before it is uploaded.
-  // Purely a preview: the square crop still happens on the server.
-  (function () {
-    var input = document.getElementById('avatar');
-    var preview = document.getElementById('avatarPreview');
-    var chosen = document.getElementById('avatarChosen');
-    if (!input || !preview) return;
-
-    input.addEventListener('change', function () {
-      var file = input.files && input.files[0];
-      if (!file) return;
-      if (preview.src) URL.revokeObjectURL(preview.src);
-      preview.src = URL.createObjectURL(file);
-      preview.hidden = false;
-      preview.previousElementSibling.hidden = true;
-      chosen.textContent = 'Ready to save';
-      chosen.hidden = false;
-    });
-  })();
-</script>
-
-<?php if ($usePanel): ?>
-              </div>
-            </div>
-          </div>
-        </div>
+  <dl class="profile-facts">
+    <div>
+      <dt>Phone</dt>
+      <dd>
+        <?php if (($user['phone_number'] ?? '') !== ''): ?>
+          <?= h($user['phone_number']) ?>
+        <?php else: ?>
+          <span class="profile-empty">Not added</span>
+          <a href="<?= base_url('auth/edit_profile.php') ?>#phone_number" class="profile-fact-link">Add &rarr;</a>
+        <?php endif; ?>
+      </dd>
+    </div>
+    <div>
+      <dt>Member since</dt>
+      <dd><?= h(date('F Y', strtotime($user['created_at']))) ?></dd>
+    </div>
+    <div>
+      <dt>Signs in with</dt>
+      <dd class="profile-signin">
+        <?php if ($googleLinked): ?>
+          <?= google_logo_svg(16) ?> Google
+        <?php else: ?>
+          Email and password
+        <?php endif; ?>
+      </dd>
+    </div>
+    <?php if ($activity): ?>
+      <div>
+        <dt><?= h($activity['label']) ?></dt>
+        <dd>
+          <?= h($activity['value']) ?>
+          <a href="<?= base_url($activity['link']['href']) ?>" class="profile-fact-link"><?= h($activity['link']['label']) ?> &rarr;</a>
+        </dd>
       </div>
-    </section>
-  </div>
-  <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
-<?php else: ?>
-  </div>
-  <?php require __DIR__ . '/../includes/layouts/footer.php'; ?>
-<?php endif; ?>
+    <?php endif; ?>
+  </dl>
+</div>
+
+<?php require __DIR__ . '/../includes/layouts/profile_bottom.php'; ?>

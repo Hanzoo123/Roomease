@@ -3193,6 +3193,277 @@ img.avatar {
 }
 
 /* =========================================================
+   Account pages: My Profile, Edit Profile, Change Password
+   The boarder's side. The panel draws the same markup in
+   panel.css. On My Profile the name and photo are the one bold
+   thing; the details under them are quiet ruled rows.
+   ========================================================= */
+.profile-page {
+  max-width: 760px;
+}
+
+.profile-card--narrow {
+  max-width: 540px;
+}
+
+.profile-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s4) var(--s5);
+  padding: var(--s5);
+}
+
+.profile-avatar {
+  flex: none;
+  line-height: 0;
+}
+
+/* A ring of white, then a hairline, so a pale photo keeps its edge. */
+.profile-avatar .avatar {
+  box-shadow: 0 0 0 4px var(--panel), 0 0 0 5px var(--line);
+}
+
+.profile-id {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.profile-email {
+  margin: 4px 0 var(--s2);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.profile-role {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--leaf);
+  color: var(--forest);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.profile-facts {
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.profile-facts > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: var(--s3);
+  padding: var(--s3) var(--s5);
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-facts > div:last-child {
+  border-bottom: 0;
+}
+
+.profile-facts dt {
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+
+.profile-facts dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--s3);
+  margin: 0;
+  font-weight: 500;
+}
+
+.profile-empty {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.profile-fact-link {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.profile-signin svg {
+  margin-right: 2px;
+}
+
+/* Edit Profile: the photo, then the fields. */
+.profile-photo {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin-bottom: var(--s4);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--line);
+}
+
+.profile-photo-figure {
+  flex: none;
+  line-height: 0;
+}
+
+/* The preview takes the current photo's place, so the two are never both on
+   screen arguing about which one is the profile picture. */
+.profile-photo-preview {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.profile-photo-actions {
+  min-width: 0;
+}
+
+.profile-photo-title {
+  margin: 0 0 2px;
+  font-weight: 600;
+}
+
+.profile-photo-hint {
+  margin: 0 0 var(--s2);
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.profile-photo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+
+/* The real file input is off-screen rather than display:none, so it can still
+   be reached and announced; the label beside it is the button. */
+.profile-photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.profile-photo-pick {
+  margin: 0;
+  cursor: pointer;
+}
+
+.profile-photo-input:focus-visible + .profile-photo-pick {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+
+.profile-photo-chosen {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--available-fg);
+}
+
+.profile-locked {
+  background: var(--muted-bg);
+  cursor: default;
+}
+
+.profile-google-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-google-note--lead {
+  margin: 0 0 var(--s2);
+  font-weight: 600;
+}
+
+.profile-text {
+  margin: 0 0 var(--s4);
+  color: var(--ink-soft);
+}
+
+.profile-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-top: var(--s2);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+/* Change Password: Show / Hide inside the right edge of each field. */
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 72px;
+}
+
+/* Edge draws its own eye in a password field; one toggle is enough. */
+.password-field input::-ms-reveal {
+  display: none;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 46px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--forest);
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .profile-head {
+    padding: var(--s4);
+  }
+
+  .profile-actions,
+  .profile-actions .btn {
+    flex: 1 1 100%;
+  }
+
+  .profile-facts > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: var(--s3) var(--s4);
+  }
+
+  .profile-photo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-form-actions .btn {
+    flex: 1 1 0;
+  }
+}
+
+/* =========================================================
    About and contact
    Both open on the band like every other page. What sits on the seam is the
    story (About) or the ways to reach us (Contact); below it, ruled lists

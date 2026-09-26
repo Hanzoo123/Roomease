@@ -2230,7 +2230,7 @@ function find_valid_reset($token)
 function password_reset_start_path($scope)
 {
     if ($scope === 'profile') {
-        return 'auth/profile.php';
+        return 'auth/change_password.php';
     }
     return $scope === 'admin' ? 'admin/forgot_password.php' : 'auth/forgot_password.php';
 }

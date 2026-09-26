@@ -1464,17 +1464,123 @@ a:hover {
 }
 
 /* =========================================================
-   Profile photo control (auth/profile.php)
+   Account pages (auth/profile.php, edit_profile.php,
+   change_password.php)
    ---------------------------------------------------------
-   Shared by the panel and the public theme, because that page
-   renders on both. Only the circle differs: .re-avatar here,
-   .avatar on the public site, chosen by the page.
+   The panel's side of the markup style.css draws for boarders.
+   Only the circle differs: .re-avatar here, .avatar there.
    ========================================================= */
+.profile-page {
+  max-width: 860px;
+}
+
+.profile-card--narrow {
+  max-width: 560px;
+}
+
+.profile-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding: 1.5rem 1.25rem;
+}
+
+.profile-avatar {
+  flex: none;
+  line-height: 0;
+}
+
+.profile-avatar .re-avatar {
+  box-shadow: 0 0 0 4px var(--re-panel), 0 0 0 5px var(--re-line);
+}
+
+.profile-id {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--re-ink);
+  overflow-wrap: anywhere;
+}
+
+.profile-email {
+  margin: 2px 0 8px;
+  color: var(--re-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.profile-id .badge {
+  padding: .35em .7em;
+  font-size: .75rem;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-facts {
+  margin: 0;
+  border-top: 1px solid var(--re-line-soft);
+}
+
+.profile-facts > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+  padding: .8rem 1.25rem;
+  border-bottom: 1px solid var(--re-line-soft);
+}
+
+.profile-facts > div:last-child {
+  border-bottom: 0;
+}
+
+.profile-facts dt {
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--re-ink-label);
+}
+
+.profile-facts dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  font-weight: 500;
+  color: var(--re-ink);
+}
+
+.profile-empty {
+  font-weight: 400;
+  color: var(--re-ink-faint);
+}
+
+.profile-fact-link {
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+.profile-signin svg {
+  margin-right: 2px;
+}
+
+/* Edit Profile: the photo, then the fields. */
 .profile-photo {
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--re-line-soft);
 }
 
 .profile-photo-figure {
@@ -1496,6 +1602,25 @@ a:hover {
   min-width: 0;
 }
 
+.profile-photo-title {
+  margin: 0 0 2px;
+  font-weight: 600;
+  color: var(--re-ink);
+}
+
+.profile-photo-hint {
+  margin: 0 0 10px;
+  font-size: .85rem;
+  color: var(--re-ink-soft);
+}
+
+.profile-photo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 /* The real file input is off-screen rather than display:none, so it can
    still be reached and announced; the label beside it is the button. */
 .profile-photo-input {
@@ -1508,6 +1633,7 @@ a:hover {
 }
 
 .profile-photo-pick {
+  margin: 0;
   cursor: pointer;
 }
 
@@ -1517,18 +1643,91 @@ a:hover {
 }
 
 .profile-photo-chosen {
-  display: inline-block;
-  margin-left: 8px;
   font-size: .85rem;
   font-weight: 600;
   color: var(--re-green);
 }
 
+.profile-locked,
+.profile-locked[readonly] {
+  background: var(--re-muted-bg);
+  cursor: default;
+}
+
+.profile-google-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-google-note--lead {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--re-ink);
+}
+
+.profile-text {
+  margin: 0 0 1.25rem;
+  color: var(--re-ink-soft);
+}
+
+.profile-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: .5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--re-line-soft);
+}
+
+/* Change Password: Show / Hide inside the right edge of each field. */
+.password-field {
+  position: relative;
+}
+
+.password-field .form-control {
+  padding-right: 64px;
+}
+
+/* Edge draws its own eye in a password field; one toggle is enough. */
+.password-field input::-ms-reveal {
+  display: none;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: calc(2.25rem + 2px);
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--re-forest);
+  cursor: pointer;
+}
+
 @media (max-width: 575.98px) {
+  .profile-actions,
+  .profile-actions .btn {
+    flex: 1 1 100%;
+  }
+
+  .profile-facts > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
   .profile-photo {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .profile-form-actions .btn {
+    flex: 1 1 0;
   }
 }
 
