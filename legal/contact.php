@@ -11,8 +11,8 @@
  * Reply-To header, because a header built from a form field is how mail
  * injection gets in.
  */
-require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/core/functions.php';
+require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $contactEmail = trim(env_value('ROOMEASE_CONTACT_EMAIL'));
 $canSend = $contactEmail !== '' && mail_enabled();
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSend) {
         if ($trap !== '') {
             // Nothing is sent, and nothing says why.
             flash_set('Thank you. Your message has been sent.', 'success');
-            redirect('contact.php');
+            redirect('legal/contact.php');
         }
 
         record_failed_attempt('contact', $old['email']);
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSend) {
 
         if (send_mail($contactEmail, 'RoomEase: message from ' . $old['name'], $body)) {
             flash_set('Thank you. Your message has been sent, and we will reply to ' . $old['email'] . '.', 'success');
-            redirect('contact.php');
+            redirect('legal/contact.php');
         }
 
         $errors[] = 'The message could not be sent just now. Please write to '
@@ -79,7 +79,7 @@ $band = [
   'title' => 'Contact RoomEase',
   'lede' => 'A listing that is no longer accurate, a question about your account, or anything else.',
 ];
-require __DIR__ . '/includes/layouts/header.php';
+require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
 <article class="legal panel panel-pad on-seam">
@@ -153,4 +153,4 @@ require __DIR__ . '/includes/layouts/header.php';
   <?php endif; ?>
 </article>
 
-<?php require __DIR__ . '/includes/layouts/footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

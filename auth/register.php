@@ -79,8 +79,8 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
   <?= google_logo_svg() ?> Sign up with Google
 </a>
 <p class="auth-fineprint">
-  By continuing, you agree to our <a href="<?= base_url('terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
-  and <a href="<?= base_url('privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
+  By continuing, you agree to our <a href="<?= base_url('legal/terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+  and <a href="<?= base_url('legal/privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
   Your account is created as the role you pick below.
 </p>
 <hr class="auth-rule">
@@ -134,8 +134,8 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
 
   <button type="submit" class="btn btn-primary btn-block btn-auth">Create account</button>
   <p class="auth-fineprint">
-    By creating an account, you agree to our <a href="<?= base_url('terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
-    and <a href="<?= base_url('privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
+    By creating an account, you agree to our <a href="<?= base_url('legal/terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+    and <a href="<?= base_url('legal/privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
   </p>
 </form>
 

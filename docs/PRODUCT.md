@@ -105,8 +105,8 @@ inquiry inbox as though it already ships.
   admin login when they log out or their session ends.
 - Profile editing and password change for all roles; password reset by emailed
   link using single-use, hashed, expiring tokens.
-- Plain-language Terms & Conditions (`terms.php`) and Privacy Policy
-  (`privacy.php`), drafted to match what the system actually stores. Linked
+- Plain-language Terms & Conditions (`legal/terms.php`) and Privacy Policy
+  (`legal/privacy.php`), drafted to match what the system actually stores. Linked
   from the sign-in and sign-up pages ("By continuing, you agree to...") and the
   footer.
 - Security baseline is complete and is not up for redesign: bcrypt, prepared

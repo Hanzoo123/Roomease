@@ -49,9 +49,11 @@ function base_url($path = '')
     if ($base === null) {
         // Worked out from SCRIPT_NAME, the page being served, rather than from
         // where this file sits: the app root is the folder above auth/,
-        // landlord/, boarder/ or admin/, or the page's own folder otherwise.
+        // landlord/, boarder/, admin/ or legal/, or the page's own folder
+        // otherwise. A new folder of pages has to be named here and in
+        // app_cookie_path(), which scopes the session cookie the same way.
         $script = $_SERVER['SCRIPT_NAME'] ?? '';
-        $appRoot = preg_replace('#/(auth|landlord|boarder|admin)/[^/]*$#', '', $script);
+        $appRoot = preg_replace('#/(auth|landlord|boarder|admin|legal)/[^/]*$#', '', $script);
         if ($appRoot === $script) {
             $appRoot = rtrim(dirname($script), '/');
         }

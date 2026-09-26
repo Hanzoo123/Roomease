@@ -5,8 +5,8 @@
  * The team names below are placeholders. Replace them with the real names,
  * roles, course and school before the site is shown to anyone.
  */
-require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/core/functions.php';
+require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $pageTitle = 'About';
 $metaDescription = 'RoomEase is a boarding house listing site for Baybay City, Leyte, '
@@ -25,7 +25,7 @@ $team = [
   ['name' => 'Pedro Alvarez', 'role' => 'Documentation and research'],
 ];
 
-require __DIR__ . '/includes/layouts/header.php';
+require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
 <article class="legal panel panel-pad on-seam">
@@ -71,8 +71,8 @@ require __DIR__ . '/includes/layouts/header.php';
   </ul>
   <p>
     Questions, corrections, or a listing that needs attention? Write to us on the
-    <a href="<?= base_url('contact.php') ?>">contact page</a>.
+    <a href="<?= base_url('legal/contact.php') ?>">contact page</a>.
   </p>
 </article>
 
-<?php require __DIR__ . '/includes/layouts/footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

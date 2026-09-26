@@ -6,8 +6,8 @@
  * A draft written to match what RoomEase actually does. Review it, and change
  * the date below whenever the wording changes.
  */
-require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/core/functions.php';
+require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $pageTitle = 'Terms & Conditions';
 $metaDescription = 'The rules for using RoomEase: what the site does, what it does not do, '
@@ -16,7 +16,7 @@ $band = [
   'title' => 'Terms & Conditions',
   'lede' => 'The rules for using RoomEase, in plain language.',
 ];
-require __DIR__ . '/includes/layouts/header.php';
+require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
 <article class="legal panel panel-pad on-seam">
@@ -25,7 +25,7 @@ require __DIR__ . '/includes/layouts/header.php';
   <p>
     RoomEase is a web-based boarding house information and listing system for Baybay City, Leyte. It helps
     boarders find rooms and landlords list them. By creating an account or signing in, including with Google,
-    you agree to these terms and to our <a href="<?= base_url('privacy.php') ?>">Privacy Policy</a>.
+    you agree to these terms and to our <a href="<?= base_url('legal/privacy.php') ?>">Privacy Policy</a>.
   </p>
 
   <h2>What RoomEase does, and does not do</h2>
@@ -91,4 +91,4 @@ require __DIR__ . '/includes/layouts/header.php';
   <p>If anything here is unclear, contact the RoomEase administrator.</p>
 </article>
 
-<?php require __DIR__ . '/includes/layouts/footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

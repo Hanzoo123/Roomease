@@ -7,8 +7,8 @@
  * database/roomease.sql) and how long it keeps it. If that changes, change
  * this page and the date below with it.
  */
-require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/core/functions.php';
+require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../includes/core/functions.php';
 
 $pageTitle = 'Privacy Policy';
 $metaDescription = 'What RoomEase keeps about boarders and landlords, why it keeps it, who can see it, '
@@ -17,7 +17,7 @@ $band = [
   'title' => 'Privacy Policy',
   'lede' => 'What RoomEase keeps about you, why, and who can see it.',
 ];
-require __DIR__ . '/includes/layouts/header.php';
+require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
 <article class="legal panel panel-pad on-seam">
@@ -26,7 +26,7 @@ require __DIR__ . '/includes/layouts/header.php';
   <p>
     This policy explains the personal information RoomEase keeps and how it is used. RoomEase aims to handle it
     in line with the Data Privacy Act of 2012 (Republic Act No. 10173). Using RoomEase also means agreeing to our
-    <a href="<?= base_url('terms.php') ?>">Terms &amp; Conditions</a>.
+    <a href="<?= base_url('legal/terms.php') ?>">Terms &amp; Conditions</a>.
   </p>
 
   <h2>What we keep</h2>
@@ -101,4 +101,4 @@ require __DIR__ . '/includes/layouts/header.php';
   <p>This policy may be updated. The date at the top shows when it last changed.</p>
 </article>
 
-<?php require __DIR__ . '/includes/layouts/footer.php'; ?>
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

@@ -38,7 +38,7 @@ require __DIR__ . '/includes/layouts/header.php';
 
   <p class="legal-updated" style="margin-top:24px;">
     If you followed a link from inside RoomEase and it brought you here,
-    <a href="<?= base_url('contact.php') ?>">tell us</a> so we can fix it.
+    <a href="<?= base_url('legal/contact.php') ?>">tell us</a> so we can fix it.
   </p>
 </article>
 

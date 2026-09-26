@@ -88,8 +88,8 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
   </a>
 <?php endif; ?>
 <p class="auth-fineprint">
-  By continuing, you agree to our <a href="<?= base_url('terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
-  and <a href="<?= base_url('privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
+  By continuing, you agree to our <a href="<?= base_url('legal/terms.php') ?>" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+  and <a href="<?= base_url('legal/privacy.php') ?>" target="_blank" rel="noopener">Privacy Policy</a>.
   If you're new, you'll choose boarder or landlord next.
 </p>
 <hr class="auth-rule">

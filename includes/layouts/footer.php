@@ -45,10 +45,10 @@
 
     <div class="footer-base">
       &copy; <?= date('Y') ?> RoomEase &middot; A web-based boarding house information and listing system
-      &middot; <a href="<?= base_url('about.php') ?>">About</a>
-      &middot; <a href="<?= base_url('contact.php') ?>">Contact</a>
-      &middot; <a href="<?= base_url('terms.php') ?>">Terms &amp; Conditions</a>
-      &middot; <a href="<?= base_url('privacy.php') ?>">Privacy Policy</a>
+      &middot; <a href="<?= base_url('legal/about.php') ?>">About</a>
+      &middot; <a href="<?= base_url('legal/contact.php') ?>">Contact</a>
+      &middot; <a href="<?= base_url('legal/terms.php') ?>">Terms &amp; Conditions</a>
+      &middot; <a href="<?= base_url('legal/privacy.php') ?>">Privacy Policy</a>
     </div>
   </div>
 </footer>

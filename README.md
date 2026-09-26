@@ -13,7 +13,7 @@ photo uploads, search/filter, and account management.
   either; only the webroot path differs.
 
 These steps set up a copy on your own machine. To put RoomEase on a real
-address instead, follow [DEPLOYMENT.md](DEPLOYMENT.md), which covers what a
+address instead, follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), which covers what a
 host must provide, what must never be uploaded, and the checks to run once
 the site is live.
 
@@ -161,9 +161,14 @@ been changed.
 ```
 roomease/
 ├── index.php                  Home page: search, newest listings
-├── about.php / contact.php    Who RoomEase is, and how to reach the team
-├── terms.php / privacy.php    The two standing legal pages
 ├── 404.php                    Shown for an address that matches nothing
+├── legal/                     The standing pages every visitor can read:
+│                              about, contact, terms, privacy. A page added
+│                              here must also be named in base_url() and
+│                              app_cookie_path(), which find the app root
+│                              by folder
+├── docs/                      DEPLOYMENT.md (putting the site online) and
+│                              PRODUCT.md (what RoomEase is for)
 ├── admin/                     Admin panel: dashboard, manage users, manage listings
 ├── auth/                      Register, login, logout, profile, password reset by code
 ├── landlord/                  Dashboard, add/edit/delete listing, photo actions

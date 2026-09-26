@@ -15,7 +15,7 @@ Nothing here is automatic. Tick each line as you go, and keep the answers
 - [ ] **Set the contact address.** Put `ROOMEASE_CONTACT_EMAIL=you@example.com`
       in `.env`. Until it is set, the contact page explains how to reach the
       team but does not offer the form.
-- [ ] **Replace the placeholder names** in `about.php` with the real team
+- [ ] **Replace the placeholder names** in `legal/about.php` with the real team
       members, their roles, and your course and school.
 - [ ] **Decide the address.** A domain (`roomease.ph`) or a free subdomain from
       the host. Write it down: several steps below need the exact spelling,
@@ -160,8 +160,8 @@ Walk the three roles once on the live site:
       it, and check the activity log recorded the decision.
 - [ ] **Accounts:** password reset by email, Google sign-in, changing a
       password signs the account out of other browsers.
-- [ ] **The public pages:** `/about.php`, `/contact.php`, `/terms.php`,
-      `/privacy.php`, and the favicon in the tab.
+- [ ] **The public pages:** `/legal/about.php`, `/legal/contact.php`,
+      `/legal/terms.php`, `/legal/privacy.php`, and the favicon in the tab.
 
 ## 10. Finishing touches
 

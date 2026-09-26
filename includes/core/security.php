@@ -42,8 +42,11 @@ function is_https_request()
  */
 function app_cookie_path()
 {
+    // The folder list matches base_url()'s. A page in a folder missing from
+    // here would scope its session cookie to that folder, and the sign-in it
+    // started would be invisible to the rest of the site.
     $script  = $_SERVER['SCRIPT_NAME'] ?? '/';
-    $appRoot = preg_replace('#/(auth|landlord|boarder|admin)/[^/]*$#', '', $script);
+    $appRoot = preg_replace('#/(auth|landlord|boarder|admin|legal)/[^/]*$#', '', $script);
     if ($appRoot === $script) {
         $appRoot = rtrim(dirname($script), '/');
     }

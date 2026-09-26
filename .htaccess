@@ -25,6 +25,17 @@ Options -Indexes
   RewriteEngine On
   RewriteRule ^vendor(/|$) - [NC,R=404,L]
 
+  # The standing pages moved into legal/. A link to an old address, in a chat
+  # or a bookmark, is sent to the new one rather than to the 404 page.
+  #
+  # The target is taken from REQUEST_URI rather than written relative: a
+  # relative target with R=301 is turned into a URL by prefixing the directory
+  # on disk, which sends the visitor to http://host/C:/wamp64/www/... The
+  # captured %1 is the folder RoomEase is served from, so this stays right in
+  # a subfolder and at a domain root alike.
+  RewriteCond %{REQUEST_URI} ^(.*/)?(about|contact|terms|privacy)\.php$
+  RewriteRule ^(about|contact|terms|privacy)\.php$ %1legal/$1.php [R=301,L]
+
   # An address that matches no file and no folder is answered by the site's own
   # 404 page instead of Apache's grey default. The target is written without a
   # leading slash on purpose: a relative rewrite resolves against this folder,
