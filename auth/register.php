@@ -61,8 +61,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       password_hash($password, PASSWORD_DEFAULT),
       $old['phone_number'] !== '' ? $old['phone_number'] : null,
     ]);
-    flash_set('Account created successfully! You can now log in.', 'success');
-    redirect('auth/login.php');
+
+    // Signed in straight away, exactly as auth/login.php does it: nobody
+    // should have to type the password they chose a second ago. A guest who
+    // tapped Save before signing up gets that listing saved and is taken
+    // back to it; anyone else lands on the home page, which sends a new
+    // landlord on to their dashboard.
+    $newUser = $pdo->prepare('SELECT * FROM users WHERE user_id = ?');
+    $newUser->execute([$pdo->lastInsertId()]);
+    $user = $newUser->fetch();
+
+    // Taken out first: start_user_session() empties the session.
+    $after = take_after_login();
+    start_user_session($user);
+
+    // No h() here: the flash is escaped where it is rendered.
+    redirect(complete_after_login($after, 'Welcome to RoomEase, ' . $user['first_name'] . '!'));
   }
 }
 
