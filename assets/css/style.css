@@ -3193,6 +3193,401 @@ img.avatar {
 }
 
 /* =========================================================
+   About and contact
+   Both open on the band like every other page. What sits on the seam is the
+   story (About) or the ways to reach us (Contact); below it, ruled lists
+   rather than rows of identical cards.
+   ========================================================= */
+.arrow-link {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.arrow-link:hover {
+  color: var(--forest);
+}
+
+/* About: the story beside the figures that made the case for it. */
+.about-story {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--s6);
+  align-items: start;
+}
+
+.about-story-text h2 {
+  font-size: 1.4rem;
+  margin: 0 0 var(--s3);
+}
+
+.about-story-text p {
+  color: var(--ink-soft);
+  max-width: 60ch;
+  margin: 0 0 var(--s3);
+}
+
+.about-story-text p:last-child {
+  margin-bottom: 0;
+}
+
+.about-figures {
+  margin: 0;
+  padding-left: var(--s5);
+  border-left: 1px solid var(--line);
+}
+
+.about-figures div {
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.about-figures div:first-child {
+  padding-top: 0;
+}
+
+.about-figures div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.about-figures dt {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+.about-figures dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+/* Mission and vision: two columns and a rule between them. */
+.about-aims {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.about-aims > div {
+  padding-right: var(--s6);
+}
+
+.about-aims > div + div {
+  padding: 0 0 0 var(--s6);
+  border-left: 1px solid var(--line-strong);
+}
+
+.about-aims h2 {
+  font-size: clamp(1.4rem, 1.2rem + .8vw, 1.75rem);
+  margin: 0 0 var(--s3);
+}
+
+.about-aims p {
+  margin: 0;
+  font-size: 1.075rem;
+  color: var(--ink-soft);
+  max-width: 46ch;
+}
+
+/* What we stand for: the name of each value, and what the site does about it. */
+.about-values {
+  list-style: none;
+  margin: var(--s5) 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.about-values li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: var(--s2) var(--s5);
+  align-items: baseline;
+  padding: var(--s4) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.about-values h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.about-values p {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.about-team {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--s5) var(--s6);
+  align-items: start;
+}
+
+.about-team h2 {
+  margin: 0 0 var(--s3);
+}
+
+.about-team p {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 46ch;
+}
+
+.about-team-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--s5);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.about-team-list li {
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+  font-weight: 500;
+}
+
+.about-cta h2 {
+  margin: 0;
+}
+
+.about-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3) var(--s5);
+  margin-top: var(--s4);
+}
+
+/* Contact: one row per way to reach the team, on the seam. */
+.channels {
+  padding: var(--s4) var(--s5) var(--s2);
+}
+
+.channels-title {
+  font-size: 1.3rem;
+  margin: var(--s1) 0 var(--s3);
+}
+
+.channels-list,
+.contact-topics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.channels-list li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: var(--s2) var(--s4);
+  align-items: center;
+  padding: var(--s4) 0;
+  border-top: 1px solid var(--line);
+}
+
+.channel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--leaf);
+  color: var(--forest);
+}
+
+.channels-list h3,
+.contact-topics h3 {
+  font-size: 1.05rem;
+  margin: 0 0 2px;
+}
+
+.channels-list p,
+.contact-topics p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+.contact-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: var(--s6);
+  align-items: start;
+}
+
+.contact-split h2 {
+  margin: 0 0 var(--s4);
+}
+
+.contact-topics li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--s3);
+  padding: var(--s4) 0;
+  border-top: 1px solid var(--line);
+}
+
+.contact-topics .channel-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.contact-form h2 {
+  margin: 0 0 var(--s1);
+}
+
+.contact-form-note {
+  margin: 0 0 var(--s4);
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.contact-form .alert {
+  margin-bottom: var(--s4);
+}
+
+.contact-submit {
+  margin-top: var(--s3);
+}
+
+.contact-admin-note {
+  margin: 0;
+  padding-top: var(--s3);
+  border-top: 1px dashed var(--line-strong);
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+
+/* Questions people ask: the browser's own disclosure, no script. */
+.faq-list {
+  max-width: 820px;
+  margin-top: var(--s4);
+  border-top: 1px solid var(--line);
+}
+
+.faq-list details {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  min-height: 44px;
+  padding: var(--s3) 0;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-list summary::after {
+  content: '+';
+  flex: none;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--forest);
+  transition: transform .15s ease;
+}
+
+.faq-list details[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.faq-list summary:hover {
+  color: var(--forest);
+}
+
+.faq-list details p {
+  margin: 0 0 var(--s4);
+  color: var(--ink-soft);
+  max-width: 64ch;
+}
+
+@media (max-width: 860px) {
+  .about-story,
+  .about-team,
+  .contact-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s5);
+  }
+
+  .about-figures {
+    padding: var(--s3) 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .about-figures div:first-child {
+    padding-top: var(--s2);
+  }
+
+  .about-aims {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .about-aims > div {
+    padding: 0;
+  }
+
+  .about-aims > div + div {
+    margin-top: var(--s5);
+    padding: var(--s5) 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line-strong);
+  }
+
+  .about-values li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .channels {
+    padding: var(--s3) var(--s4) var(--s1);
+  }
+
+  /* The text runs to several lines here, so the icon sits by the heading
+     rather than floating in the middle of the row. */
+  .channels-list li {
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .channels-list .arrow-link {
+    grid-column: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .about-team-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-list summary::after {
+    transition: none;
+  }
+}
+
+/* =========================================================
    404 page
    A standalone page with no header or footer: one column in the middle of
    the screen, where the heading is the only loud thing.
