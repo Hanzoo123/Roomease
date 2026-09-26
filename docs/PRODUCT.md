@@ -118,7 +118,8 @@ inquiry inbox as though it already ships.
 
 **Webfonts: resolved**
 
-Every face is self-hosted under `assets/fonts/` (IBM Plex Sans and Fraunces),
+Every face is self-hosted under `assets/fonts/` (IBM Plex Sans, Fraunces, and
+Comfortaa for the public header),
 for the public site in `assets/css/style.css` and for the management panel in
 `assets/css/panel.css`, and the CSP allows fonts from this server only. The
 panel was the last page still asking Google Fonts for Source Sans Pro, a
@@ -163,9 +164,14 @@ fade-ins). `assets/css/style.css` documents the concept: *a forest-green frame
 with the thing you came for sitting on its lower edge*. Every public page opens
 on a forest band, and the search form, listing gallery, or auth form sits across
 the band's seam. Palette: `--forest` #184A3F, `--marigold` #F2A93B (reserved for
-the hero's second line, Search, and Call), `--paper` #FAF8F3, `--ink` #1F2A28,
-`--leaf` #E6EFEA. Fraunces (soft axis) for headings and IBM Plex Sans for body,
-both self-hosted. At the user's request the listing layouts then followed
+the hero's second line, Search, Call, and the header's Sign up), `--paper`
+#FAF8F3, `--ink` #1F2A28, `--leaf` #E6EFEA. Fraunces (soft axis) for headings
+and IBM Plex Sans for body, both self-hosted. At the user's request the public
+header follows MyBoardMate's: Home, Find Place to Stay, About Us and Contact Us
+set in Comfortaa (self-hosted, header only), a 3px forest underline under the
+link being pointed at or viewed, Log in as a solid forest button and Sign up as
+a marigold one; below 1120px the links fold into the menu sheet. At the user's
+request the listing layouts then followed
 MyBoardMate's structure more closely, still in RoomEase's colours and type:
 listings are photo cards with a quiet "View details" link (three across on a
 laptop, two on a phone), browse shows six at a time with "Show 6 more"

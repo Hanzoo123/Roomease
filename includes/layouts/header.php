@@ -74,7 +74,8 @@ $navCurrent = function ($path) {
         </button>
 
         <nav class="nav" id="site-nav" aria-label="Main">
-          <a href="<?= base_url('boarder/browse.php') ?>"<?= $navCurrent('boarder/browse.php') ?>>Browse rooms</a>
+          <a href="<?= base_url('index.php') ?>"<?= $navCurrent('index.php') ?>>Home</a>
+          <a href="<?= base_url('boarder/browse.php') ?>"<?= $navCurrent('boarder/browse.php') ?>>Find Place to Stay</a>
           <?php if (is_logged_in()): ?>
             <?php if (current_role() === 'landlord'): ?>
               <a href="<?= base_url('landlord/dashboard.php') ?>">My listings</a>
@@ -83,18 +84,23 @@ $navCurrent = function ($path) {
             <?php elseif (current_role() === 'boarder'): ?>
               <a href="<?= base_url('boarder/saved.php') ?>"<?= $navCurrent('boarder/saved.php') ?>>Saved</a>
             <?php endif; ?>
+          <?php else: ?>
+            <a href="<?= base_url('auth/register.php?role=landlord') ?>" class="nav-extra">List a property</a>
+          <?php endif; ?>
+          <a href="<?= base_url('legal/about.php') ?>"<?= $navCurrent('legal/about.php') ?>>About Us</a>
+          <a href="<?= base_url('legal/contact.php') ?>"<?= $navCurrent('legal/contact.php') ?>>Contact Us</a>
+          <?php if (is_logged_in()): ?>
             <?php if (current_role() !== 'boarder'): ?>
               <span class="role-tag"><?= h(current_role()) ?></span>
             <?php endif; ?>
             <a href="<?= base_url('auth/profile.php') ?>" class="nav-extra"<?= $navCurrent('auth/profile.php') ?>>Profile</a>
             <a href="<?= base_url('auth/logout.php') ?>">Log out</a>
             <?php if (current_role() === 'landlord'): ?>
-              <a href="<?= base_url('landlord/add_listing.php') ?>" class="btn-nav">Add listing</a>
+              <a href="<?= base_url('landlord/add_listing.php') ?>" class="btn-nav btn-nav--solid">Add listing</a>
             <?php endif; ?>
           <?php else: ?>
-            <a href="<?= base_url('auth/register.php?role=landlord') ?>" class="nav-extra">List a property</a>
-            <a href="<?= base_url('auth/login.php') ?>"<?= $navCurrent('auth/login.php') ?>>Log in</a>
-            <a href="<?= base_url('auth/register.php') ?>" class="btn-nav">Sign up</a>
+            <a href="<?= base_url('auth/login.php') ?>" class="btn-nav btn-nav--solid"<?= $navCurrent('auth/login.php') ?>>Log in</a>
+            <a href="<?= base_url('auth/register.php') ?>" class="btn-nav btn-nav--accent">Sign up</a>
           <?php endif; ?>
         </nav>
       </div>

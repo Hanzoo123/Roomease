@@ -48,10 +48,22 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Comfortaa, the rounded face of the header's links and buttons only (SIL
+   Open Font License, from @fontsource-variable/comfortaa). Latin alone: the
+   navigation has no peso signs to set. */
+@font-face {
+  font-family: 'Comfortaa';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('../fonts/comfortaa-var-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* One frame colour (forest), one accent (marigold), one ground (paper).
    Marigold marks the thing a visitor came for: the hero's second line, the
-   Search button, and the Call button. Nothing else. Status colours are
-   functional and only ever appear as pills. */
+   Search button, the Call button, and Sign up in the header. Nothing else.
+   Status colours are functional and only ever appear as pills. */
 :root {
   --paper: #FAF8F3;
   --panel: #FFFFFF;
@@ -110,6 +122,7 @@
 
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-body: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
+  --font-nav: 'Comfortaa', 'IBM Plex Sans', 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 
@@ -299,22 +312,44 @@ main:focus {
   gap: 2px;
 }
 
+/* The links are set in Comfortaa, forest green. Under the pointer, under
+   keyboard focus, and under the page being viewed, a 3px forest line runs the
+   width of the words, far enough below to clear "y" and "g". It is an
+   underline rather than a drawn bar, so it always matches the text's width,
+   in the tab and in the phone's sheet alike. */
 .nav a {
-  color: var(--ink-soft);
-  font-size: 15px;
-  font-weight: 500;
-  padding: 7px 12px;
+  font-family: var(--font-nav);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--forest);
+  padding: 8px 11px;
   border-radius: var(--r-md);
+  text-decoration-line: underline;
+  text-decoration-thickness: 3px;
+  text-decoration-color: transparent;
+  text-underline-offset: 9px;
+  text-decoration-skip-ink: none;
+  transition: text-decoration-color .2s ease, background-color .15s ease, color .15s ease;
 }
 
 .nav a:hover,
+.nav a:focus-visible,
 .nav a[aria-current="page"] {
   color: var(--forest);
-  background: var(--leaf);
+  text-decoration-color: var(--forest);
+}
+
+/* The two buttons carry their own weight and never an underline. */
+.nav a.btn-nav,
+.nav a.btn-nav:hover,
+.nav a.btn-nav:focus-visible {
   text-decoration: none;
 }
 
+/* Shown in the phone's sheet only: across the tab, beside eight links, it was
+   the one thing that pushed a landlord's header onto a second row. */
 .role-tag {
+  display: none;
   font-size: 12.5px;
   color: var(--muted-fg);
   background: var(--muted-bg);
@@ -323,23 +358,61 @@ main:focus {
   margin: 0 6px;
 }
 
+/* Log in (and a landlord's Add listing) is solid forest; Sign up is the
+   marigold, with the same dark ink as Search and Call, since white on
+   marigold would not read. */
 .nav .btn-nav {
-  color: var(--forest);
-  border: 1px solid var(--forest);
-  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 20px;
+  margin-left: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font-weight: 700;
 }
 
-.nav .btn-nav:hover {
+.nav .btn-nav + .btn-nav {
+  margin-left: 4px;
+}
+
+.nav .btn-nav--solid {
   background: var(--forest);
+  border-color: var(--forest);
   color: #fff;
+}
+
+.nav .btn-nav--solid:hover,
+.nav .btn-nav--solid[aria-current="page"] {
+  background: var(--forest-deep);
+  border-color: var(--forest-deep);
+  color: #fff;
+}
+
+.nav .btn-nav--accent {
+  background: var(--marigold);
+  border-color: var(--marigold);
+  color: var(--on-marigold);
+}
+
+.nav .btn-nav--accent:hover {
+  background: var(--marigold-hover);
+  border-color: var(--marigold-hover);
+  color: var(--on-marigold);
+}
+
+.nav .btn-nav:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
 }
 
 /* =========================================================
    The same header on a phone: the tab stays one line
    ---------------------------------------------------------
-   Under 820px the links leave the tab — where they were wrapping onto a
-   second and third row — and become a sheet that hangs under it, opened by
-   the button beside the wordmark. The sheet is plain on purpose: the page's
+   Under 1120px the links leave the tab — where they would wrap onto a
+   second row; the widest header, a landlord's, needs 1100px — and become a
+   sheet that hangs under it, opened by the button beside the wordmark. The sheet is plain on purpose: the page's
    one bold element is the seam below, not the navigation.
 
    Everything here is gated on html.js, which header.php sets before the first
@@ -385,7 +458,7 @@ main:focus {
   touch-action: none;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 1120px) {
   html.js .nav-toggle {
     display: inline-flex;
   }
@@ -440,16 +513,28 @@ main:focus {
   }
 
   html.js .role-tag {
+    display: inline-block;
     align-self: flex-start;
     margin: 4px 10px 8px;
   }
 
-  /* The one action in the sheet, kept last and given the full width. */
+  /* The buttons close the sheet, full width, one under the other. */
   html.js .nav .btn-nav {
-    margin: 12px 0 0;
-    border-top: 1px solid var(--forest);
+    margin: 8px 0 0;
     padding: 13px 10px;
     text-align: center;
+  }
+
+  html.js .nav a:not(.btn-nav) + .btn-nav {
+    margin-top: 14px;
+  }
+
+  html.js .nav .btn-nav--solid {
+    border-top-color: var(--forest);
+  }
+
+  html.js .nav .btn-nav--accent {
+    border-top-color: var(--marigold);
   }
 
   html.nav-open,
