@@ -35,6 +35,15 @@ $navAccount = ['full_name' => $navUser, 'avatar_path' => $_SESSION['avatar_path'
 
   <!-- Right navbar links -->
   <ul class="navbar-nav ml-auto">
+    <?php /* Light and dark. The icon shows the mode a press switches TO, and
+         the name says so in words. panel_head.php applies the saved choice
+         before the page paints; this only changes it. */ ?>
+    <li class="nav-item">
+      <button type="button" class="nav-link panel-theme-toggle" data-theme-toggle
+        aria-label="Switch to dark mode" title="Switch to dark mode">
+        <i class="fas fa-moon" aria-hidden="true"></i>
+      </button>
+    </li>
     <li class="nav-item dropdown panel-account">
       <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button"
         aria-haspopup="true" aria-expanded="false">
@@ -69,3 +78,46 @@ $navAccount = ['full_name' => $navUser, 'avatar_path' => $_SESSION['avatar_path'
   </ul>
 </nav>
 <!-- /.navbar -->
+<script>
+  (function () {
+    var root = document.documentElement;
+    var toggle = document.querySelector('[data-theme-toggle]');
+    if (!toggle) return;
+    var icon = toggle.querySelector('i');
+
+    function paint() {
+      var dark = root.getAttribute('data-theme') === 'dark';
+      var label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+      toggle.setAttribute('aria-label', label);
+      toggle.title = label;
+      icon.className = 'fas ' + (dark ? 'fa-sun' : 'fa-moon');
+    }
+
+    function apply(theme) {
+      root.setAttribute('data-theme', theme);
+      document.body.classList.toggle('dark-mode', theme === 'dark');
+      paint();
+    }
+
+    toggle.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('re-panel-theme', next); } catch (e) {}
+      apply(next);
+    });
+
+    // Until a choice is made here, the panel keeps following the device, even
+    // when it changes at sunset with the page already open.
+    if (window.matchMedia) {
+      var media = window.matchMedia('(prefers-color-scheme: dark)');
+      var follow = function (e) {
+        var saved = null;
+        try { saved = localStorage.getItem('re-panel-theme'); } catch (err) {}
+        if (saved !== 'light' && saved !== 'dark') apply(e.matches ? 'dark' : 'light');
+      };
+      if (media.addEventListener) media.addEventListener('change', follow);
+      else if (media.addListener) media.addListener(follow);
+    }
+
+    paint();
+  })();
+</script>

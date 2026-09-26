@@ -1973,3 +1973,198 @@ a:hover {
 .re-note-delete:hover {
   color: var(--re-red);
 }
+
+/* =========================================================
+   Dark mode
+   ---------------------------------------------------------
+   Chosen with the navbar's switch, or taken from the device
+   until then (panel_head.php sets html[data-theme] before the
+   first paint, and body.dark-mode for AdminLTE's own parts).
+
+   A warm, green-tinted dark rather than AdminLTE's grey: the
+   same paper-and-panel structure, each surface one step
+   lighter than the one it sits on. The figure and status
+   fills keep their colours, since white on each still reads.
+   --re-forest turns into a light green so it can stay the
+   colour of links and the item you are on; where it is a
+   fill, the text on it turns dark to match.
+   ========================================================= */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --re-paper: #111816;
+  --re-panel: #19221F;
+  --re-line: #2C3834;
+  --re-line-strong: #43514C;
+  --re-line-soft: #222C29;
+  --re-forest: #8FCBB4;
+  --re-forest-deep: #B3DDCD;
+  --re-leaf: #1E3730;
+  --re-ink: #E8EDEB;
+  --re-ink-soft: #AEBBB6;
+  --re-ink-faint: #93A09B;
+  --re-ink-label: #93A09B;
+  --re-muted-bg: #26312E;
+  --re-amber-text: #EDBB63;
+
+  --re-sidebar-bg: #19221F;
+  --re-sidebar-text: #AEBBB6;
+  --re-sidebar-bright: #E8EDEB;
+  --re-sidebar-line: #2C3834;
+  --re-sidebar-hover: #202A27;
+  --re-sidebar-active-bg: #1E3730;
+}
+
+/* Fills of the brand green: dark ink, since white on the light green would
+   not read. */
+html[data-theme="dark"] .btn-primary,
+html[data-theme="dark"] .btn-outline-primary:hover,
+html[data-theme="dark"] .btn-outline-primary:not(:disabled):not(.disabled).active,
+html[data-theme="dark"] .badge-primary,
+html[data-theme="dark"] .page-item.active .page-link {
+  color: #0E1A16;
+}
+
+html[data-theme="dark"] .btn-primary:hover,
+html[data-theme="dark"] .btn-primary:focus {
+  color: #0E1A16;
+  background-color: var(--re-forest-deep);
+  border-color: var(--re-forest-deep);
+}
+
+/* The pale status notes, dark: the same hue, turned down. */
+html[data-theme="dark"] .alert-success {
+  color: #A8DBBE;
+  background-color: #17301F;
+}
+
+html[data-theme="dark"] .alert-warning {
+  color: #F0C987;
+  background-color: #33260F;
+}
+
+html[data-theme="dark"] .alert-danger {
+  color: #F0B2A6;
+  background-color: #3A1C17;
+}
+
+/* AdminLTE's dark mode paints its own greys (#343a40, #454d55); the panel's
+   surfaces take the tokens instead, so the whole page is one family. Its body
+   grey is marked !important, so the answer has to be too. */
+html[data-theme="dark"] body.dark-mode {
+  background-color: var(--re-paper) !important;
+  color: var(--re-ink);
+}
+
+html[data-theme="dark"] .dark-mode .content-wrapper,
+html[data-theme="dark"] .dark-mode .main-footer {
+  background-color: var(--re-paper);
+  color: var(--re-ink);
+}
+
+html[data-theme="dark"] .dark-mode .main-header.navbar,
+html[data-theme="dark"] .dark-mode .card,
+html[data-theme="dark"] .dark-mode .dropdown-menu,
+html[data-theme="dark"] .dark-mode .modal-content,
+html[data-theme="dark"] .dark-mode .main-sidebar {
+  background-color: var(--re-panel);
+  color: var(--re-ink);
+  border-color: var(--re-line);
+}
+
+html[data-theme="dark"] .dark-mode .card-header,
+html[data-theme="dark"] .dark-mode .card-footer,
+html[data-theme="dark"] .dark-mode .modal-header,
+html[data-theme="dark"] .dark-mode .modal-footer {
+  background-color: transparent;
+  border-color: var(--re-line);
+}
+
+/* AdminLTE's dark mode repaints the current sidebar item its own blue, with a
+   selector longer than the panel's; this one is longer still, so the item you
+   are on stays the soft green it is in light mode. */
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active,
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active:hover,
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active:focus {
+  color: var(--re-forest);
+  background-color: var(--re-sidebar-active-bg);
+}
+
+html[data-theme="dark"] .dark-mode .main-header .nav-link,
+html[data-theme="dark"] .dark-mode .dropdown-item {
+  color: var(--re-ink-soft);
+}
+
+html[data-theme="dark"] .dark-mode .dropdown-item:hover,
+html[data-theme="dark"] .dark-mode .dropdown-item:focus {
+  background-color: var(--re-sidebar-hover);
+  color: var(--re-ink);
+}
+
+html[data-theme="dark"] .dark-mode .form-control,
+html[data-theme="dark"] .dark-mode .custom-select,
+html[data-theme="dark"] .dark-mode .input-group-text {
+  background-color: var(--re-paper);
+  color: var(--re-ink);
+  border-color: var(--re-line-strong);
+}
+
+html[data-theme="dark"] .dark-mode .form-control::placeholder {
+  color: var(--re-ink-faint);
+}
+
+html[data-theme="dark"] .dark-mode .form-control:disabled,
+html[data-theme="dark"] .dark-mode .form-control[readonly] {
+  background-color: var(--re-muted-bg);
+}
+
+html[data-theme="dark"] .dark-mode .table,
+html[data-theme="dark"] .dark-mode .table td,
+html[data-theme="dark"] .dark-mode .table th {
+  color: var(--re-ink);
+  border-color: var(--re-line-soft);
+}
+
+html[data-theme="dark"] .dark-mode .table-hover tbody tr:hover,
+html[data-theme="dark"] .dark-mode .table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--re-sidebar-hover);
+  color: var(--re-ink);
+}
+
+html[data-theme="dark"] .dark-mode .page-link {
+  background-color: var(--re-panel);
+  border-color: var(--re-line);
+}
+
+html[data-theme="dark"] .dark-mode .text-muted {
+  color: var(--re-ink-soft) !important;
+}
+
+html[data-theme="dark"] .dark-mode a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) {
+  color: var(--re-forest);
+}
+
+/* The switch itself: a plain icon button in the navbar, the size of its
+   neighbours. */
+.panel-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--re-ink-soft);
+  cursor: pointer;
+}
+
+.panel-theme-toggle:hover {
+  background: var(--re-sidebar-hover);
+  color: var(--re-ink);
+}
+
+.panel-theme-toggle:focus-visible {
+  outline: 2px solid var(--re-forest);
+  outline-offset: 2px;
+}

@@ -14,6 +14,20 @@ $pageTitle = $pageTitle ?? $panel['name'] . ' Dashboard';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($pageTitle) ?> | RoomEase <?= h($panel['name']) ?></title>
+  <?php /* Light or dark, decided before the first paint so a dark panel never
+       flashes white on the way in. A choice made with the navbar's switch is
+       remembered in this browser; until then the panel follows the device.
+       panel_navbar.php holds the switch. */ ?>
+  <script>
+    (function () {
+      var theme = null;
+      try { theme = localStorage.getItem('re-panel-theme'); } catch (e) {}
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <?php /* Icons only: the panel is behind a sign-in. */ ?>
   <?php $metaSocial = false; require __DIR__ . '/../components/head_meta.php'; ?>
 
@@ -34,4 +48,11 @@ $pageTitle = $pageTitle ?? $panel['name'] . ' Dashboard';
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed">
+  <?php /* AdminLTE's own dark styles hang off body.dark-mode, so it is set here,
+       before anything inside the body is drawn. */ ?>
+  <script>
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      document.body.classList.add('dark-mode');
+    }
+  </script>
   <div class="wrapper">
