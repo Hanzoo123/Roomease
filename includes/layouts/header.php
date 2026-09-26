@@ -65,7 +65,7 @@ $navCurrent = function ($path) {
   <header class="site-header" data-site-header>
     <div class="container">
       <div class="nav-tab">
-        <a href="<?= base_url('index.php') ?>" class="brand">RoomEase</a>
+        <a href="<?= base_url('index.php') ?>" class="brand"><img class="brand-logo" src="<?= base_url('assets/img/logo-mark-96.png') ?>" alt="" width="30" height="30"> RoomEase</a>
 
         <?php /* Only ever visible on a narrow screen, where the links below drop
              out of the tab and become a sheet hanging under it. Which icon

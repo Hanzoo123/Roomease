@@ -21,9 +21,12 @@ $metaSocial = $metaSocial ?? true;
 $ogType = $ogType ?? 'website';
 $ogImage = $ogImage ?? absolute_url('assets/img/og-default.png');
 ?>
-<link rel="icon" href="<?= base_url('assets/img/favicon.svg') ?>" type="image/svg+xml">
-<link rel="icon" href="<?= base_url('assets/img/favicon-32.png') ?>" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="<?= base_url('assets/img/apple-touch-icon.png') ?>">
+<?php /* Cut from the RoomEase logo (assets/img/logo-full.png): the house and
+     leaves only, since the lettering blurs at 32px. The ?v stamp makes a
+     browser fetch a new icon when the file changes, which it otherwise
+     keeps for days. */ ?>
+<link rel="icon" href="<?= base_url('assets/img/favicon-32.png') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/img/favicon-32.png') ?: 0 ?>" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="<?= base_url('assets/img/apple-touch-icon.png') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/img/apple-touch-icon.png') ?: 0 ?>">
 <?php if ($metaDescription !== ''): ?>
   <meta name="description" content="<?= h($metaDescription) ?>">
 <?php endif; ?>

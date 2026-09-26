@@ -879,6 +879,30 @@ a:hover {
   color: var(--re-marigold);
 }
 
+/* The logo's mark: beside the wordmark when the sidebar is open, alone when
+   it is collapsed. */
+.main-sidebar .brand-mark {
+  display: inline-flex;
+  margin-right: 8px;
+}
+
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .brand-mark {
+  margin-right: 0;
+}
+
+.brand-mark img {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+/* In dark mode the logo's dark greens would vanish into the sidebar, so the
+   mark sits on a small white tile. */
+html[data-theme="dark"] .main-sidebar .brand-mark {
+  border-radius: 8px;
+  background: #fff;
+}
+
 .main-sidebar .brand-text {
   margin-left: 0;
   font-family: 'Fraunces', Georgia, 'Times New Roman', serif;

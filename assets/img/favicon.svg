@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RoomEase">
-  <rect width="64" height="64" rx="14" fill="#184A3F"/>
-  <path d="M32 14 L52 32.5 V50 H12 V32.5 Z" fill="#F2A93B" stroke="#F2A93B" stroke-width="3"
-    stroke-linejoin="round"/>
-  <path d="M27 50 V41 a5 5 0 0 1 10 0 V50 Z" fill="#184A3F"/>
-</svg>

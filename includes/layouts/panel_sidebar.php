@@ -49,10 +49,10 @@ foreach ($panel['menu'] as $idx => $item) {
 ?>
 <!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-light-primary">
-  <!-- Brand: the RoomEase wordmark, as on the public site. The single letter
+  <!-- Brand: the RoomEase mark and wordmark, as on the public site. The mark
        is what stays visible when the sidebar is collapsed. -->
   <a href="<?= base_url($panel['home']) ?>" class="brand-link">
-    <span class="brand-image brand-mark" aria-hidden="true">R</span>
+    <span class="brand-image brand-mark" aria-hidden="true"><img src="<?= base_url('assets/img/logo-mark-96.png') ?>" alt="" width="28" height="28"></span>
     <span class="brand-text">RoomEase</span>
   </a>
 

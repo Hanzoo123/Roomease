@@ -305,6 +305,39 @@ main:focus {
   text-decoration: none;
 }
 
+/* The logo's house-and-leaves mark before the wordmark (header, footer and
+   sign-in pages). The lettering in the logo file itself is left for print:
+   at this size the site's own type reads better. */
+.brand,
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-logo {
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+
+.auth-brand {
+  gap: 12px;
+}
+
+.auth-brand .brand-logo {
+  width: 44px;
+  height: 44px;
+}
+
+/* On the dark sign-in backgrounds the dark greens would sink into the photo,
+   so the mark sits on a small white tile. */
+.auth-page--dark .auth-brand .brand-logo {
+  padding: 4px;
+  border-radius: 10px;
+  background: #fff;
+}
+
 .nav {
   display: flex;
   align-items: center;

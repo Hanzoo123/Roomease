@@ -4,7 +4,7 @@
   <div class="container">
     <div class="footer-inner">
       <div class="footer-brand">
-        <a href="<?= base_url('index.php') ?>" class="brand">RoomEase</a>
+        <a href="<?= base_url('index.php') ?>" class="brand"><img class="brand-logo" src="<?= base_url('assets/img/logo-mark-96.png') ?>" alt="" width="30" height="30"> RoomEase</a>
         <p>Boarding houses and rooms for rent in Baybay City, Leyte.</p>
       </div>
 

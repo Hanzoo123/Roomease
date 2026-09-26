@@ -46,7 +46,7 @@ $flash = $authPreview ? null : flash_get();
 <body class="auth-page auth-page--<?= h($background['tone']) ?><?= $authAdmin ? ' auth-page--admin' : '' ?>" style="<?= h($background['style']) ?>">
 
   <main class="auth-shell">
-    <a href="<?= base_url('index.php') ?>" class="auth-brand">RoomEase</a>
+    <a href="<?= base_url('index.php') ?>" class="auth-brand"><img class="brand-logo" src="<?= base_url('assets/img/logo-mark-96.png') ?>" alt="" width="44" height="44"> RoomEase</a>
     <?php if ($authAdmin): ?>
       <span class="auth-brand-tag">Admin</span>
     <?php endif; ?>
