@@ -167,12 +167,16 @@ the hero's second line, Search, and Call), `--paper` #FAF8F3, `--ink` #1F2A28,
 `--leaf` #E6EFEA. Fraunces (soft axis) for headings and IBM Plex Sans for body,
 both self-hosted. At the user's request the listing layouts then followed
 MyBoardMate's structure more closely, still in RoomEase's colours and type:
-listings are photo cards with a "View details" button (three across on a
-laptop, one on a phone), browse shows six at a time with "Show more rooms"
+listings are photo cards with a quiet "View details" link (three across on a
+laptop, two on a phone), browse shows six at a time with "Show 6 more"
 adding the next six (`?page=N` renders everything up to N), and the listing
 page is a title band with tags, a main column of sections (photos with a
-full-screen viewer, utilities, living here, what to expect, house rules, map),
-and a sticky Quick Info card with price and landlord contact.
+full-screen viewer, rooms, utilities, living here, what to expect, house
+rules, map), and a sticky Quick Info card with price and landlord contact.
+On a listing with no room photos the rooms are compact rows rather than
+empty picture boxes, "what to expect" is one row per term, and a photo whose
+file is missing is never shown. A guest's heart on a browse or home card goes
+to log in and comes back saved.
 
 The sign-in pages (log in, sign up, forgot and reset password) are standalone,
 after MyBoardMate's login: no site header, band, or footer, just the RoomEase

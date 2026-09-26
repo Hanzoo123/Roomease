@@ -34,16 +34,39 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('boarder/browse.php');
 }
 
-// Guests get sent to log in rather than silently losing the click.
+$boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
+
+/**
+ * Work out where to send the boarder back to. The destination is chosen from
+ * a fixed set rather than taken from the request, so this cannot be turned
+ * into an open redirect. Browse filters are rebuilt from known keys only.
+ */
+$return = $_POST['return'] ?? 'browse';
+if ($return === 'view') {
+    $target = 'boarder/view_listing.php?id=' . $boardingHouseId;
+} elseif ($return === 'saved') {
+    $target = 'boarder/saved.php';
+} elseif ($return === 'home') {
+    $target = 'index.php';
+} else {
+    $target = browse_path(browse_filters($_POST, room_type_options()));
+}
+
+// A guest's tap is not lost: they log in, the listing is saved, and they land
+// back where they tapped. The token is checked first, so another site cannot
+// queue a save for whoever signs in next on this browser.
 if (!is_logged_in()) {
+    if (hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
+        remember_after_login($target, $boardingHouseId);
+    }
+    // The log-in page itself says what the sign-in is for, so no flash here.
     if ($wantsJson) {
         favorite_json(401, [
             'ok'       => false,
             'redirect' => base_url('auth/login.php'),
-            'message'  => 'Please log in to save listings.',
+            'message'  => 'Log in to save this listing.',
         ]);
     }
-    flash_set('Please log in to save listings.', 'error');
     redirect('auth/login.php');
 }
 if (!can_save_listings()) {
@@ -65,32 +88,8 @@ if ($wantsJson && !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token
 }
 verify_csrf();
 
-$boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
 $action = $_POST['action'] ?? 'save';
 $userId = $_SESSION['user_id'];
-
-/**
- * Work out where to send the boarder back to. The destination is chosen from
- * a fixed set rather than taken from the request, so this cannot be turned
- * into an open redirect. Browse filters are rebuilt from known keys only.
- */
-$return = $_POST['return'] ?? 'browse';
-if ($return === 'view') {
-    $target = 'boarder/view_listing.php?id=' . $boardingHouseId;
-} elseif ($return === 'saved') {
-    $target = 'boarder/saved.php';
-} elseif ($return === 'home') {
-    $target = 'index.php';
-} else {
-    $filters = [];
-    foreach (['q', 'room_type', 'max_rent', 'page'] as $key) {
-        $value = trim($_POST[$key] ?? '');
-        if ($value !== '') {
-            $filters[$key] = $value;
-        }
-    }
-    $target = 'boarder/browse.php' . ($filters ? '?' . http_build_query($filters) : '');
-}
 
 // Only approved listings can be saved, matching what browse actually shows.
 $check = $pdo->prepare(

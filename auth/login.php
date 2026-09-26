@@ -14,6 +14,12 @@ if (is_logged_in() && !$preview) {
     redirect('index.php');
 }
 
+// A link from a listing ("Log in to see" the number) brings the visitor back
+// to it afterwards. safe_return_path() inside refuses anything not ours.
+if (!$preview && isset($_GET['next'])) {
+    remember_after_login($_GET['next']);
+}
+
 $error = '';
 $loginId = '';
 $remember = false;
@@ -58,6 +64,8 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // The session must start from the hash stored now, which the
             // upgrade may just have replaced; see start_user_session().
             $user['password_hash'] = upgrade_password_hash($user, $password);
+            // Taken out first: start_user_session() empties the session.
+            $after = take_after_login();
             start_user_session($user);
             if ($remember) {
                 remember_login((int) $user['user_id']);
@@ -65,10 +73,19 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // No h() here: the flash is escaped where it is rendered, and
             // escaping twice would show the raw entities to the user.
-            flash_set("Welcome back, " . $user["first_name"] . "!", "success");
-            redirect('index.php');
+            redirect(complete_after_login($after, "Welcome back, " . $user["first_name"] . "!"));
         }
     }
+}
+
+// When a guest tapped Save, say so: they are here to save one listing, and
+// they will be taken straight back to it.
+$savingName = null;
+$afterLogin = $_SESSION['after_login'] ?? null;
+if (!$preview && is_array($afterLogin) && !empty($afterLogin['save'])) {
+    $nameStmt = $pdo->prepare('SELECT name FROM boarding_houses WHERE boarding_house_id = ?');
+    $nameStmt->execute([(int) $afterLogin['save']]);
+    $savingName = $nameStmt->fetchColumn() ?: null;
 }
 
 $pageTitle = 'Log in';
@@ -77,6 +94,12 @@ $authPreview = $preview;
 $authSwitch = ['text' => 'New to RoomEase?', 'href' => base_url('auth/register.php'), 'label' => 'Create an account'];
 require __DIR__ . '/../includes/layouts/auth_header.php';
 ?>
+
+<?php if ($savingName): ?>
+  <p class="auth-sub auth-context">
+    Log in as a boarder to save <strong><?= h($savingName) ?></strong>. You'll go straight back to it.
+  </p>
+<?php endif; ?>
 
 <?php /* Always shown. Until this server has Google credentials, auth/google_start.php
      brings the visitor back here with a message saying so. */ ?>

@@ -47,15 +47,20 @@
         svg.setAttribute('fill', saved ? 'currentColor' : 'none');
       }
 
-      var label = saved ? 'Remove from saved' : 'Save this listing';
-      btn.title = label;
-      btn.setAttribute('aria-label', label);
       btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
 
-      // The detail page carries a worded label beside the heart.
+      // The detail page carries a worded label beside the heart, which is its
+      // name; an aria-label would only contradict it. A bare heart is named
+      // after its listing, so a list of them is not a list of "Save".
       var text = btn.querySelector('.save-btn-text');
       if (text) {
         text.textContent = saved ? 'Saved' : 'Save this listing';
+      } else {
+        var name = btn.getAttribute('data-name');
+        btn.title = saved ? 'Remove from saved' : 'Save this listing';
+        btn.setAttribute('aria-label', name
+          ? (saved ? 'Remove ' + name + ' from saved' : 'Save ' + name)
+          : btn.title);
       }
 
       // Restart the pop animation on every toggle.

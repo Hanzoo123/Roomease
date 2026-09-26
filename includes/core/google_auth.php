@@ -352,6 +352,8 @@ function google_sign_in(array $user, $remember, $created, $linked = false)
         return 'Your account is deactivated. Please contact support.';
     }
 
+    // Taken out first: start_user_session() empties the session.
+    $after = take_after_login();
     start_user_session($user);
     if ($remember) {
         remember_login((int) $user['user_id']);
@@ -362,8 +364,7 @@ function google_sign_in(array $user, $remember, $created, $linked = false)
         $welcome .= ' Your account now signs in with Google, so your old password no longer works.'
             . ' You can set a new one from your profile.';
     }
-    flash_set($welcome, 'success');
-    redirect('index.php');
+    redirect(complete_after_login($after, $welcome));
 }
 
 /** The Google "G", for the sign-in button. */

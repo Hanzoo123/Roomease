@@ -1,6 +1,6 @@
 <?php
 /**
- * "Show more rooms" on browse, without a page reload.
+ * "Show 6 more" on browse, without a page reload.
  *
  * The link is a real URL (?page=N+1#chunk-N+1) that renders every board up to
  * N+1, so with JavaScript off it reloads and jumps to the new board. Here the

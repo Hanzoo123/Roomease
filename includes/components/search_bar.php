@@ -4,6 +4,7 @@
  * browse so both submit exactly the same filters.
  *
  *   'action'     where the form submits; '' submits to the current page
+ *   'anchor'     where on the results page to land, e.g. 'results'
  *   'id'         optional id, used by browse as the #listings anchor
  *   'room_types' room_type_id => name, from room_type_options()
  *   'q', 'room_type', 'max_rent'  current values, to keep them filled in
@@ -11,19 +12,29 @@
 function render_search_bar(array $opts)
 {
     $roomType = $opts['room_type'] ?? '';
+    $maxRent = $opts['max_rent'] ?? '';
+    $action = ($opts['action'] ?? '') . (!empty($opts['anchor']) ? '#' . $opts['anchor'] : '');
+
+    // On a phone the two room filters fold under "More filters". A search that
+    // used them comes back with them open, so the boarder can see why the
+    // results are what they are.
+    $moreSet = ($roomType !== '' ? 1 : 0) + ($maxRent !== '' ? 1 : 0);
     ?>
     <form method="get" class="search-bar" role="search"
-      <?= ($opts['action'] ?? '') !== '' ? 'action="' . h($opts['action']) . '"' : '' ?>
+      <?= $action !== '' ? 'action="' . h($action) . '"' : '' ?>
       <?= !empty($opts['id']) ? 'id="' . h($opts['id']) . '"' : '' ?>>
       <div>
         <label for="q">Search</label>
         <input type="text" id="q" name="q" value="<?= h($opts['q'] ?? '') ?>" placeholder="Name, barangay, or street">
       </div>
-      <?php /* Presentation only, and deliberately without a name attribute so it
-               never reaches the query string. Hidden entirely above 720px. */ ?>
-      <input type="checkbox" id="more-filters" class="filter-toggle">
-      <label for="more-filters" class="filter-toggle-label">More filters</label>
-      <div class="filter-fields">
+      <?php /* A real button, so it can be reached and opened from the keyboard.
+               It only appears where search_bar's script runs (html.js) and the
+               screen is narrow; everywhere else the fields are simply shown. */ ?>
+      <button type="button" class="filter-toggle" data-filter-toggle
+        aria-expanded="<?= $moreSet ? 'true' : 'false' ?>" aria-controls="filter-fields">
+        More filters<?= $moreSet ? ' (' . $moreSet . ')' : '' ?>
+      </button>
+      <div class="filter-fields<?= $moreSet ? ' is-open' : '' ?>" id="filter-fields">
         <div>
           <label for="room_type">Room type</label>
           <select id="room_type" name="room_type">
@@ -35,8 +46,8 @@ function render_search_bar(array $opts)
         </div>
         <div>
           <label for="max_rent">Max rent (₱)</label>
-          <input type="number" id="max_rent" name="max_rent" value="<?= h($opts['max_rent'] ?? '') ?>"
-            min="0" step="100" inputmode="numeric">
+          <input type="number" id="max_rent" name="max_rent" value="<?= h($maxRent) ?>"
+            min="100" step="100" inputmode="numeric">
         </div>
       </div>
       <?php /* The magnifying glass is drawn inline rather than loaded, because the
@@ -52,5 +63,17 @@ function render_search_bar(array $opts)
         <span>Search</span>
       </button>
     </form>
+    <script>
+      (function () {
+        var toggle = document.querySelector('[data-filter-toggle]');
+        var fields = toggle && document.getElementById(toggle.getAttribute('aria-controls'));
+        if (!fields) return;
+        toggle.addEventListener('click', function () {
+          var open = toggle.getAttribute('aria-expanded') !== 'true';
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          fields.classList.toggle('is-open', open);
+        });
+      })();
+    </script>
     <?php
 }

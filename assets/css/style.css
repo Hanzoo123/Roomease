@@ -57,6 +57,9 @@
   --panel: #FFFFFF;
   --line: #E6E1D6;
   --line-strong: #CFC8B8;
+  /* The edge of a field a boarder types into has to be seen to be found:
+     3.3:1 on white, where --line-strong is a divider at 1.7:1. */
+  --field-line: #948D7F;
 
   --forest: #184A3F;
   --forest-deep: #0F3A31;
@@ -67,7 +70,8 @@
 
   --ink: #1F2A28;
   --ink-soft: #5C6B66;
-  --ink-faint: #7A8682;
+  /* The quietest text still reads: 5:1 on white, 4.8:1 on paper. */
+  --ink-faint: #65716D;
 
   --marigold: #F2A93B;
   --marigold-hover: #E39A2A;
@@ -178,6 +182,34 @@ a:hover {
 :focus-visible {
   outline: 2px solid var(--forest);
   outline-offset: 2px;
+}
+
+::selection {
+  background: var(--leaf);
+  color: var(--forest-deep);
+}
+
+/* Off screen until a keyboard lands on it, then the first thing in view. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -80px;
+  z-index: 100;
+  padding: 11px 18px;
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--forest);
+  font-weight: 600;
+  box-shadow: var(--lift);
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+/* The skip link's target, which should not wear a ring of its own. */
+main:focus {
+  outline: none;
 }
 
 .container {
@@ -503,10 +535,13 @@ a:hover {
   margin: var(--s2) 0 0;
 }
 
+/* A full thumb's height, though it reads as a line of small text. */
 .back-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 14px;
-  margin-bottom: var(--s3);
+  margin: -10px 0 var(--s1);
 }
 
 .band .back-link {
@@ -789,7 +824,7 @@ textarea {
   width: 100%;
   min-height: 46px;
   padding: 10px 14px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--field-line);
   border-radius: var(--r-md);
   font-family: var(--font-body);
   font-size: 15px;
@@ -1331,20 +1366,65 @@ input[type=checkbox] {
   padding: 0 28px;
 }
 
-/* Filter disclosure, small screens only. The checkbox carries no name
-   attribute, so it never reaches the query string. `display: contents` keeps
-   both fields as direct children of the grid on desktop. */
+/* Filter disclosure, small screens only, and only where its script runs.
+   `display: contents` keeps both fields as direct children of the grid on
+   desktop. */
 .filter-fields {
   display: contents;
 }
 
-.filter-toggle,
-.filter-toggle-label {
+.filter-toggle {
   display: none;
 }
 
-#listings {
-  scroll-margin-top: var(--s4);
+#listings,
+#results {
+  scroll-margin-top: calc(var(--header-offset, 0px) + var(--s4));
+}
+
+/* The search in words, under the results heading. Each part is a link that
+   drops just that part. */
+.filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: calc(-1 * var(--s1)) 0 var(--s4);
+  padding: 0;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px 6px 14px;
+  border-radius: var(--r-pill);
+  background: var(--leaf);
+  color: var(--forest);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filter-chip:hover {
+  background: #D6E6DD;
+  text-decoration: none;
+}
+
+.filter-chip .icon {
+  opacity: .7;
+}
+
+.filter-clear {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* =========================================================
@@ -1557,7 +1637,7 @@ input[type=checkbox] {
 /* =========================================================
    Listing cards — home, browse, and saved
    ---------------------------------------------------------
-   One photo card per listing: three across on a laptop, one on a phone.
+   One photo card per listing: three across on a laptop, two on a phone.
    The title link is stretched over the whole card, so each card is a single
    link and one large target; the heart sits above that link. Without a photo
    the room type holds the photo's space.
@@ -1646,14 +1726,15 @@ input[type=checkbox] {
 
 .room-card-placeholder .icon {
   stroke-width: 1.5;
-  opacity: .5;
+  opacity: .45;
 }
 
+/* Quieter than the listing's own name below it, which is what a boarder
+   reads the card by. */
 .room-card-placeholder span {
-  font-family: var(--font-display);
-  font-variation-settings: 'SOFT' 100;
-  font-weight: 600;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
 }
 
 .pill--on-photo {
@@ -1753,10 +1834,21 @@ input[type=checkbox] {
   margin-bottom: 1px;
 }
 
-/* A listing with nowhere to move into is quieter than one with space. */
+/* A listing with nowhere to move into is quieter than one with space, with
+   a photo or without one. */
 .room-card--full .room-card-media img,
 .room-card--closed .room-card-media img {
   filter: grayscale(.55);
+}
+
+.room-card--full .room-card-media,
+.room-card--closed .room-card-media {
+  background: var(--muted-bg);
+}
+
+.room-card--full .room-card-placeholder,
+.room-card--closed .room-card-placeholder {
+  color: var(--muted-fg);
 }
 
 .room-card--full .room-card-meta,
@@ -1787,13 +1879,22 @@ input[type=checkbox] {
   color: var(--ink-soft);
 }
 
+/* A word and a chevron, not a filled button: a row of dark buttons outweighed
+   the listings they belong to. The whole card is the link anyway. */
 .room-card-cta {
+  display: inline-flex;
+  align-items: center;
   gap: 2px;
-  padding: 8px 10px 8px 14px;
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--forest);
+  white-space: nowrap;
 }
 
 .room-card:hover .room-card-cta {
-  background: var(--forest-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .room-card.is-removing {
@@ -1830,6 +1931,58 @@ input[type=checkbox] {
   margin: 0;
 }
 
+/* Browse with no match: what was asked for, then real ways out. */
+.rooms-empty--search {
+  padding: var(--s5);
+  text-align: left;
+}
+
+.rooms-empty-lead {
+  max-width: 60ch;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.rooms-empty-try {
+  margin: var(--s4) 0 var(--s2);
+  font-size: 14px;
+}
+
+.empty-suggestions {
+  list-style: none;
+  max-width: 560px;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.empty-suggestions a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  min-height: 48px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.empty-suggestions em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.empty-count {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
 .list-foot {
   margin: var(--s4) 0 0;
   font-size: 14.5px;
@@ -1840,12 +1993,13 @@ input[type=checkbox] {
    Save (heart) button
    ========================================================= */
 .save-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 50%;
@@ -2066,8 +2220,7 @@ input[type=checkbox] {
 }
 
 /* What's included: one tinted tile per utility, tinted by what it is. */
-.util-grid,
-.term-grid {
+.util-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
@@ -2184,39 +2337,52 @@ input[type=checkbox] {
   color: var(--rejected-fg);
 }
 
-/* What to expect */
-.term-tile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+/* What to expect: one term to a row, the landlord's answer on the right.
+   Hairlines only between rows, so the section's own rule closes the list. */
+.term-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.term-icon {
+.term-rows li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: 10px 0;
+}
+
+.term-rows li + li {
+  border-top: 1px solid var(--line);
+}
+
+.term-rows li:first-child {
+  padding-top: 0;
+}
+
+.term-rows li:last-child {
+  padding-bottom: 0;
+}
+
+.term-rows-label {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--leaf);
-  color: var(--forest);
-}
-
-.term-label {
-  display: block;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 14.5px;
   color: var(--ink-soft);
 }
 
-.term-tile strong {
-  display: block;
+.term-rows-label .icon {
+  align-self: center;
+  color: var(--forest);
+}
+
+.term-rows strong {
   font-size: 15px;
   font-weight: 600;
   color: var(--ink);
+  text-align: right;
 }
 
 /* House rules and questions to ask */
@@ -2340,7 +2506,10 @@ img.avatar {
   line-height: 1.3;
 }
 
-.quick-host span {
+/* Only the "Landlord" line under the name. A bare `.quick-host span` also
+   caught the avatar, a span too, and turned its white initials grey on the
+   forest circle. */
+.quick-host div > span {
   font-size: 13.5px;
   color: var(--ink-soft);
 }
@@ -2695,6 +2864,103 @@ img.avatar {
   color: var(--ink-soft);
 }
 
+/* Rooms as compact rows, for a listing with no room photos: name and type
+   on the left with the slots under them, rent and state on the right. */
+.room-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.room-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s2) var(--s4);
+  padding: var(--s4) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* The section's own rule closes the list. */
+.room-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.room-row h3 {
+  font-family: var(--font-body);
+  font-variation-settings: normal;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin: 0;
+}
+
+.room-row-type {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.room-row-desc {
+  max-width: 60ch;
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.room-row-status {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-top: 10px;
+}
+
+.room-row-status .slots {
+  flex: 0 0 120px;
+  margin: 0;
+}
+
+.room-row-status .room-tile-note {
+  margin: 0;
+}
+
+.room-row-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  text-align: right;
+}
+
+.room-row-rent {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.room-row-rent span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* Full and closed rooms sit after the open ones, and look it. */
+.room-row--full .slots-fill {
+  background: var(--ink-faint);
+}
+
+.room-row--closed h3,
+.room-row--full .room-row-rent,
+.room-row--closed .room-row-rent {
+  color: var(--ink-soft);
+}
+
 /* Full-screen photo viewer */
 .lightbox {
   position: fixed;
@@ -2959,34 +3225,52 @@ img.avatar {
     width: 100%;
   }
 
-  .filter-toggle-label {
-    display: block;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--forest);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--r-md);
-    padding: 10px 12px;
-    margin: 0;
-    cursor: pointer;
-    text-align: center;
-  }
-
-  .filter-toggle-label::after {
-    content: ' +';
-  }
-
+  /* Without the script the two fields are simply shown; with it they fold
+     under a real button, open already when the search used them. */
   .filter-fields {
-    display: none;
-  }
-
-  .filter-toggle:checked ~ .filter-fields {
     display: grid;
     gap: 10px;
   }
 
-  .filter-toggle:checked ~ .filter-toggle-label::after {
-    content: ' −';
+  html.js .filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--field-line);
+    border-radius: var(--r-md);
+    background: var(--panel);
+    color: var(--forest);
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  html.js .filter-toggle::after {
+    content: '+';
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  html.js .filter-toggle[aria-expanded="true"]::after {
+    content: '−';
+  }
+
+  html.js .filter-fields {
+    display: none;
+  }
+
+  html.js .filter-fields.is-open {
+    display: grid;
+  }
+
+  .filter-chip,
+  .filter-clear {
+    min-height: 44px;
   }
 
   .steps {
@@ -3091,7 +3375,7 @@ img.avatar {
   /* Comfortable targets for a thumb. */
   .chip,
   .show-more .btn {
-    min-height: 42px;
+    min-height: 44px;
   }
 
   .chip {
@@ -3153,16 +3437,13 @@ img.avatar {
 
   .room-card-foot {
     flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 4px;
     padding-top: 10px;
   }
 
   .room-card-cta {
-    justify-content: center;
-    width: 100%;
-    padding: 9px 10px;
-    font-size: 13px;
+    font-size: 13.5px;
   }
 
   .room-card-body > :nth-last-child(2) {
@@ -3182,18 +3463,30 @@ img.avatar {
     left: 8px;
   }
 
+  /* Drawn a size smaller on a 165px card; the tap area stays 44px. */
   .room-card .save-btn {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
   }
 
+  .room-card .save-btn::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+  }
+
+  /* A 165px picture box already holds the heart and the pill; the house
+     drawing would sit on top of them. The room type alone holds the space. */
   .room-card-placeholder .icon {
-    width: 30px;
-    height: 30px;
+    display: none;
+  }
+
+  .room-card-placeholder {
+    padding-top: 28px;
   }
 
   .room-card-placeholder span {
-    font-size: 15px;
+    font-size: 13.5px;
     padding: 0 8px;
     text-align: center;
   }
@@ -3204,8 +3497,24 @@ img.avatar {
     gap: 10px;
   }
 
-  .util-grid,
-  .term-grid {
+  /* A room's rent and state move under its name rather than squeeze it. */
+  .room-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .room-row-side {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .room-row-status .slots {
+    flex-basis: 96px;
+  }
+
+  .util-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

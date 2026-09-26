@@ -55,6 +55,10 @@ $navCurrent = function ($path) {
 
 <body>
 
+  <?php /* The first stop for a keyboard: past the header's links, straight to
+       what the page is for. Invisible until it has focus. */ ?>
+  <a class="skip-link" href="#main">Skip to content</a>
+
   <header class="site-header" data-site-header>
     <div class="container">
       <div class="nav-tab">
@@ -117,7 +121,7 @@ $navCurrent = function ($path) {
   <?php endif; ?>
 
 <?php if ($bleed): ?>
-  <main class="page">
+  <main class="page" id="main" tabindex="-1">
 <?php else: ?>
   <section class="band<?= empty($band['title']) ? ' band--short' : '' ?>">
     <div class="container">
@@ -148,5 +152,5 @@ $navCurrent = function ($path) {
     </div>
   </section>
 
-  <main class="container page-body page-body--seam">
+  <main class="container page-body page-body--seam" id="main" tabindex="-1">
 <?php endif; ?>

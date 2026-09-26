@@ -611,11 +611,15 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
 
 /** The room summary columns room_summary_join() provides, for a SELECT list. */
 const ROOM_SUMMARY_COLUMNS = 'rs.room_count, rs.rooms_available, rs.rooms_open,
-       rs.rent_from_available, rs.rent_from_all, rs.room_types';
+       rs.rent_from_available, rs.rent_from_all, rs.room_types, rs.open_room_types, rs.slots_left';
 
 /**
  * One row of room figures per listing, joined as `rs`. Pass $inner = true
  * where a listing with no rooms should drop out of the results.
+ *
+ * room_types names every room, which is what the panels list. A boarder's
+ * card reads open_room_types instead, so a closed room is not advertised, and
+ * slots_left, the beds still free across the open rooms.
  */
 function room_summary_join($inner = false)
 {
@@ -626,7 +630,10 @@ function room_summary_join($inner = false)
                SUM(r.is_open = 1) AS rooms_open,
                MIN(CASE WHEN r.is_open = 1 AND r.slots_taken < r.capacity THEN r.monthly_rent END) AS rent_from_available,
                MIN(r.monthly_rent) AS rent_from_all,
-               GROUP_CONCAT(DISTINCT rt.room_type_name ORDER BY rt.room_type_id SEPARATOR ', ') AS room_types
+               GROUP_CONCAT(DISTINCT rt.room_type_name ORDER BY rt.room_type_id SEPARATOR ', ') AS room_types,
+               GROUP_CONCAT(DISTINCT CASE WHEN r.is_open = 1 THEN rt.room_type_name END
+                            ORDER BY rt.room_type_id SEPARATOR ', ') AS open_room_types,
+               SUM(CASE WHEN r.is_open = 1 THEN GREATEST(r.capacity - r.slots_taken, 0) ELSE 0 END) AS slots_left
           FROM rooms r
           JOIN room_types rt ON rt.room_type_id = r.room_type_id
          GROUP BY r.boarding_house_id
@@ -701,6 +708,152 @@ function listing_availability(array $listing)
     }
     return $base + ['key' => 'closed', 'label' => 'Not available', 'pill' => 'pill--rejected',
         'summary' => 'Not taking tenants right now'];
+}
+
+/* ---------------------------------------------------------------------------
+ * Browse filters
+ *
+ * Browse, its "try instead" suggestions and the heart forms on its cards all
+ * rebuild the filters from known keys here, so nothing from the request is
+ * echoed into a URL unchecked.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * The browse filters that actually apply, from $_GET or a heart form's POST.
+ * Returns only the keys that are set: q, room_type, max_rent, page.
+ */
+function browse_filters(array $src, array $roomTypes)
+{
+    $filters = [];
+
+    $q = trim((string) ($src['q'] ?? ''));
+    if ($q !== '') {
+        $filters['q'] = mb_substr($q, 0, 100);
+    }
+
+    // An unrecognised room type is "no filter", not "no results".
+    $type = (int) ($src['room_type'] ?? 0);
+    if ($type > 0 && isset($roomTypes[$type])) {
+        $filters['room_type'] = $type;
+    }
+
+    // A budget of nothing, or less, is no budget at all.
+    $rent = $src['max_rent'] ?? '';
+    if (is_numeric($rent) && (float) $rent > 0) {
+        $filters['max_rent'] = (int) ceil((float) $rent);
+    }
+
+    $page = (int) ($src['page'] ?? 1);
+    if ($page > 1) {
+        $filters['page'] = min($page, 500);
+    }
+
+    return $filters;
+}
+
+/** Browse at the given filters, as a path for base_url() or redirect(). */
+function browse_path(array $filters, $fragment = '')
+{
+    return 'boarder/browse.php' . ($filters ? '?' . http_build_query($filters) : '')
+        . ($fragment !== '' ? '#' . $fragment : '');
+}
+
+/* ---------------------------------------------------------------------------
+ * Small display helpers for the public pages
+ * ------------------------------------------------------------------------ */
+
+/**
+ * True when an uploaded photo is really on disk. A database row can outlive
+ * its file, and a missing picture drawn as a broken image looks worse than
+ * the placeholder that stands in for no picture at all.
+ */
+function photo_on_disk($path)
+{
+    $path = ltrim((string) $path, '/');
+    return $path !== '' && is_file(dirname(__DIR__, 2) . '/' . $path);
+}
+
+/**
+ * An address without the ", Baybay City, Leyte" every listing shares, for the
+ * cards: on a phone the tail used to push the barangay itself out of view.
+ */
+function short_address($address)
+{
+    $short = preg_replace('/,\s*Baybay(\s+City)?(,\s*Leyte)?(,\s*Philippines)?\s*$/i', '', trim((string) $address));
+    return $short !== '' ? $short : trim((string) $address);
+}
+
+/* ---------------------------------------------------------------------------
+ * After sign-in: back where they were, with the save that sent them there
+ *
+ * A guest who taps Save is sent to log in. The page they were on, and the
+ * listing they meant to save, wait in the session; start_user_session()
+ * empties the session, so they are taken out before it runs and acted on
+ * after. Only pages on this short list can be returned to, so the address
+ * cannot be pointed anywhere else.
+ * ------------------------------------------------------------------------ */
+
+/** A path a sign-in may return to, or '' when it is not one of ours. */
+function safe_return_path($path)
+{
+    $path = (string) $path;
+    return preg_match('#^(index\.php|boarder/(view_listing|browse|saved)\.php)(\?[\w\-=&%.+~]*)?$#', $path) ? $path : '';
+}
+
+/** Remember where to go, and what to save, once the visitor has signed in. */
+function remember_after_login($next, $saveListingId = 0)
+{
+    $next = safe_return_path($next);
+    if ($next === '') {
+        return;
+    }
+    $_SESSION['after_login'] = [
+        'next' => $next,
+        'save' => (int) $saveListingId,
+        'set_at' => time(),
+    ];
+}
+
+/** Take the pending return out of the session, before it is emptied. */
+function take_after_login()
+{
+    $after = $_SESSION['after_login'] ?? null;
+    unset($_SESSION['after_login']);
+    // Half an hour is plenty to sign in; older than that, it is forgotten.
+    if (!is_array($after) || time() - (int) ($after['set_at'] ?? 0) > 1800) {
+        return null;
+    }
+    return $after;
+}
+
+/**
+ * Finish what the visitor came to sign in for, and say where to send them.
+ * The save only happens for a boarder, and only for a listing that is live.
+ */
+function complete_after_login($after, $welcome)
+{
+    global $pdo;
+    if (!$after) {
+        flash_set($welcome, 'success');
+        return 'index.php';
+    }
+
+    $message = $welcome;
+    if (!empty($after['save']) && can_save_listings()) {
+        $check = $pdo->prepare(
+            "SELECT name FROM boarding_houses
+              WHERE boarding_house_id = ? AND moderation_status = 'approved' AND deleted_at IS NULL"
+        );
+        $check->execute([(int) $after['save']]);
+        $name = $check->fetchColumn();
+        if ($name !== false) {
+            $pdo->prepare('INSERT IGNORE INTO favorites (user_id, boarding_house_id) VALUES (?, ?)')
+                ->execute([$_SESSION['user_id'], (int) $after['save']]);
+            $message = $welcome . ' ' . $name . ' is in your saved listings.';
+        }
+    }
+    flash_set($message, 'success');
+    return safe_return_path($after['next']) ?: 'index.php';
 }
 
 /**
@@ -1829,6 +1982,16 @@ function saved_listing_ids($userId)
 function can_save_listings()
 {
     return is_logged_in() && current_role() === 'boarder';
+}
+
+/**
+ * True when the heart should be drawn: for a boarder, and for a guest, whose
+ * tap sends them to log in and then saves the listing. Landlords and
+ * administrators cannot save, so they are never shown a heart that refuses.
+ */
+function shows_save_heart()
+{
+    return !is_logged_in() || can_save_listings();
 }
 
 /* ---------------------------------------------------------------------------

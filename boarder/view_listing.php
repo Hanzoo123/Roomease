@@ -60,7 +60,9 @@ if (!$listing) {
   exit;
 }
 
-// House photos first (cover, then the rest), then each room's photos.
+// House photos first (cover, then the rest), then each room's photos. A row
+// whose file is gone is dropped here, so it is never drawn as a broken image
+// or opened in the viewer as a black screen.
 $photosStmt = $pdo->prepare(
   'SELECT * FROM images WHERE boarding_house_id = ?
     ORDER BY room_id IS NULL DESC, room_id, is_primary DESC, image_id ASC'
@@ -69,6 +71,9 @@ $photosStmt->execute([$listingId]);
 $housePhotos = [];
 $roomPhotos = [];
 foreach ($photosStmt->fetchAll() as $p) {
+  if (!photo_on_disk($p['image_path'])) {
+    continue;
+  }
   if ($p['room_id'] === null) {
     $housePhotos[] = $p;
   } else {
@@ -233,10 +238,9 @@ $metaDescription = trim((string) $listing['description']) !== ''
   ? mb_substr(trim(preg_replace('/\s+/', ' ', $listing['description'])), 0, 155)
   : $listing['name'] . ' in ' . $listing['address'] . '. '
     . ($rooms ? count($rooms) . ' room type' . (count($rooms) === 1 ? '' : 's') . ' listed on RoomEase.' : 'Listed on RoomEase.');
-// Only a photo that is really on disk: a database row can outlive its file,
-// and a preview pointing at a missing picture shows worse than no picture,
-// so the RoomEase card stands in for it.
-if ($galleryPhotos && is_file(__DIR__ . '/../' . ltrim($photos[0]['image_path'], '/'))) {
+// $photos only holds photos that are really on disk, so a preview never
+// points at a missing picture; without one, the RoomEase card stands in.
+if ($galleryPhotos) {
   $ogImage = absolute_url(ltrim($photos[0]['image_path'], '/'));
 }
 $ogType = 'article';
@@ -334,7 +338,11 @@ require __DIR__ . '/../includes/layouts/header.php';
             </div>
           <?php endif; ?>
 
-          <ul class="room-grid">
+          <?php /* With room photos, rooms are photo tiles. Without any, which is most
+                   listings today, an empty picture box per room only made the
+                   section taller, so each room is a compact row instead: the same
+                   facts, rent and state on the right. */ ?>
+          <ul class="<?= $roomPhotos ? 'room-grid' : 'room-list' ?>">
             <?php foreach ($rooms as $room): ?>
               <?php
               $state = room_state($room);
@@ -342,6 +350,30 @@ require __DIR__ . '/../includes/layouts/header.php';
               $taken = min($capacity, (int) $room['slots_taken']);
               $set = $photoSet($roomPhotos[(int) $room['room_id']] ?? [], $room['name']);
               ?>
+              <?php if (!$roomPhotos): ?>
+                <li class="room-row room-row--<?= h($state['key']) ?>" data-room-type-name="<?= h($room['room_type_name']) ?>">
+                  <div class="room-row-main">
+                    <h3><?= h($room['name']) ?></h3>
+                    <p class="room-row-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></p>
+                    <?php if (!empty($room['description'])): ?>
+                      <p class="room-row-desc"><?= h($room['description']) ?></p>
+                    <?php endif; ?>
+                    <div class="room-row-status">
+                      <?php if ($capacity > 1 && $state['key'] !== 'closed'): ?>
+                        <div class="slots" role="img" aria-label="<?= $taken ?> of <?= $capacity ?> slots taken">
+                          <span class="slots-fill" style="width: <?= round($taken / $capacity * 100) ?>%"></span>
+                        </div>
+                      <?php endif; ?>
+                      <p class="room-tile-note room-tile-note--<?= h($state['key']) ?>"><?= h($state['note']) ?></p>
+                    </div>
+                  </div>
+                  <div class="room-row-side">
+                    <p class="room-row-rent"><?= peso_round($room['monthly_rent']) ?> <span>/ month</span></p>
+                    <span class="pill <?= h($state['pill']) ?>"><?= h($state['label']) ?></span>
+                  </div>
+                </li>
+                <?php continue; ?>
+              <?php endif; ?>
               <li class="room-tile room-tile--<?= h($state['key']) ?>" data-room-type-name="<?= h($room['room_type_name']) ?>">
                 <?php if ($set): ?>
                   <button type="button" class="room-tile-media" data-photo-set="<?= h(json_encode($set)) ?>"
@@ -424,14 +456,13 @@ require __DIR__ . '/../includes/layouts/header.php';
 
       <section class="detail-section">
         <h2>What to expect during your stay</h2>
-        <ul class="term-grid">
+        <?php /* One term to a row, label on the left and the landlord's answer on
+                 the right: a single term used to fill a whole tile. */ ?>
+        <ul class="term-rows">
           <?php foreach ($terms as [$termIcon, $termLabel, $termValue]): ?>
-            <li class="term-tile">
-              <span class="term-icon"><?= icon($termIcon, 18) ?></span>
-              <span>
-                <span class="term-label"><?= h($termLabel) ?></span>
-                <strong><?= h($termValue) ?></strong>
-              </span>
+            <li>
+              <span class="term-rows-label"><?= icon($termIcon, 16) ?><?= h($termLabel) ?></span>
+              <strong><?= h($termValue) ?></strong>
             </li>
           <?php endforeach; ?>
         </ul>

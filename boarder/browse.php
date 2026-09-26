@@ -4,86 +4,206 @@ require __DIR__ . '/../includes/core/functions.php';
 require __DIR__ . '/../includes/components/listing_card.php';
 require __DIR__ . '/../includes/components/search_bar.php';
 
-$q = trim($_GET['q'] ?? '');
-// The filter is a room_type_id. An unrecognised value is treated as "no
-// filter" rather than as no results.
+// Every filter is rebuilt from known keys: an unrecognised room type or a
+// budget of nothing is simply no filter, never "no results".
 $roomTypes = room_type_options();
-$roomType = $_GET['room_type'] ?? '';
-$roomType = ($roomType !== '' && isset($roomTypes[(int) $roomType])) ? (int) $roomType : '';
-$maxRent = $_GET['max_rent'] ?? '';
+$filters = browse_filters($_GET, $roomTypes);
+$q = $filters['q'] ?? '';
+$roomType = $filters['room_type'] ?? '';
+$maxRent = $filters['max_rent'] ?? '';
+$searchFilters = array_diff_key($filters, ['page' => 1]);
+$filtered = (bool) $searchFilters;
 
-// LIVE_LISTING_WHERE also requires at least one room.
-$where = [LIVE_LISTING_WHERE];
-$params = [];
-
-if ($q !== '') {
-  $where[] = '(bh.name LIKE ? OR bh.address LIKE ?)';
-  $like = '%' . $q . '%';
-  $params[] = $like;
-  $params[] = $like;
-}
-
-// Room type and budget match a room inside the listing, not the listing as a
-// whole: a listing appears when at least one of its open rooms fits. Full
-// rooms still count, so a fully occupied listing that fits is still found;
-// it is simply sorted after listings with space.
-$roomMatch = [];
-if ($roomType !== '') {
-  $roomMatch[] = 'fr.room_type_id = ?';
-  $params[] = $roomType;
-}
-if ($maxRent !== '' && is_numeric($maxRent)) {
-  $roomMatch[] = 'fr.monthly_rent <= ?';
-  $params[] = $maxRent;
-}
-if ($roomMatch) {
-  $where[] = 'EXISTS (SELECT 1 FROM rooms fr WHERE fr.boarding_house_id = bh.boarding_house_id AND fr.is_open = 1 AND '
-    . implode(' AND ', $roomMatch) . ')';
-}
+/**
+ * The WHERE clause and its parameters for a set of filters. Browse, and each
+ * of the "try instead" suggestions under an empty result, count with this, so
+ * a suggestion's number is exactly what following it shows.
+ *
+ * Room type and budget match a room inside the listing, not the listing as a
+ * whole: a listing appears when at least one of its open rooms fits. Full
+ * rooms still count, so a fully occupied listing that fits is still found;
+ * it is simply sorted after listings with space.
+ */
+$whereFor = function (array $f) {
+  // LIVE_LISTING_WHERE also requires at least one room.
+  $where = [LIVE_LISTING_WHERE];
+  $params = [];
+  if (isset($f['q'])) {
+    $where[] = '(bh.name LIKE ? OR bh.address LIKE ?)';
+    $like = '%' . $f['q'] . '%';
+    $params[] = $like;
+    $params[] = $like;
+  }
+  $roomMatch = [];
+  if (isset($f['room_type'])) {
+    $roomMatch[] = 'fr.room_type_id = ?';
+    $params[] = $f['room_type'];
+  }
+  if (isset($f['max_rent'])) {
+    $roomMatch[] = 'fr.monthly_rent <= ?';
+    $params[] = $f['max_rent'];
+  }
+  if ($roomMatch) {
+    $where[] = 'EXISTS (SELECT 1 FROM rooms fr WHERE fr.boarding_house_id = bh.boarding_house_id AND fr.is_open = 1 AND '
+      . implode(' AND ', $roomMatch) . ')';
+  }
+  return [implode(' AND ', $where), $params];
+};
 
 // LIVE_LANDLORD_JOIN keeps listings out of browse when their landlord has been
 // deactivated or removed. Browse used to look only at the listing, so a
 // deactivated landlord's rooms stayed advertised.
-$countSql = "SELECT COUNT(*) FROM boarding_houses bh " . LIVE_LANDLORD_JOIN
-  . " WHERE " . implode(' AND ', $where);
-$countStmt = $pdo->prepare($countSql);
-$countStmt->execute($params);
-$totalCount = (int) $countStmt->fetchColumn();
+$countFor = function (array $f) use ($pdo, $whereFor) {
+  [$where, $params] = $whereFor($f);
+  $stmt = $pdo->prepare('SELECT COUNT(*) FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' WHERE ' . $where);
+  $stmt->execute($params);
+  return (int) $stmt->fetchColumn();
+};
+
+$totalCount = $countFor($searchFilters);
 
 // Rooms come in groups of $perPage. ?page=N shows every group up to N, so the
-// "Show more rooms" link works with JavaScript off, and a saved heart that
-// reloads the page brings back everything the boarder had already opened.
+// "Show more" link works with JavaScript off, and a saved heart that reloads
+// the page brings back everything the boarder had already opened.
 $perPage = 6;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int) $_GET['page'] : 1;
 $totalPages = max(1, (int) ceil($totalCount / $perPage));
-$page = max(1, min($page, $totalPages));
+$page = max(1, min($filters['page'] ?? 1, $totalPages));
+
+// With a room filter on, each listing also carries the rent of the room that
+// matched, so the card quotes the Double Sharing room the boarder asked for
+// rather than the listing's cheapest room of any kind. A room with a slot free
+// is quoted before a full one.
+$matchJoin = '';
+$matchSelect = '';
+$matchParams = [];
+$matchConds = [];
+if ($roomType !== '') {
+  $matchConds[] = 'mr.room_type_id = ?';
+  $matchParams[] = $roomType;
+}
+if ($maxRent !== '') {
+  $matchConds[] = 'mr.monthly_rent <= ?';
+  $matchParams[] = $maxRent;
+}
+if ($matchConds) {
+  $matchSelect = ', m.match_rent, m.match_count';
+  $matchJoin = 'LEFT JOIN (
+      SELECT mr.boarding_house_id,
+             COALESCE(MIN(CASE WHEN mr.slots_taken < mr.capacity THEN mr.monthly_rent END), MIN(mr.monthly_rent)) AS match_rent,
+             COUNT(*) AS match_count
+        FROM rooms mr
+       WHERE mr.is_open = 1 AND ' . implode(' AND ', $matchConds) . '
+       GROUP BY mr.boarding_house_id
+    ) m ON m.boarding_house_id = bh.boarding_house_id';
+}
 
 // Listings with a room available first, then fully occupied ones, newest
 // first within each.
-$sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ", " . COVER_PHOTO_SELECT . "
+[$where, $whereParams] = $whereFor($searchFilters);
+$sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ", " . COVER_PHOTO_SELECT . $matchSelect . "
         FROM boarding_houses bh
         " . LIVE_LANDLORD_JOIN . "
         " . room_summary_join(true) . "
-        WHERE " . implode(' AND ', $where) . "
+        " . $matchJoin . "
+        WHERE " . $where . "
         ORDER BY rs.rooms_available > 0 DESC, bh.created_at DESC, bh.boarding_house_id DESC
         LIMIT " . (int) ($perPage * $page);
 $stmt = $pdo->prepare($sql);
-$stmt->execute($params);
+$stmt->execute(array_merge($matchParams, $whereParams));
 $listings = $stmt->fetchAll();
+if ($roomType !== '') {
+  foreach ($listings as &$row) {
+    $row['match_type'] = $roomTypes[$roomType];
+  }
+  unset($row);
+}
 
-$savedIds  = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
-$filtered = $q !== '' || $roomType !== '' || ($maxRent !== '' && is_numeric($maxRent));
-
-// The filters that actually applied, carried into "Show more" and the heart forms.
-$filters = array_filter([
-  'q' => $q,
-  'room_type' => $roomType,
-  'max_rent' => is_numeric($maxRent) ? $maxRent : '',
-], function ($v) {
-  return $v !== '';
-});
+$savedIds = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
 $shown = count($listings);
-$moreUrl = '?' . http_build_query($filters + ['page' => $page + 1]) . '#chunk-' . ($page + 1);
+$nextCount = min($perPage, $totalCount - $shown);
+$moreUrl = base_url(browse_path($searchFilters + ['page' => $page + 1], 'chunk-' . ($page + 1)));
+
+/* ---------------------------------------------------------------------------
+ * The search in words, each part removable, and what to try when nothing
+ * matched. The suggestions only ever quote real counts and real rents.
+ * ------------------------------------------------------------------------ */
+$chips = [];
+if ($q !== '') {
+  $chips[] = ['label' => '“' . $q . '”', 'drop' => 'q'];
+}
+if ($roomType !== '') {
+  $chips[] = ['label' => $roomTypes[$roomType], 'drop' => 'room_type'];
+}
+if ($maxRent !== '') {
+  $chips[] = ['label' => 'Up to ' . peso_round($maxRent), 'drop' => 'max_rent'];
+}
+
+$emptyMessage = '';
+$suggestions = [];
+if (!$listings && $filtered) {
+  $typeName = $roomType !== '' ? $roomTypes[$roomType] : '';
+  $budget = $maxRent !== '' ? peso_round($maxRent) : '';
+  if ($typeName !== '' && $budget !== '') {
+    $roomPhrase = 'an open ' . $typeName . ' room for ' . $budget . ' or less';
+  } elseif ($typeName !== '') {
+    $roomPhrase = 'an open ' . $typeName . ' room';
+  } elseif ($budget !== '') {
+    $roomPhrase = 'an open room for ' . $budget . ' or less';
+  } else {
+    $roomPhrase = '';
+  }
+
+  if ($q !== '' && $roomPhrase !== '') {
+    $emptyMessage = 'No boarding house matching “' . $q . '” has ' . $roomPhrase . '.';
+  } elseif ($q !== '') {
+    $emptyMessage = 'No boarding house name or address matches “' . $q . '”.';
+  } else {
+    $emptyMessage = 'No boarding house has ' . $roomPhrase . ' right now.';
+  }
+
+  // The lowest rent that would match everything else the boarder asked for.
+  if ($maxRent !== '') {
+    $rentFilters = array_diff_key($searchFilters, ['max_rent' => 1]);
+    [$rentWhere, $rentParams] = $whereFor($rentFilters);
+    $rentSql = 'SELECT MIN(r.monthly_rent) FROM rooms r
+                  JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id ' . LIVE_LANDLORD_JOIN . '
+                 WHERE r.is_open = 1 AND ' . $rentWhere
+      . ($roomType !== '' ? ' AND r.room_type_id = ?' : '');
+    $rentStmt = $pdo->prepare($rentSql);
+    $rentStmt->execute($roomType !== '' ? array_merge($rentParams, [$roomType]) : $rentParams);
+    $lowest = $rentStmt->fetchColumn();
+    if ($lowest !== false && $lowest !== null) {
+      $raised = $rentFilters + ['max_rent' => (int) ceil((float) $lowest)];
+      $n = $countFor($raised);
+      if ($n > 0) {
+        $suggestions[] = [
+          'href' => browse_path($raised, 'results'),
+          'label' => 'Rooms up to ' . peso_round(ceil((float) $lowest)),
+          'note' => 'the lowest ' . ($typeName !== '' ? $typeName . ' ' : '') . 'rent listed',
+          'count' => $n,
+        ];
+      }
+    }
+  }
+  if ($roomType !== '' && count($chips) > 1) {
+    $anyType = array_diff_key($searchFilters, ['room_type' => 1]);
+    $n = $countFor($anyType);
+    if ($n > 0) {
+      $suggestions[] = ['href' => browse_path($anyType, 'results'), 'label' => 'Any room type', 'note' => '', 'count' => $n];
+    }
+  }
+  if ($q !== '' && count($chips) > 1) {
+    $noWords = array_diff_key($searchFilters, ['q' => 1]);
+    $n = $countFor($noWords);
+    if ($n > 0) {
+      $suggestions[] = ['href' => browse_path($noWords, 'results'), 'label' => 'Without “' . $q . '”', 'note' => '', 'count' => $n];
+    }
+  }
+  $all = $countFor([]);
+  if ($all > 0) {
+    $suggestions[] = ['href' => browse_path([], 'results'), 'label' => 'Every boarding house', 'note' => '', 'count' => $all];
+  }
+}
 
 $pageTitle = 'Browse rooms';
 $metaDescription = 'Browse every approved boarding house in Baybay City, Leyte. '
@@ -95,9 +215,11 @@ $band = [
 require __DIR__ . '/../includes/layouts/header.php';
 
 // The filter bar carries the #listings anchor, so links from the home page
-// land with the search form and the first rooms in view.
+// land with the search form and the first rooms in view. A search submitted
+// from it lands on #results, the first thing that changed.
 render_search_bar([
   'id' => 'listings',
+  'anchor' => 'results',
   'room_types' => $roomTypes,
   'q' => $q,
   'room_type' => $roomType,
@@ -105,13 +227,44 @@ render_search_bar([
 ]);
 ?>
 
-<div class="section-head">
-  <h2><?= $filtered ? 'Matching boarding houses' : 'All boarding houses' ?></h2>
-  <span class="count-tag"><?= $totalCount ?> found</span>
+<div class="section-head" id="results">
+  <h2><?= !$filtered ? 'All boarding houses' : ($totalCount ? 'Matching boarding houses' : 'No matches') ?></h2>
+  <?php if ($totalCount): ?>
+    <span class="count-tag"><?= $totalCount ?> <?= $filtered ? 'found' : 'listed' ?></span>
+  <?php endif; ?>
 </div>
 
+<?php if ($chips): ?>
+  <ul class="filter-summary" aria-label="Your search">
+    <?php foreach ($chips as $chip): ?>
+      <li>
+        <a class="filter-chip" href="<?= h(base_url(browse_path(array_diff_key($searchFilters, [$chip['drop'] => 1]), 'results'))) ?>"
+          aria-label="Remove <?= h($chip['label']) ?> from your search">
+          <?= h($chip['label']) ?><?= icon('x', 14) ?>
+        </a>
+      </li>
+    <?php endforeach; ?>
+    <li><a class="filter-clear" href="<?= h(base_url(browse_path([], 'results'))) ?>">Clear all</a></li>
+  </ul>
+<?php endif; ?>
+
 <?php if (!$listings): ?>
-  <p class="rooms-empty">No boarding house has an open room that matches. Try a higher budget or a different room type.</p>
+  <div class="rooms-empty rooms-empty--search">
+    <p class="rooms-empty-lead"><?= h($emptyMessage ?: 'No boarding houses are listed right now.') ?></p>
+    <?php if ($suggestions): ?>
+      <p class="rooms-empty-try">Try instead:</p>
+      <ul class="empty-suggestions">
+        <?php foreach ($suggestions as $s): ?>
+          <li>
+            <a href="<?= h(base_url($s['href'])) ?>">
+              <span><?= h($s['label']) ?><?php if ($s['note'] !== ''): ?>, <em><?= h($s['note']) ?></em><?php endif; ?></span>
+              <span class="empty-count"><?= (int) $s['count'] ?> <?= $s['count'] === 1 ? 'boarding house' : 'boarding houses' ?></span>
+            </a>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+  </div>
 <?php else: ?>
   <?php foreach (array_chunk($listings, $perPage) as $i => $chunk): ?>
     <?php
@@ -119,16 +272,16 @@ render_search_bar([
     $from = $i * $perPage + 1;
     $to = $from + count($chunk) - 1;
     ?>
-    <?php /* Each group is its own grid so "Show more rooms" can lift exactly one
+    <?php /* Each group is its own grid so "Show more" can lift exactly one
              group out of the next page; the gap between grids matches the gap
              inside them, so the groups read as one continuous grid. */ ?>
     <section class="card-chunk" id="chunk-<?= $n ?>" aria-label="Boarding houses <?= $from ?>–<?= $to ?> of <?= $totalCount ?>">
       <div class="card-grid">
         <?php foreach ($chunk as $l): ?>
-          <?php render_listing_card($l, can_save_listings() ? [
+          <?php render_listing_card($l, shows_save_heart() ? [
             'saved' => isset($savedIds[$l['boarding_house_id']]),
             'return' => 'browse',
-            'fields' => $filters + ['page' => (int) $page],
+            'fields' => $searchFilters + ['page' => (int) $page],
           ] : null); ?>
         <?php endforeach; ?>
       </div>
@@ -137,7 +290,7 @@ render_search_bar([
 
   <?php if ($shown < $totalCount): ?>
     <div class="show-more">
-      <a href="<?= h($moreUrl) ?>" class="btn btn-ghost js-show-more">Show more</a>
+      <a href="<?= h($moreUrl) ?>" class="btn btn-ghost js-show-more">Show <?= $nextCount ?> more</a>
       <p class="count-tag">Showing <?= $shown ?> of <?= $totalCount ?></p>
     </div>
   <?php elseif ($totalCount > $perPage): ?>

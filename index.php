@@ -65,6 +65,7 @@ require __DIR__ . '/includes/layouts/header.php';
 <div class="container seam">
   <?php render_search_bar([
       'action' => base_url('boarder/browse.php'),
+      'anchor' => 'results',
       'room_types' => room_type_options(),
   ]); ?>
 </div>
@@ -83,7 +84,7 @@ require __DIR__ . '/includes/layouts/header.php';
     <?php else: ?>
       <div class="card-grid">
         <?php foreach ($newest as $l): ?>
-          <?php render_listing_card($l, can_save_listings() ? [
+          <?php render_listing_card($l, shows_save_heart() ? [
               'saved' => isset($savedIds[$l['boarding_house_id']]),
               'return' => 'home',
           ] : null); ?>
@@ -98,7 +99,7 @@ require __DIR__ . '/includes/layouts/header.php';
           <?php foreach ($typeCounts as $type): ?>
             <li>
               <?php if ((int) $type['listings'] > 0): ?>
-                <a href="<?= base_url('boarder/browse.php?room_type=' . (int) $type['room_type_id']) ?>">
+                <a href="<?= base_url('boarder/browse.php?room_type=' . (int) $type['room_type_id'] . '#results') ?>">
                   <?= h($type['room_type_name']) ?><span class="type-count"><?= (int) $type['listings'] ?></span>
                 </a>
               <?php else: ?>

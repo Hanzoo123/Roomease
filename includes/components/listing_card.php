@@ -4,8 +4,11 @@
  * the three cannot drift apart.
  *
  * $l needs the boarding_houses columns, cover_photo (COVER_PHOTO_SELECT), and
- * the room figures from ROOM_SUMMARY_COLUMNS / room_summary_join(). $save is
- * null when the viewer cannot save listings; otherwise:
+ * the room figures from ROOM_SUMMARY_COLUMNS / room_summary_join(). Browse
+ * adds match_rent, match_count and match_type when a room filter is on, so the
+ * card quotes the room that matched rather than the cheapest room of any kind.
+ *
+ * $save is null when the viewer cannot save listings; otherwise:
  *
  *   'saved'   bool    whether this listing is already saved
  *   'return'  string  where favorite_action.php sends a no-JavaScript submit
@@ -13,8 +16,9 @@
  *   'drop'    bool    remove the card when it is unsaved (the saved page)
  *
  * The title link is stretched over the whole card, so the card is one link to
- * a screen reader and one big target to a thumb. "View details" is drawn as a
- * button but is part of that same link; the heart sits above it.
+ * a screen reader and one big target to a thumb. Its accessible name carries
+ * the price and what is free, because the picture, the pill and "View details"
+ * are all hidden from screen readers; the heart sits above the link.
  */
 require_once __DIR__ . '/icons.php';
 
@@ -23,21 +27,49 @@ function render_listing_card(array $l, ?array $save = null)
     $id = (int) $l['boarding_house_id'];
     $avail = listing_availability($l);
     $saved = $save && !empty($save['saved']);
-    $types = (string) ($l['room_types'] ?? '');
+    $types = (string) ($l['open_room_types'] ?? $l['room_types'] ?? '');
+    $photo = !empty($l['cover_photo']) && photo_on_disk($l['cover_photo']);
+
+    // The rent to quote: the matching room's when browse filtered by room, the
+    // listing's cheapest free room otherwise.
+    $matchRent = $l['match_rent'] ?? null;
+    if ($matchRent !== null) {
+        $rent = $matchRent;
+        $many = (int) ($l['match_count'] ?? 1) > 1;
+        $type = $l['match_type'] ?? '';
+        $rentLabel = $type !== '' ? ($many ? $type . ' from' : $type) : ($many ? 'From' : '');
+    } else {
+        $rent = $avail['rent_from'];
+        $rentLabel = $avail['room_count'] > 1 ? 'From' : '';
+    }
+
+    // What is free: the beds still open, where there are any; otherwise the
+    // listing's own summary, in the same words as its page.
+    $slots = (int) ($l['slots_left'] ?? 0);
+    $meta = $avail['key'] === 'available' && $slots > 0
+        ? $slots . ' ' . ($slots === 1 ? 'slot' : 'slots') . ' left'
+        : $avail['summary'];
+
+    $spoken = [];
+    if ($rent !== null) {
+        $spoken[] = ($rentLabel !== '' ? $rentLabel . ' ' : '') . peso_round($rent) . ' a month';
+    }
+    $spoken[] = $meta;
     ?>
     <article class="room-card room-card--<?= h($avail['key']) ?>">
       <div class="room-card-media">
-        <?php if (!empty($l['cover_photo'])): ?>
+        <?php if ($photo): ?>
           <img src="<?= h(base_url($l['cover_photo'])) ?>" alt="" loading="lazy">
         <?php else: ?>
-          <?php /* No photo yet: the room types hold the space instead. */ ?>
-          <div class="room-card-placeholder">
-            <?= icon('home', 40) ?>
-            <span><?= h($types !== '' ? explode(', ', $types)[0] : 'Boarding house') ?></span>
+          <?php /* No photo yet: the room type holds the space, quietly, so the
+                   listing's own name still reads first. */ ?>
+          <div class="room-card-placeholder" aria-hidden="true">
+            <?= icon('home', 34) ?>
+            <span><?= h(($l['match_type'] ?? '') ?: ($types !== '' ? explode(', ', $types)[0] : 'Boarding house')) ?></span>
           </div>
         <?php endif; ?>
 
-        <span class="pill pill--on-photo <?= h($avail['pill']) ?>"><?= h($avail['label']) ?></span>
+        <span class="pill pill--on-photo <?= h($avail['pill']) ?>" aria-hidden="true"><?= h($avail['label']) ?></span>
 
         <?php if ($save): ?>
           <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form"
@@ -49,9 +81,9 @@ function render_listing_card(array $l, ?array $save = null)
             <?php foreach (($save['fields'] ?? []) as $name => $value): ?>
               <input type="hidden" name="<?= h($name) ?>" value="<?= h($value) ?>">
             <?php endforeach; ?>
-            <button type="submit" class="save-btn <?= $saved ? 'is-saved' : '' ?>"
+            <button type="submit" class="save-btn <?= $saved ? 'is-saved' : '' ?>" data-name="<?= h($l['name']) ?>"
               title="<?= $saved ? 'Remove from saved' : 'Save this listing' ?>"
-              aria-label="<?= $saved ? 'Remove from saved' : 'Save this listing' ?>"
+              aria-label="<?= $saved ? 'Remove ' . h($l['name']) . ' from saved' : 'Save ' . h($l['name']) ?>"
               aria-pressed="<?= $saved ? 'true' : 'false' ?>">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $saved ? 'currentColor' : 'none' ?>"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -64,23 +96,23 @@ function render_listing_card(array $l, ?array $save = null)
 
       <div class="room-card-body">
         <h3 class="room-card-title">
-          <a class="room-card-link" href="<?= base_url('boarder/view_listing.php?id=' . $id) ?>"><?= h($l['name']) ?></a>
+          <a class="room-card-link" href="<?= base_url('boarder/view_listing.php?id=' . $id) ?>"><?= h($l['name']) ?><span class="sr-only">, <?= h(implode(', ', $spoken)) ?></span></a>
         </h3>
-        <p class="room-card-addr"><?= icon('pin', 15) ?><span><?= h($l['address']) ?></span></p>
+        <p class="room-card-addr" title="<?= h($l['address']) ?>"><?= icon('pin', 15) ?><span><?= h(short_address($l['address'])) ?></span></p>
 
-        <?php if ($avail['rent_from'] !== null): ?>
-          <p class="room-card-price">
-            <?php if ($avail['room_count'] > 1): ?><span class="room-card-from">From</span><?php endif; ?>
-            <?= peso_round($avail['rent_from']) ?> <span>/ month</span>
+        <?php if ($rent !== null): ?>
+          <p class="room-card-price" aria-hidden="true">
+            <?php if ($rentLabel !== ''): ?><span class="room-card-from"><?= h($rentLabel) ?></span><?php endif; ?>
+            <?= peso_round($rent) ?> <span>/ month</span>
           </p>
         <?php endif; ?>
         <?php if ($types !== ''): ?>
           <p class="room-card-type"><?= h($types) ?></p>
         <?php endif; ?>
 
-        <div class="room-card-foot">
-          <span class="room-card-meta"><?= icon('door', 16) ?><?= h($avail['summary']) ?></span>
-          <span class="btn btn-primary btn-sm room-card-cta" aria-hidden="true">View details <?= icon('chevron-right', 15) ?></span>
+        <div class="room-card-foot" aria-hidden="true">
+          <span class="room-card-meta"><?= icon('door', 16) ?><?= h($meta) ?></span>
+          <span class="room-card-cta">View details <?= icon('chevron-right', 15) ?></span>
         </div>
       </div>
     </article>
