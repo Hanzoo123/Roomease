@@ -74,12 +74,12 @@ $navCurrent = function ($path) {
         </button>
 
         <nav class="nav" id="site-nav" aria-label="Main">
-          <a href="<?= base_url('index.php') ?>"<?= $navCurrent('index.php') ?>>Home</a>
+          <?php /* ?view=home: index.php otherwise sends landlords and
+                   administrators on to their panel. */ ?>
+          <a href="<?= base_url('index.php') . (is_logged_in() && current_role() !== 'boarder' ? '?view=home' : '') ?>"<?= $navCurrent('index.php') ?>>Home</a>
           <a href="<?= base_url('boarder/browse.php') ?>"<?= $navCurrent('boarder/browse.php') ?>>Find Place to Stay</a>
           <?php if (is_logged_in()): ?>
-            <?php if (current_role() === 'landlord'): ?>
-              <a href="<?= base_url('landlord/dashboard.php') ?>">My listings</a>
-            <?php elseif (is_admin()): ?>
+            <?php if (is_admin()): ?>
               <a href="<?= base_url('admin/dashboard.php') ?>">Admin panel</a>
             <?php elseif (current_role() === 'boarder'): ?>
               <a href="<?= base_url('boarder/saved.php') ?>"<?= $navCurrent('boarder/saved.php') ?>>Saved</a>
@@ -96,7 +96,7 @@ $navCurrent = function ($path) {
             <a href="<?= base_url('auth/profile.php') ?>" class="nav-extra"<?= $navCurrent('auth/profile.php') ?>>Profile</a>
             <a href="<?= base_url('auth/logout.php') ?>">Log out</a>
             <?php if (current_role() === 'landlord'): ?>
-              <a href="<?= base_url('landlord/add_listing.php') ?>" class="btn-nav btn-nav--solid">Add listing</a>
+              <a href="<?= base_url('landlord/dashboard.php') ?>" class="btn-nav btn-nav--accent">Dashboard</a>
             <?php endif; ?>
           <?php else: ?>
             <a href="<?= base_url('auth/login.php') ?>" class="btn-nav btn-nav--solid"<?= $navCurrent('auth/login.php') ?>>Log in</a>

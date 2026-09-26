@@ -358,7 +358,7 @@ main:focus {
   margin: 0 6px;
 }
 
-/* Log in (and a landlord's Add listing) is solid forest; Sign up is the
+/* Log in is solid forest; Sign up, and a landlord.s Dashboard, are the
    marigold, with the same dark ink as Search and Call, since white on
    marigold would not read. */
 .nav .btn-nav {

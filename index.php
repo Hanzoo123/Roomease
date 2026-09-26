@@ -14,7 +14,9 @@ require __DIR__ . '/includes/core/functions.php';
 require __DIR__ . '/includes/components/listing_card.php';
 require __DIR__ . '/includes/components/search_bar.php';
 
-if (is_logged_in()) {
+// The header's Home link asks for the home page itself (?view=home), so a
+// landlord or administrator who clicks it sees the site, not their panel.
+if (is_logged_in() && ($_GET['view'] ?? '') !== 'home') {
     if (is_admin()) {
         redirect('admin/dashboard.php');
     }
