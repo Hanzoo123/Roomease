@@ -10,6 +10,10 @@
  * The status code has to be set by hand: Apache runs this page as a normal
  * request, and without this it would answer 200 and tell a search engine the
  * missing page exists.
+ *
+ * It stands alone, without the site header and footer: a lost visitor gets
+ * one message and two ways out, nothing else to read. Styles are the
+ * .notfound section of style.css.
  */
 require __DIR__ . '/config/db.php';
 require __DIR__ . '/includes/core/functions.php';
@@ -18,28 +22,36 @@ http_response_code(404);
 
 $pageTitle = 'Page not found';
 $metaSocial = false;
-$band = [
-  'title' => 'This page is not here',
-  'lede' => 'The address may be mistyped, or the listing it pointed to may have been taken down.',
-];
-require __DIR__ . '/includes/layouts/header.php';
 ?>
+<!DOCTYPE html>
+<html lang="en">
 
-<article class="legal panel panel-pad on-seam">
-  <p>
-    Nothing is wrong with your connection. The page simply does not exist at that address.
-    You can start again from the rooms, or go back to the home page.
-  </p>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FAF8F3">
+  <meta name="robots" content="noindex">
+  <title><?= h($pageTitle) ?> · RoomEase</title>
+  <?php require __DIR__ . '/includes/components/head_meta.php'; ?>
+  <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet"
+    href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/assets/css/style.css') ?: 0 ?>">
+</head>
 
-  <p style="display:flex; flex-wrap:wrap; gap:12px; margin-top:20px;">
-    <a class="btn btn-accent" href="<?= base_url('boarder/browse.php') ?>">Browse rooms</a>
-    <a class="btn btn-ghost" href="<?= base_url('index.php') ?>">Go to the home page</a>
-  </p>
+<body>
+  <main class="notfound">
+    <div class="notfound-inner">
+      <p class="notfound-code">404</p>
+      <h1 class="notfound-title">Page not found</h1>
+      <p class="notfound-lede">
+        The address may be mistyped, or the room it pointed to may have been taken down.
+      </p>
+      <div class="notfound-actions">
+        <a class="btn btn-accent" href="<?= base_url('boarder/browse.php') ?>">Browse rooms</a>
+        <a class="notfound-link" href="<?= base_url('index.php') ?>">Go to the home page &rarr;</a>
+      </div>
+    </div>
+  </main>
+</body>
 
-  <p class="legal-updated" style="margin-top:24px;">
-    If you followed a link from inside RoomEase and it brought you here,
-    <a href="<?= base_url('legal/contact.php') ?>">tell us</a> so we can fix it.
-  </p>
-</article>
-
-<?php require __DIR__ . '/includes/layouts/footer.php'; ?>
+</html>
