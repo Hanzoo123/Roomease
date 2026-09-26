@@ -1985,9 +1985,9 @@ a:hover {
    sidebar, grey hairlines, no tint in any surface. Each
    surface is one step lighter than the one it sits on. The
    figure and status fills keep their colours, since white on
-   each still reads. Green is left only as the accent: links,
-   and the text of the item you are on. Where --re-forest is a
-   fill, the text on it turns dark to match.
+   each still reads. The wordmark is the only green: the
+   accent (--re-forest) turns off-white, so links, active items
+   and primary buttons are white, with dark text on white fills.
    ========================================================= */
 html[data-theme="dark"] {
   color-scheme: dark;
@@ -1997,8 +1997,8 @@ html[data-theme="dark"] {
   --re-line: #2A2A2D;
   --re-line-strong: #3F3F44;
   --re-line-soft: #212124;
-  --re-forest: #8FCBB4;
-  --re-forest-deep: #B3DDCD;
+  --re-forest: #ECECEE;
+  --re-forest-deep: #FFFFFF;
   --re-leaf: #232326;
   --re-ink: #ECECEE;
   --re-ink-soft: #A9A9B0;
@@ -2082,12 +2082,22 @@ html[data-theme="dark"] .dark-mode .modal-footer {
 
 /* AdminLTE's dark mode repaints the current sidebar item its own blue, with a
    selector longer than the panel's; this one is longer still, so the item you
-   are on is a raised charcoal row with the green accent in its text. */
+   are on is a raised charcoal row in white. In the dark sidebar the wordmark
+   is the only green. */
 html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active,
 html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active:hover,
-html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active:focus {
-  color: var(--re-forest);
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active:focus,
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active .nav-icon {
+  color: var(--re-sidebar-bright);
   background-color: var(--re-sidebar-active-bg);
+}
+
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active .nav-icon {
+  background-color: transparent;
+}
+
+html[data-theme="dark"] .dark-mode .main-sidebar .user-panel .panel-user {
+  color: var(--re-sidebar-bright);
 }
 
 html[data-theme="dark"] .dark-mode .main-header .nav-link,
@@ -2140,7 +2150,7 @@ html[data-theme="dark"] .dark-mode .text-muted {
   color: var(--re-ink-soft) !important;
 }
 
-html[data-theme="dark"] .dark-mode a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) {
+html[data-theme="dark"] .dark-mode .content-wrapper a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) {
   color: var(--re-forest);
 }
 
@@ -2167,4 +2177,32 @@ html[data-theme="dark"] .dark-mode a:not(.btn):not(.nav-link):not(.dropdown-item
 .panel-theme-toggle:focus-visible {
   outline: 2px solid var(--re-forest);
   outline-offset: 2px;
+}
+
+/* The one green left in dark mode: the wordmark. */
+html[data-theme="dark"] .main-sidebar .brand-text {
+  color: #8FCBB4;
+}
+
+/* Primary buttons in dark mode: white with dark text. AdminLTE's dark mode
+   would paint them its own blue. */
+html[data-theme="dark"] .dark-mode .btn-primary,
+html[data-theme="dark"] .dark-mode .btn-outline-primary:hover,
+html[data-theme="dark"] .dark-mode .btn-outline-primary:not(:disabled):not(.disabled).active,
+html[data-theme="dark"] .dark-mode .page-item.active .page-link {
+  color: #111113;
+  background-color: var(--re-forest);
+  border-color: var(--re-forest);
+}
+
+html[data-theme="dark"] .dark-mode .btn-primary:hover,
+html[data-theme="dark"] .dark-mode .btn-primary:focus {
+  color: #111113;
+  background-color: #FFFFFF;
+  border-color: #FFFFFF;
+}
+
+html[data-theme="dark"] .dark-mode .btn-outline-primary {
+  color: var(--re-forest);
+  border-color: var(--re-line-strong);
 }
