@@ -184,27 +184,37 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <div class="card-header card-header--split">
               <div style="min-width: 0;">
                 <h3 class="card-title">Last 30 days</h3>
-                <span class="card-subtitle">New accounts and new listings, one bar per day.</span>
+                <span class="card-subtitle">New accounts and new listings, one day per step. Hover a day for its figures.</span>
               </div>
               <div class="card-tools">
                 <a href="<?= base_url('admin/reports.php') ?>" class="btn btn-tool">Reports</a>
               </div>
             </div>
             <div class="card-body">
-              <div class="row">
-                <div class="col-md-6 mb-3 mb-md-0">
-                  <div class="d-flex justify-content-between align-items-baseline">
-                    <span class="text-muted">New accounts</span>
-                    <strong class="tabular"><?= array_sum(array_column($days, 'accounts')) ?></strong>
-                  </div>
-                  <?= spark($days, 'accounts', 'New accounts', 'teal') ?>
-                </div>
-                <div class="col-md-6">
-                  <div class="d-flex justify-content-between align-items-baseline">
-                    <span class="text-muted">New listings</span>
-                    <strong class="tabular"><?= array_sum(array_column($days, 'listings')) ?></strong>
-                  </div>
-                  <?= spark($days, 'listings', 'New listings', 'terracotta') ?>
+              <div class="chart-totals">
+                <div><span class="chart-key chart-key--teal"></span> New accounts
+                  <strong class="tabular"><?= array_sum(array_column($days, 'accounts')) ?></strong></div>
+                <div><span class="chart-key chart-key--terracotta"></span> New listings
+                  <strong class="tabular"><?= array_sum(array_column($days, 'listings')) ?></strong></div>
+              </div>
+              <?php /* Accounts as columns, listings as a line over them, one day per
+                   step; hovering a day shows both. The sparks inside are what
+                   shows until the chart draws, and if it never does. */ ?>
+              <div class="re-chart" style="min-height: 280px;" data-chart="<?= h(json_encode([
+                'kind' => 'mixed',
+                'height' => 280,
+                'categories' => array_map(function ($d) { return date('M j', strtotime($d)); }, array_keys($days)),
+                'tickAmount' => 6,
+                'columnWidth' => '60%',
+                'leftTitle' => 'Accounts',
+                'series' => [
+                  ['name' => 'New accounts', 'type' => 'column', 'data' => array_column($days, 'accounts'), 'color' => 'teal'],
+                  ['name' => 'New listings', 'type' => 'line', 'data' => array_column($days, 'listings'), 'color' => 'terracotta', 'axis' => 1],
+                ],
+              ])) ?>">
+                <div class="row">
+                  <div class="col-md-6 mb-3 mb-md-0"><?= spark($days, 'accounts', 'New accounts', 'teal') ?></div>
+                  <div class="col-md-6"><?= spark($days, 'listings', 'New listings', 'terracotta') ?></div>
                 </div>
               </div>
               <p class="text-muted small mb-0 mt-3">
@@ -283,4 +293,5 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   </section>
 </div>
 
+<?php require __DIR__ . '/../includes/scripts/panel_charts.php'; ?>
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

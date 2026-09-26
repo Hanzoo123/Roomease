@@ -401,10 +401,66 @@ a.stat--danger:focus {
 }
 
 /* =========================================================
-   Charts, drawn in CSS: 30 thin columns, and labelled bars.
+   Charts. ApexCharts draws them (assets/js/panel-charts.js)
+   inside .re-chart; the CSS bars below are what a .re-chart
+   holds until then, and the whole chart with JavaScript off.
    Accounts are teal and listings terracotta wherever they
-   appear; status bars wear their status colour.
+   appear; statuses wear their status colour.
    ========================================================= */
+.re-chart--live {
+  margin: 0 -6px;
+}
+
+/* ApexCharts' own tooltip, in the panel's type and theme. */
+.re-chart .apexcharts-tooltip {
+  border-color: var(--re-line) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .12) !important;
+}
+
+.re-chart .apexcharts-tooltip-title {
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .re-chart .apexcharts-tooltip.apexcharts-theme-dark {
+  background: var(--re-muted-bg);
+}
+
+html[data-theme="dark"] .re-chart .apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {
+  background: var(--re-line);
+  border-color: var(--re-line);
+}
+
+/* The 30-day totals above the dashboard chart, each with its colour key. */
+.chart-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 28px;
+  margin-bottom: 4px;
+  color: var(--re-ink-soft);
+}
+
+.chart-totals strong {
+  margin-left: 6px;
+  font-size: 1.15rem;
+  color: var(--re-ink);
+}
+
+.chart-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 50%;
+}
+
+.chart-key--teal {
+  background: var(--re-teal);
+}
+
+.chart-key--terracotta {
+  background: var(--re-terracotta);
+}
+
 .spark {
   display: flex;
   align-items: flex-end;

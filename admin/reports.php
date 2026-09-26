@@ -122,12 +122,13 @@ $rentBands = $pdo->query(
      " . LIVE_LANDLORD_JOIN . "
     WHERE r.is_open = 1 AND " . LIVE_STATUS_WHERE
 )->fetch();
+// 'short' is the chart's axis label, which has a column's width to fit in.
 $rentRows = [
-  ['label' => 'Under ₱1,000', 'value' => (int) $rentBands['b1']],
-  ['label' => '₱1,000 – ₱1,999', 'value' => (int) $rentBands['b2']],
-  ['label' => '₱2,000 – ₱2,999', 'value' => (int) $rentBands['b3']],
-  ['label' => '₱3,000 – ₱4,999', 'value' => (int) $rentBands['b4']],
-  ['label' => '₱5,000 and up', 'value' => (int) $rentBands['b5']],
+  ['label' => 'Under ₱1,000', 'short' => 'Under ₱1k', 'value' => (int) $rentBands['b1']],
+  ['label' => '₱1,000 – ₱1,999', 'short' => '₱1k–2k', 'value' => (int) $rentBands['b2']],
+  ['label' => '₱2,000 – ₱2,999', 'short' => '₱2k–3k', 'value' => (int) $rentBands['b3']],
+  ['label' => '₱3,000 – ₱4,999', 'short' => '₱3k–5k', 'value' => (int) $rentBands['b4']],
+  ['label' => '₱5,000 and up', 'short' => '₱5k and up', 'value' => (int) $rentBands['b5']],
 ];
 
 /** One labelled horizontal bar per row, scaled to the largest value. */
@@ -190,7 +191,20 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
       <div class="card shadow-sm">
         <div class="card-header"><h3 class="card-title">Month by month</h3>
-              <span class="card-subtitle">New accounts and new listings, with the decisions made on them.</span></div>
+              <span class="card-subtitle">New accounts and new listings, with the decisions made on them. Hover a month for its figures.</span></div>
+        <div class="card-body pb-0">
+          <div class="re-chart" style="min-height: 300px;" data-chart="<?= h(json_encode([
+            'kind' => 'mixed',
+            'height' => 300,
+            'categories' => array_map(function ($k) { return date('M Y', strtotime($k . '-01')); }, array_keys($monthRows)),
+            'leftTitle' => 'Accounts',
+            'series' => [
+              ['name' => 'New landlords', 'type' => 'column', 'data' => array_column($monthRows, 'landlords'), 'color' => 'teal'],
+              ['name' => 'New boarders', 'type' => 'column', 'data' => array_column($monthRows, 'boarders'), 'color' => 'green'],
+              ['name' => 'New listings', 'type' => 'line', 'data' => array_column($monthRows, 'listings'), 'color' => 'terracotta', 'axis' => 1],
+            ],
+          ])) ?>"></div>
+        </div>
         <div class="card-body p-0 table-responsive">
           <table class="table mb-0 report-table">
             <thead>
@@ -242,13 +256,21 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <div class="card shadow-sm">
             <div class="card-header"><h3 class="card-title">Listings by status</h3>
               <span class="card-subtitle">Where every listing stands with approval.</span></div>
+            <?php $statusRows = [
+              ['label' => 'Pending', 'value' => $statusCounts['pending'], 'tone' => 'marigold'],
+              ['label' => 'Approved', 'value' => $statusCounts['approved'], 'tone' => 'green'],
+              ['label' => 'Rejected', 'value' => $statusCounts['rejected'], 'tone' => 'red'],
+              ['label' => 'Removed', 'value' => $statusCounts['removed'], 'tone' => 'slate'],
+            ]; ?>
             <div class="card-body">
-              <?= bar_rows([
-                ['label' => 'Pending', 'value' => $statusCounts['pending'], 'tone' => 'marigold'],
-                ['label' => 'Approved', 'value' => $statusCounts['approved'], 'tone' => 'green'],
-                ['label' => 'Rejected', 'value' => $statusCounts['rejected'], 'tone' => 'red'],
-                ['label' => 'Removed', 'value' => $statusCounts['removed'], 'tone' => 'slate'],
-              ]) ?>
+              <div class="re-chart" style="min-height: 260px;" data-chart="<?= h(json_encode([
+                'kind' => 'donut',
+                'height' => 260,
+                'labels' => array_column($statusRows, 'label'),
+                'values' => array_map('intval', array_column($statusRows, 'value')),
+                'colors' => array_column($statusRows, 'tone'),
+                'totalLabel' => 'Listings',
+              ])) ?>"><?= bar_rows($statusRows) ?></div>
             </div>
           </div>
         </div>
@@ -256,14 +278,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <div class="card shadow-sm">
             <div class="card-header"><h3 class="card-title">Open rooms by type</h3>
               <span class="card-subtitle">What boarders can actually book right now.</span></div>
-            <div class="card-body"><?= bar_rows($roomTypes, 'terracotta') ?></div>
+            <div class="card-body"><div class="re-chart" style="min-height: 260px;" data-chart="<?= h(json_encode(['kind' => 'hbar', 'height' => 260, 'seriesName' => 'Open rooms', 'categories' => array_column($roomTypes, 'label'), 'values' => array_map('intval', array_column($roomTypes, 'value')), 'colors' => ['terracotta']])) ?>"><?= bar_rows($roomTypes, 'terracotta') ?></div></div>
           </div>
         </div>
         <div class="col-lg-4">
           <div class="card shadow-sm">
             <div class="card-header"><h3 class="card-title">Open rooms by monthly rent</h3>
               <span class="card-subtitle">How the available rooms are priced.</span></div>
-            <div class="card-body"><?= bar_rows($rentRows, 'terracotta') ?></div>
+            <div class="card-body"><div class="re-chart" style="min-height: 260px;" data-chart="<?= h(json_encode(['kind' => 'column', 'height' => 260, 'seriesName' => 'Open rooms', 'categories' => array_column($rentRows, 'short'), 'values' => array_map('intval', array_column($rentRows, 'value')), 'colors' => ['terracotta']])) ?>"><?= bar_rows($rentRows, 'terracotta') ?></div></div>
           </div>
         </div>
       </div>
@@ -272,6 +294,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   </section>
 </div>
 
+<?php require __DIR__ . '/../includes/scripts/panel_charts.php'; ?>
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
 <script>
   document.querySelector('.js-print').addEventListener('click', function () { window.print(); });
