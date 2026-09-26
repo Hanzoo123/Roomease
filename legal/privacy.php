@@ -13,15 +13,21 @@ require __DIR__ . '/../includes/core/functions.php';
 $pageTitle = 'Privacy Policy';
 $metaDescription = 'What RoomEase keeps about boarders and landlords, why it keeps it, who can see it, '
   . 'and how to ask for a copy or a deletion.';
-$band = [
-  'title' => 'Privacy Policy',
-  'lede' => 'What RoomEase keeps about you, why, and who can see it.',
-];
+$legalTitle = 'Privacy Policy';
+$legalLede = 'What RoomEase keeps about you, why, and who can see it.';
+$bleed = true;
+$bodyClass = 'page-white';
 require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
-<article class="legal panel panel-pad on-seam">
-  <p class="legal-updated">Last updated September 15, 2026</p>
+<article class="legal-page">
+  <header class="legal-head">
+    <h1 class="legal-title"><?= h($legalTitle) ?></h1>
+    <p class="legal-lede"><?= h($legalLede) ?></p>
+    <p class="legal-updated">Last updated September 15, 2026</p>
+  </header>
+
+  <div class="legal legal-body">
 
   <p>
     This policy explains the personal information RoomEase keeps and how it is used. RoomEase aims to handle it
@@ -99,6 +105,7 @@ require __DIR__ . '/../includes/layouts/header.php';
 
   <h2>Changes to this policy</h2>
   <p>This policy may be updated. The date at the top shows when it last changed.</p>
+  </div>
 </article>
 
 <?php require __DIR__ . '/../includes/layouts/footer.php'; ?>

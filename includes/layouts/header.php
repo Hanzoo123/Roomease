@@ -14,12 +14,15 @@
  *                 'notice'         ['type' => 'error'|'success', 'strong' => ..., 'text' => ...]
  *   $bleed      bool, optional. True when the page draws its own bands and
  *               containers, as the home page does.
+ *   $bodyClass  string, optional. "page-white" gives the page a plain white
+ *               ground with no forest strip behind the header (the legal pages).
  */
 require_once __DIR__ . '/../components/icons.php';
 
 $pageTitle = $pageTitle ?? 'RoomEase';
 $band = $band ?? [];
 $bleed = $bleed ?? false;
+$bodyClass = $bodyClass ?? '';
 $flash = flash_get();
 
 /** aria-current for the nav link that matches the page being viewed. */
@@ -35,7 +38,7 @@ $navCurrent = function ($path) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <?php /* The phone's browser chrome takes the band's colour, so the page starts
        at the top of the screen instead of under a grey strip. */ ?>
-  <meta name="theme-color" content="#184A3F">
+  <meta name="theme-color" content="<?= $bodyClass === 'page-white' ? '#FFFFFF' : '#184A3F' ?>">
   <title><?= h($pageTitle) ?> · RoomEase</title>
   <?php require __DIR__ . '/../components/head_meta.php'; ?>
   <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
@@ -53,7 +56,7 @@ $navCurrent = function ($path) {
   <?php endif; ?>
 </head>
 
-<body>
+<body<?= $bodyClass !== '' ? ' class="' . h($bodyClass) . '"' : '' ?>>
 
   <?php /* The first stop for a keyboard: past the header's links, straight to
        what the page is for. Invisible until it has focus. */ ?>

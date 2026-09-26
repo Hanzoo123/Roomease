@@ -12,15 +12,21 @@ require __DIR__ . '/../includes/core/functions.php';
 $pageTitle = 'Terms & Conditions';
 $metaDescription = 'The rules for using RoomEase: what the site does, what it does not do, '
   . 'and what boarders and landlords are each responsible for.';
-$band = [
-  'title' => 'Terms & Conditions',
-  'lede' => 'The rules for using RoomEase, in plain language.',
-];
+$legalTitle = 'Terms & Conditions';
+$legalLede = 'The rules for using RoomEase, in plain language.';
+$bleed = true;
+$bodyClass = 'page-white';
 require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
-<article class="legal panel panel-pad on-seam">
-  <p class="legal-updated">Last updated September 15, 2026</p>
+<article class="legal-page">
+  <header class="legal-head">
+    <h1 class="legal-title"><?= h($legalTitle) ?></h1>
+    <p class="legal-lede"><?= h($legalLede) ?></p>
+    <p class="legal-updated">Last updated September 15, 2026</p>
+  </header>
+
+  <div class="legal legal-body">
 
   <p>
     RoomEase is a web-based boarding house information and listing system for Baybay City, Leyte. It helps
@@ -89,6 +95,7 @@ require __DIR__ . '/../includes/layouts/header.php';
 
   <h2>Questions</h2>
   <p>If anything here is unclear, contact the RoomEase administrator.</p>
+  </div>
 </article>
 
 <?php require __DIR__ . '/../includes/layouts/footer.php'; ?>
