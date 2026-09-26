@@ -1981,38 +1981,38 @@ a:hover {
    until then (panel_head.php sets html[data-theme] before the
    first paint, and body.dark-mode for AdminLTE's own parts).
 
-   A warm, green-tinted dark rather than AdminLTE's grey: the
-   same paper-and-panel structure, each surface one step
-   lighter than the one it sits on. The figure and status
-   fills keep their colours, since white on each still reads.
-   --re-forest turns into a light green so it can stay the
-   colour of links and the item you are on; where it is a
+   A full, neutral dark: near-black page, charcoal cards and
+   sidebar, grey hairlines, no tint in any surface. Each
+   surface is one step lighter than the one it sits on. The
+   figure and status fills keep their colours, since white on
+   each still reads. Green is left only as the accent: links,
+   and the text of the item you are on. Where --re-forest is a
    fill, the text on it turns dark to match.
    ========================================================= */
 html[data-theme="dark"] {
   color-scheme: dark;
 
-  --re-paper: #111816;
-  --re-panel: #19221F;
-  --re-line: #2C3834;
-  --re-line-strong: #43514C;
-  --re-line-soft: #222C29;
+  --re-paper: #0F0F10;
+  --re-panel: #18181A;
+  --re-line: #2A2A2D;
+  --re-line-strong: #3F3F44;
+  --re-line-soft: #212124;
   --re-forest: #8FCBB4;
   --re-forest-deep: #B3DDCD;
-  --re-leaf: #1E3730;
-  --re-ink: #E8EDEB;
-  --re-ink-soft: #AEBBB6;
-  --re-ink-faint: #93A09B;
-  --re-ink-label: #93A09B;
-  --re-muted-bg: #26312E;
+  --re-leaf: #232326;
+  --re-ink: #ECECEE;
+  --re-ink-soft: #A9A9B0;
+  --re-ink-faint: #8E8E96;
+  --re-ink-label: #8E8E96;
+  --re-muted-bg: #242427;
   --re-amber-text: #EDBB63;
 
-  --re-sidebar-bg: #19221F;
-  --re-sidebar-text: #AEBBB6;
-  --re-sidebar-bright: #E8EDEB;
-  --re-sidebar-line: #2C3834;
-  --re-sidebar-hover: #202A27;
-  --re-sidebar-active-bg: #1E3730;
+  --re-sidebar-bg: #18181A;
+  --re-sidebar-text: #A9A9B0;
+  --re-sidebar-bright: #ECECEE;
+  --re-sidebar-line: #2A2A2D;
+  --re-sidebar-hover: #202023;
+  --re-sidebar-active-bg: #26262A;
 }
 
 /* Fills of the brand green: dark ink, since white on the light green would
@@ -2082,7 +2082,7 @@ html[data-theme="dark"] .dark-mode .modal-footer {
 
 /* AdminLTE's dark mode repaints the current sidebar item its own blue, with a
    selector longer than the panel's; this one is longer still, so the item you
-   are on stays the soft green it is in light mode. */
+   are on is a raised charcoal row with the green accent in its text. */
 html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active,
 html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active:hover,
 html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active:focus {
