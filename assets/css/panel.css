@@ -778,9 +778,12 @@ a:hover {
   box-shadow: none !important;
 }
 
+/* The wordmark sits centred over the sidebar, in light and dark alike; the
+   collapsed sidebar's single letter is centred the same way. */
 .main-sidebar .brand-link {
   display: flex;
   align-items: center;
+  justify-content: center;
   border-bottom: 1px solid var(--re-sidebar-line) !important;
 }
 
@@ -798,6 +801,12 @@ a:hover {
   display: inline-flex;
 }
 
+/* AdminLTE only makes the collapsed wordmark invisible, so it still took its
+   114px and pushed the centred letter half out of the 74px sidebar. */
+.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .brand-text {
+  display: none;
+}
+
 .sidebar-mini.sidebar-collapse .main-sidebar .brand-mark,
 .brand-mark {
   align-items: center;
@@ -805,8 +814,8 @@ a:hover {
   float: none;
   width: 33px;
   height: 33px;
-  margin-left: .2rem;
-  margin-right: .5rem;
+  margin-left: 0;
+  margin-right: 0;
   font-family: 'Fraunces', Georgia, serif;
   font-size: 1.35rem;
   font-weight: 800;
@@ -815,7 +824,7 @@ a:hover {
 }
 
 .main-sidebar .brand-text {
-  margin-left: .45rem;
+  margin-left: 0;
   font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
   font-size: 1.35rem;
   font-weight: 800;
