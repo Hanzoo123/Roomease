@@ -24,7 +24,7 @@ require __DIR__ . '/../includes/layouts/header.php';
   <header class="legal-head">
     <h1 class="legal-title"><?= h($legalTitle) ?></h1>
     <p class="legal-lede"><?= h($legalLede) ?></p>
-    <p class="legal-updated">Last updated September 15, 2026</p>
+    <p class="legal-updated">Last updated September 27, 2026</p>
   </header>
 
   <div class="legal legal-body">
@@ -48,6 +48,10 @@ require __DIR__ . '/../includes/layouts/header.php';
     <li><strong>Saved listings, for boarders.</strong></li>
     <li><strong>Security records:</strong> failed sign-in and password reset attempts, with the email address and
       IP address used, so password guessing can be stopped.</li>
+    <li><strong>An audit log:</strong> when you sign in, sign out, create your account or change your password,
+      with the IP address and the kind of browser used (for example, &ldquo;Chrome on Windows&rdquo;); and, for
+      landlords, what was changed in a listing or room and when. Only the names of changed fields are kept, not the
+      old values. Administrators use it to spot unusual sign-ins and to see how a listing changed.</li>
   </ul>
 
   <h2>Cookies</h2>
@@ -87,6 +91,8 @@ require __DIR__ . '/../includes/layouts/header.php';
       erased straight away.</li>
     <li>Password reset codes stop working after <?= password_reset_ttl_minutes() ?> minutes.</li>
     <li>Records of sign-in attempts are cleared after about a day.</li>
+    <li>Sign-in history in the audit log is deleted after <?= AUDIT_SIGNIN_DAYS ?> days. Records of changes to listings
+      are kept with the listing.</li>
   </ul>
 
   <h2>Your choices</h2>

@@ -90,6 +90,12 @@ if ($action === 'slots') {
     )->execute([$delta, $roomId]);
 
     $fresh = $roomPayload();
+    // Only a tap that moved the count is logged; one that hit zero or the
+    // room's capacity changed nothing.
+    if ($fresh['slots_taken'] !== (int) $room['slots_taken']) {
+        audit_log($delta === 1 ? 'room_slot_taken' : 'room_slot_freed', $houseId, $room['house_name'],
+            $room['name'] . ': ' . $fresh['slots_taken'] . ' of ' . $fresh['capacity'] . ' slots taken');
+    }
     room_action_reply(200, [
         'ok' => true,
         'message' => $room['name'] . ': ' . $fresh['slots_taken'] . ' of ' . $fresh['capacity'] . ' slots taken.',
@@ -101,6 +107,7 @@ if ($action === 'slots') {
 if ($action === 'toggle_open') {
     $pdo->prepare('UPDATE rooms SET is_open = 1 - is_open WHERE room_id = ?')->execute([$roomId]);
     $fresh = $roomPayload();
+    audit_log($fresh['is_open'] ? 'room_open' : 'room_close', $houseId, $room['house_name'], $room['name']);
     room_action_reply(200, [
         'ok' => true,
         'message' => $room['name'] . ($fresh['is_open'] ? ' is open to tenants again.' : ' is closed to new tenants.'),
@@ -121,6 +128,7 @@ if ($action === 'delete') {
         }
     }
     $pdo->prepare('DELETE FROM rooms WHERE room_id = ?')->execute([$roomId]);
+    audit_log('room_delete', $houseId, $room['house_name'], $room['name']);
 
     $remaining = $pdo->prepare('SELECT COUNT(*) FROM rooms WHERE boarding_house_id = ?');
     $remaining->execute([$houseId]);

@@ -498,6 +498,7 @@ function restore_remembered_login()
     }
 
     start_user_session($row);
+    audit_log('signin', $row['user_id'], $row['email'], 'Remembered device');
     remember_login((int) $row['user_id']);
     return true;
 }

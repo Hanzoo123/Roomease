@@ -1,36 +1,55 @@
 <?php
 /**
- * RoomEase Admin - Activity Log
+ * RoomEase Admin - Audit Log
  *
- * Every approval, rejection, removal and restore of a listing, every change to
- * an account, and every export, with the administrator who did it and when.
- * Read from admin_actions (database/boardinghouse.sql). The log only
- * grows, so it is filtered and paged in the database rather than in the
- * browser.
+ * Who did what, from audit_logs (database/boardinghouse.sql), on three tabs:
+ *
+ *   Administrators  every approval, rejection, removal and restore of a
+ *                   listing, every change to an account, and every export
+ *   Landlords       what landlords changed in their listings and rooms
+ *   Sign-ins        every sign-in, failed sign-in, sign-out, new account and
+ *                   password change, with the IP address and browser
+ *
+ * The log only grows, so it is filtered and paged in the database rather than
+ * in the browser. Opening the page also clears out sign-in records older than
+ * AUDIT_SIGNIN_DAYS, as the Privacy Policy promises.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
 
 require_login('admin');
 
-$types = admin_action_types();
+audit_purge_old_signins();
 
+$types = audit_action_types();
+$tabs = [
+  'admin'    => ['label' => 'Administrators', 'who' => 'Administrator', 'search' => 'Listing, account, or reason'],
+  'landlord' => ['label' => 'Landlords',      'who' => 'Landlord',      'search' => 'Listing, room, or change'],
+  'signin'   => ['label' => 'Sign-ins',       'who' => 'Account',       'search' => 'Name or email'],
+];
+$group = array_key_exists($_GET['tab'] ?? '', $tabs) ? $_GET['tab'] : 'admin';
+$groupActions = audit_actions_in_group($group);
+
+// Administrators: what it was done to. Sign-ins: only the failures.
 $kind = $_GET['kind'] ?? '';
-if (!in_array($kind, ['listing', 'user', 'export'], true)) {
+if (!in_array($kind, ['listing', 'user', 'export', 'failed'], true)) {
   $kind = '';
 }
-$adminFilter = is_string($_GET['admin'] ?? null) ? (int) $_GET['admin'] : 0;
+$personFilter = is_string($_GET['who'] ?? null) ? (int) $_GET['who'] : 0;
 $q = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
 
-$where = [];
-$params = [];
-if ($kind !== '') {
+$where = ['a.action IN (' . sql_placeholders(count($groupActions)) . ')'];
+$params = $groupActions;
+if ($group === 'admin' && in_array($kind, ['listing', 'user', 'export'], true)) {
   $where[] = 'a.target_type = ?';
   $params[] = $kind;
 }
-if ($adminFilter > 0) {
-  $where[] = 'a.admin_id = ?';
-  $params[] = $adminFilter;
+if ($group === 'signin' && $kind === 'failed') {
+  $where[] = "a.action = 'signin_failed'";
+}
+if ($personFilter > 0) {
+  $where[] = 'a.actor_id = ?';
+  $params[] = $personFilter;
 }
 if ($q !== '') {
   $where[] = '(a.target_label LIKE ? OR a.detail LIKE ?)';
@@ -38,10 +57,10 @@ if ($q !== '') {
   $params[] = $like;
   $params[] = $like;
 }
-$whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+$whereSql = 'WHERE ' . implode(' AND ', $where);
 
 $perPage = 25;
-$countStmt = $pdo->prepare("SELECT COUNT(*) FROM admin_actions a $whereSql");
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM audit_logs a $whereSql");
 $countStmt->execute($params);
 $total = (int) $countStmt->fetchColumn();
 $pages = max(1, (int) ceil($total / $perPage));
@@ -49,70 +68,110 @@ $page = min($pages, max(1, (int) ($_GET['page'] ?? 1)));
 
 $stmt = $pdo->prepare(
   "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
-     FROM admin_actions a
-     LEFT JOIN users u ON u.user_id = a.admin_id
+     FROM audit_logs a
+     LEFT JOIN users u ON u.user_id = a.actor_id
      $whereSql
-    ORDER BY a.created_at DESC, a.action_id DESC
+    ORDER BY a.created_at DESC, a.log_id DESC
     LIMIT " . $perPage . " OFFSET " . (($page - 1) * $perPage)
 );
 $stmt->execute($params);
 $entries = $stmt->fetchAll();
 
-// Administrators who appear in the log, for the filter.
-$admins = $pdo->query(
+// Everyone who appears on this tab, for the "who" filter.
+$people = $pdo->prepare(
   "SELECT DISTINCT u.user_id, CONCAT(u.first_name, ' ', u.last_name) AS name
-     FROM admin_actions a JOIN users u ON u.user_id = a.admin_id
+     FROM audit_logs a JOIN users u ON u.user_id = a.actor_id
+    WHERE a.action IN (" . sql_placeholders(count($groupActions)) . ")
     ORDER BY name"
-)->fetchAll();
+);
+$people->execute($groupActions);
+$people = $people->fetchAll();
 
-/** This page's URL with the current filters, changed by $overrides. */
-$pageUrl = function (array $overrides = []) use ($kind, $adminFilter, $q) {
-  $query = array_filter(array_merge(['kind' => $kind, 'admin' => $adminFilter ?: '', 'q' => $q], $overrides),
+// How many entries each tab holds, for the counts beside the tab names.
+$tabCounts = [];
+foreach (array_keys($tabs) as $key) {
+  $actions = audit_actions_in_group($key);
+  $c = $pdo->prepare('SELECT COUNT(*) FROM audit_logs WHERE action IN (' . sql_placeholders(count($actions)) . ')');
+  $c->execute($actions);
+  $tabCounts[$key] = (int) $c->fetchColumn();
+}
+
+/** This page's URL with the current tab and filters, changed by $overrides. */
+$pageUrl = function (array $overrides = []) use ($group, $kind, $personFilter, $q) {
+  $query = array_filter(array_merge(['tab' => $group, 'kind' => $kind, 'who' => $personFilter ?: '', 'q' => $q], $overrides),
     function ($value) { return $value !== '' && $value !== null; });
   return base_url('admin/activity.php' . ($query ? '?' . http_build_query($query) : ''));
 };
 
-$pageTitle = 'Activity Log';
+$filtered = $kind !== '' || $personFilter || $q !== '';
+$subtitles = [
+  'admin'    => 'Every decision an administrator has made, with who made it and when.',
+  'landlord' => 'What landlords changed in their listings and rooms, and when.',
+  'signin'   => 'Every sign-in, failed attempt and password change. Kept for ' . AUDIT_SIGNIN_DAYS . ' days.',
+];
+
+$pageTitle = 'Audit Log';
 require __DIR__ . '/../includes/layouts/panel_head.php';
 require __DIR__ . '/../includes/layouts/panel_navbar.php';
 require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
 <div class="content-wrapper">
-  <?php panel_page_header('Activity Log', [
-    'subtitle' => 'Every decision an administrator has made, with who made it and when. '
-      . number_format($total) . ' ' . ($total === 1 ? 'entry' : 'entries') . '.',
+  <?php panel_page_header('Audit Log', [
+    'subtitle' => $subtitles[$group] . ' ' . number_format($total) . ' ' . ($total === 1 ? 'entry' : 'entries')
+      . ($filtered ? ' match.' : '.'),
   ]); ?>
 
   <section class="content">
     <div class="container-fluid">
+      <?php /* Each tab is its own page, with its own filters and paging, so these
+           are plain links rather than the header's in-page tabs. */ ?>
+      <nav class="re-tabs audit-tabs no-print" aria-label="Audit log">
+        <?php foreach ($tabs as $key => $tab): ?>
+          <a class="re-tab <?= $key === $group ? 'is-active' : '' ?>" href="<?= base_url('admin/activity.php?tab=' . $key) ?>"
+            <?= $key === $group ? 'aria-current="page"' : '' ?>>
+            <?= h($tab['label']) ?>
+            <span class="re-tab-count"><?= number_format($tabCounts[$key]) ?></span>
+          </a>
+        <?php endforeach; ?>
+      </nav>
+
       <div class="card card-primary card-outline shadow-sm">
         <div class="card-header">
           <form method="get" class="form-inline flex-wrap" style="gap: 8px;">
-            <label class="sr-only" for="kind">Show</label>
-            <select class="form-control form-control-sm" id="kind" name="kind">
-              <option value="">Everything</option>
-              <option value="listing" <?= $kind === 'listing' ? 'selected' : '' ?>>Listings</option>
-              <option value="user" <?= $kind === 'user' ? 'selected' : '' ?>>Accounts</option>
-              <option value="export" <?= $kind === 'export' ? 'selected' : '' ?>>Exports</option>
-            </select>
-            <?php if (count($admins) > 1 || $adminFilter): ?>
-              <label class="sr-only" for="admin">Administrator</label>
-              <select class="form-control form-control-sm" id="admin" name="admin">
-                <option value="">Every administrator</option>
-                <?php foreach ($admins as $a): ?>
-                  <option value="<?= (int) $a['user_id'] ?>" <?= $adminFilter === (int) $a['user_id'] ? 'selected' : '' ?>>
-                    <?= h($a['name']) ?>
+            <input type="hidden" name="tab" value="<?= h($group) ?>">
+            <?php if ($group === 'admin'): ?>
+              <label class="sr-only" for="kind">Show</label>
+              <select class="form-control form-control-sm" id="kind" name="kind">
+                <option value="">Everything</option>
+                <option value="listing" <?= $kind === 'listing' ? 'selected' : '' ?>>Listings</option>
+                <option value="user" <?= $kind === 'user' ? 'selected' : '' ?>>Accounts</option>
+                <option value="export" <?= $kind === 'export' ? 'selected' : '' ?>>Exports</option>
+              </select>
+            <?php elseif ($group === 'signin'): ?>
+              <label class="sr-only" for="kind">Show</label>
+              <select class="form-control form-control-sm" id="kind" name="kind">
+                <option value="">Everything</option>
+                <option value="failed" <?= $kind === 'failed' ? 'selected' : '' ?>>Failed sign-ins only</option>
+              </select>
+            <?php endif; ?>
+            <?php if (count($people) > 1 || $personFilter): ?>
+              <label class="sr-only" for="who"><?= h($tabs[$group]['who']) ?></label>
+              <select class="form-control form-control-sm" id="who" name="who">
+                <option value="">Everyone</option>
+                <?php foreach ($people as $p): ?>
+                  <option value="<?= (int) $p['user_id'] ?>" <?= $personFilter === (int) $p['user_id'] ? 'selected' : '' ?>>
+                    <?= h($p['name']) ?>
                   </option>
                 <?php endforeach; ?>
               </select>
             <?php endif; ?>
             <label class="sr-only" for="q">Search</label>
             <input type="search" class="form-control form-control-sm" id="q" name="q" value="<?= h($q) ?>"
-              placeholder="Listing, account, or reason">
+              placeholder="<?= h($tabs[$group]['search']) ?>">
             <button type="submit" class="btn btn-sm btn-primary">Filter</button>
-            <?php if ($kind !== '' || $adminFilter || $q !== ''): ?>
-              <a href="<?= base_url('admin/activity.php') ?>" class="btn btn-sm btn-link">Clear</a>
+            <?php if ($filtered): ?>
+              <a href="<?= base_url('admin/activity.php?tab=' . $group) ?>" class="btn btn-sm btn-link">Clear</a>
             <?php endif; ?>
           </form>
         </div>
@@ -122,17 +181,17 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <thead>
               <tr>
                 <th style="width: 170px;">When</th>
-                <th>Administrator</th>
+                <th><?= h($tabs[$group]['who']) ?></th>
                 <th>Action</th>
-                <th>About</th>
-                <th>Details</th>
+                <th><?= $group === 'signin' ? 'Signed in as' : 'About' ?></th>
+                <th><?= $group === 'signin' ? 'From' : 'Details' ?></th>
               </tr>
             </thead>
             <tbody>
               <?php if (!$entries): ?>
                 <tr>
                   <td colspan="5" class="text-center text-muted py-4">
-                    <?= ($kind !== '' || $adminFilter || $q !== '') ? 'Nothing matches these filters.' : 'Nothing has been logged yet.' ?>
+                    <?= $filtered ? 'Nothing matches these filters.' : 'Nothing has been logged here yet.' ?>
                   </td>
                 </tr>
               <?php endif; ?>
@@ -148,6 +207,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <span class="d-flex align-items-center" style="gap: 8px;">
                         <?= avatar_html($e, 26) ?><?= h($e['admin_name']) ?>
                       </span>
+                    <?php elseif ($e['action'] === 'signin_failed'): ?>
+                      <span class="text-muted">No account</span>
                     <?php else: ?>
                       <span class="text-muted">Unknown</span>
                     <?php endif; ?>
@@ -161,7 +222,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <?= h($e['target_label']) ?>
                     <?php endif; ?>
                   </td>
-                  <td class="text-muted"><?= $e['detail'] !== null ? h($e['detail']) : '' ?></td>
+                  <td class="text-muted">
+                    <?php if ($group === 'signin'): ?>
+                      <?php if ($e['detail'] !== null): ?><?= h($e['detail']) ?><br><?php endif; ?>
+                      <small><?= h(implode(' · ', array_filter([$e['user_agent'], $e['ip_address']]))) ?></small>
+                    <?php else: ?>
+                      <?= $e['detail'] !== null ? h($e['detail']) : '' ?>
+                    <?php endif; ?>
+                  </td>
                 </tr>
               <?php endforeach; ?>
             </tbody>

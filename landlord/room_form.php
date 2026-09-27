@@ -93,8 +93,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $roomId = insert_room($houseId, $form);
         }
 
+        if ($room) {
+            // Only a save that changed something is worth an entry.
+            $changed = audit_changed_fields($room, array_merge($form, ['is_open' => $form['is_open'] ? 1 : 0]), [
+                'name' => 'name', 'room_type_id' => 'room type', 'monthly_rent' => 'rent', 'capacity' => 'capacity',
+                'slots_taken' => 'slots taken', 'is_open' => 'open to tenants', 'description' => 'description',
+            ]);
+            if ($changed !== null) {
+                audit_log('room_edit', $houseId, $houseName, $form['name'] . '. ' . $changed);
+            }
+        } else {
+            audit_log('room_create', $houseId, $houseName, $form['name']);
+        }
+
         try {
-            attach_room_photos($houseId, $roomId, 'photos');
+            $added = attach_room_photos($houseId, $roomId, 'photos');
+            if ($added > 0) {
+                audit_log('photos_add', $houseId, $houseName,
+                    $added . ' ' . ($added === 1 ? 'photo' : 'photos') . ' of ' . $form['name']);
+            }
         } catch (RuntimeException $e) {
             flash_set('Room saved, but the photos could not be uploaded: ' . $e->getMessage(), 'error');
             redirect('landlord/room_form.php?id=' . $roomId . '#photos');

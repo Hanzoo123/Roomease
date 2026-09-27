@@ -21,9 +21,11 @@ $action  = $_POST['action'] ?? '';
 // Ownership check lives in the join: a landlord can only touch photos that
 // hang off one of their own boarding houses.
 $stmt = $pdo->prepare(
-    'SELECT i.image_id, i.boarding_house_id, i.room_id, i.image_path, i.is_primary
+    'SELECT i.image_id, i.boarding_house_id, i.room_id, i.image_path, i.is_primary,
+            bh.name AS house_name, r.name AS room_name
        FROM images i
        JOIN boarding_houses bh ON bh.boarding_house_id = i.boarding_house_id
+       LEFT JOIN rooms r ON r.room_id = i.room_id
       WHERE i.image_id = ? AND bh.landlord_id = ? AND bh.deleted_at IS NULL'
 );
 $stmt->execute([$imageId, $_SESSION['user_id']]);
@@ -50,6 +52,8 @@ if ($action === 'delete') {
     }
 
     $pdo->prepare('DELETE FROM images WHERE image_id = ?')->execute([$imageId]);
+    audit_log('photo_remove', $boardingHouseId, $image['house_name'],
+        $roomId === null ? 'A house photo' : 'A photo of ' . $image['room_name']);
 
     // Promote the next photo in the same set when its cover was removed, so a
     // set with photos always has one.

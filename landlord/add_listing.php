@@ -143,6 +143,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw $e;
         }
 
+        audit_log('listing_create', $newId, $listing['name'],
+            'With ' . count($roomIds) . ' ' . (count($roomIds) === 1 ? 'room' : 'rooms'));
+
         // Photos are moved into place only once the listing and its rooms are
         // saved. A refused photo does not undo the listing: the landlord is sent
         // to it with the reason, and can upload again from there.

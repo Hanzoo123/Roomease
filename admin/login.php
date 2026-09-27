@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($loginId === '' || $password === '') {
         $error = 'Please enter both email and password.';
     } elseif ($retryAfter > 0) {
+        audit_log('signin_failed', null, audit_typed_login($loginId), 'Admin sign-in blocked: too many attempts', []);
         $error = 'Too many failed sign-in attempts. Please try again in ' . format_wait($retryAfter) . '.';
     } else {
         $stmt = $pdo->prepare(
@@ -41,9 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!check_login_password($password, $user)) {
             record_failed_attempt('login', $loginId);
+            // An address with no account behind it is logged with no actor, so
+            // the log shows what was typed without inventing who typed it.
+            audit_log('signin_failed', $user ? $user['user_id'] : null, audit_typed_login($loginId),
+                'Admin sign-in: ' . ($user ? 'wrong password' : 'no such account'), $user ?: []);
             $error = 'Invalid email or password.';
         } elseif (empty($user['is_active'])) {
             record_failed_attempt('login', $loginId);
+            audit_log('signin_failed', $user['user_id'], $user['email'], 'Admin sign-in: account deactivated', $user);
             $error = 'Your account is deactivated. Please contact another administrator.';
         } else {
             clear_failed_attempts('login', $loginId);
@@ -51,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // upgrade may just have replaced; see start_user_session().
             $user['password_hash'] = upgrade_password_hash($user, $password);
             start_user_session($user);
+            audit_log('signin', $user['user_id'], $user['email'], 'Password');
             flash_set('Welcome back, ' . $user['first_name'] . '!', 'success');
             redirect('admin/dashboard.php');
         }

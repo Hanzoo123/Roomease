@@ -36,6 +36,7 @@ USE roomease;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS account_notes;
+DROP TABLE IF EXISTS audit_logs;
 DROP TABLE IF EXISTS admin_actions;
 DROP TABLE IF EXISTS site_settings;
 DROP TABLE IF EXISTS login_attempts;
@@ -387,26 +388,33 @@ CREATE TABLE site_settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
--- 15. admin_actions
--- The activity log (admin/activity.php): which administrator approved,
--- rejected, removed or restored a listing, changed an account, or exported
--- data, when, and the reason given. target_label keeps the listing or account
--- name as it read at the time, so the log still makes sense after the thing
--- it refers to has been renamed or removed.
+-- 15. audit_logs
+-- The audit log (admin/activity.php): who did what, and when. It records
+-- what administrators decide about listings and accounts and what they
+-- export, what landlords change in their listings and rooms, and every
+-- sign-in, sign-out and password change. actor_role is kept as it was at the
+-- time; target_label keeps the listing or account name as it read then, so
+-- an entry still makes sense after a rename or removal. ip_address and
+-- user_agent are filled in for sign-in events only, which are deleted after
+-- 90 days (audit_purge_old_signins()).
 -- ---------------------------------------------------------
-CREATE TABLE admin_actions (
-    action_id     INT AUTO_INCREMENT PRIMARY KEY,
-    admin_id      INT DEFAULT NULL,
+CREATE TABLE audit_logs (
+    log_id        INT AUTO_INCREMENT PRIMARY KEY,
+    actor_id      INT NULL,
+    actor_role    VARCHAR(20) NULL,
     action        VARCHAR(40) NOT NULL,
     target_type   VARCHAR(20) NOT NULL,
-    target_id     INT DEFAULT NULL,
+    target_id     INT NULL,
     target_label  VARCHAR(200) NOT NULL DEFAULT '',
     detail        VARCHAR(500) DEFAULT NULL,
+    ip_address    VARCHAR(45) NULL,
+    user_agent    VARCHAR(120) NULL,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    KEY idx_actions_created (created_at),
-    KEY idx_actions_target  (target_type, target_id, created_at),
-    KEY idx_actions_admin   (admin_id, created_at),
-    CONSTRAINT fk_actions_admin FOREIGN KEY (admin_id)
+    KEY idx_audit_created (created_at),
+    KEY idx_audit_target  (target_type, target_id, created_at),
+    KEY idx_audit_actor   (actor_id, created_at),
+    KEY idx_audit_action  (action, created_at),
+    CONSTRAINT fk_audit_actor FOREIGN KEY (actor_id)
         REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -414,7 +422,7 @@ CREATE TABLE admin_actions (
 -- ---------------------------------------------------------
 -- Table: account_notes
 -- Short notes an administrator leaves on a landlord's or boarder's account,
--- seen only inside the admin panel. Separate from admin_actions because that
+-- seen only inside the admin panel. Separate from audit_logs because that
 -- table records what was *done* to an account and is written by the code,
 -- while a note is what an administrator *observed* and can be deleted by
 -- whoever wrote it.

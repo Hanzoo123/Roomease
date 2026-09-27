@@ -355,6 +355,10 @@ function google_sign_in(array $user, $remember, $created, $linked = false)
     // Taken out first: start_user_session() empties the session.
     $after = take_after_login();
     start_user_session($user);
+    if ($created) {
+        audit_log('signup', $user['user_id'], $user['email'], 'With Google');
+    }
+    audit_log('signin', $user['user_id'], $user['email'], $linked ? 'Google (account linked to Google now)' : 'Google');
     if ($remember) {
         remember_login((int) $user['user_id']);
     }

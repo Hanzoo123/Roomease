@@ -59,18 +59,24 @@ $daily("SELECT DATE(created_at) AS d, COUNT(*) AS n FROM boarding_houses
          WHERE created_at >= ? GROUP BY d", 'listings');
 $decided = $pdo->prepare(
   "SELECT SUM(action = 'listing_approve') AS approved, SUM(action = 'listing_reject') AS rejected
-     FROM admin_actions WHERE created_at >= ?"
+     FROM audit_logs WHERE created_at >= ?"
 );
 $decided->execute([$since]);
 $decided = $decided->fetch();
 
-$recentActivity = $pdo->query(
+// Only what administrators did: the audit log also holds landlords' edits and
+// every sign-in, which have their own tabs on the Audit Log page.
+$adminActions = audit_actions_in_group('admin');
+$recentActivity = $pdo->prepare(
   "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
-     FROM admin_actions a LEFT JOIN users u ON u.user_id = a.admin_id
-    ORDER BY a.created_at DESC, a.action_id DESC
+     FROM audit_logs a LEFT JOIN users u ON u.user_id = a.actor_id
+    WHERE a.action IN (" . sql_placeholders(count($adminActions)) . ")
+    ORDER BY a.created_at DESC, a.log_id DESC
     LIMIT 6"
-)->fetchAll();
-$types = admin_action_types();
+);
+$recentActivity->execute($adminActions);
+$recentActivity = $recentActivity->fetchAll();
+$types = audit_action_types();
 
 $recentUsers = $pdo->query(
   "SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name, email, role, is_active,

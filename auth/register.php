@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Taken out first: start_user_session() empties the session.
     $after = take_after_login();
     start_user_session($user);
+    audit_log('signup', $user['user_id'], $user['email'], 'With email and password, as a ' . $user['role']);
 
     // No h() here: the flash is escaped where it is rendered.
     redirect(complete_after_login($after, 'Welcome to RoomEase, ' . $user['first_name'] . '!'));

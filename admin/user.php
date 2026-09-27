@@ -98,9 +98,9 @@ try {
   // Either table may be missing on a database that skipped a migration.
 }
 
-$history = admin_actions_for('user', $userId);
+$history = audit_entries_for('user', $userId);
 $notes = account_notes($userId);
-$types = admin_action_types();
+$types = audit_action_types();
 
 $pageTitle = $fullName;
 require __DIR__ . '/../includes/layouts/panel_head.php';
@@ -519,7 +519,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <?php if (!$history): ?>
               <?= re_empty(
                 'Nothing recorded',
-                'No administrator has changed this account since the activity log started.',
+                'No administrator has changed this account since the audit log started.',
                 'fa-history'
               ) ?>
             <?php else: ?>

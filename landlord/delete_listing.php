@@ -10,6 +10,11 @@ verify_csrf();
 
 $boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
 
+// Its name, for the audit log, before the row is gone.
+$nameStmt = $pdo->prepare('SELECT name FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
+$nameStmt->execute([$boardingHouseId, $_SESSION['user_id']]);
+$listingName = (string) $nameStmt->fetchColumn();
+
 // Ownership check inside the WHERE clause itself. A listing an administrator
 // removed is archived and waiting to be reviewed or restored, so it is not the
 // landlord's to delete for good.
@@ -17,6 +22,8 @@ $stmt = $pdo->prepare('DELETE FROM boarding_houses WHERE boarding_house_id = ? A
 $stmt->execute([$boardingHouseId, $_SESSION['user_id']]);
 
 if ($stmt->rowCount() > 0) {
+    audit_log('listing_delete', $boardingHouseId, $listingName);
+
     // Clean up uploaded image files for this boarding house
     $dir = __DIR__ . '/../assets/uploads/boarding_houses/' . $boardingHouseId;
     if (is_dir($dir)) {

@@ -54,12 +54,19 @@ $newListings = $byMonth(
 $decisions = $byMonth(
   "SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym,
           SUM(action = 'listing_approve') AS approved, SUM(action = 'listing_reject') AS rejected
-     FROM admin_actions
+     FROM audit_logs
     WHERE created_at >= ? AND action IN ('listing_approve', 'listing_reject')
     GROUP BY ym",
   [$since]
 );
-$logStarted = $pdo->query('SELECT MIN(created_at) FROM admin_actions')->fetchColumn();
+// When administrators' decisions started being logged, which is what the
+// approvals and rejections above are counted from.
+$adminActions = audit_actions_in_group('admin');
+$logStarted = $pdo->prepare(
+  'SELECT MIN(created_at) FROM audit_logs WHERE action IN (' . sql_placeholders(count($adminActions)) . ')'
+);
+$logStarted->execute($adminActions);
+$logStarted = $logStarted->fetchColumn();
 
 $monthRows = [];
 foreach ($monthKeys as $key) {
@@ -242,11 +249,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
         <div class="card-footer text-muted small">
           <?php if ($logStarted): ?>
-            Approvals and rejections are counted from the activity log, which started on
+            Approvals and rejections are counted from the audit log, which started on
             <?= h(date('F j, Y', strtotime($logStarted))) ?>. Accounts and listings count everything created, including
             ones removed since.
           <?php else: ?>
-            Approvals and rejections are counted from the activity log, which has no entries yet.
+            Approvals and rejections are counted from the audit log, which has no entries yet.
           <?php endif; ?>
         </div>
       </div>

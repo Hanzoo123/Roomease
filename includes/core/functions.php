@@ -1416,84 +1416,240 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
  * ------------------------------------------------------------------------ */
 
 /* ---------------------------------------------------------------------------
- * Administration (database/boardinghouse.sql)
+ * The audit log (audit_logs, database/boardinghouse.sql)
  *
- * The activity log records what administrators do to listings and accounts,
- * and listing decisions are passed on to the landlord: by email, and on their
- * dashboard, which reads the same log.
+ * One table for who did what: administrators' decisions and exports,
+ * landlords' changes to their listings and rooms, and every sign-in. The
+ * Audit Log page (admin/activity.php) shows each group on its own tab, and
+ * listing decisions are passed on to the landlord: by email, and on their
+ * dashboard, which reads the same table.
  * ------------------------------------------------------------------------ */
 
+/** How long sign-in records are kept before audit_purge_old_signins() drops them. */
+const AUDIT_SIGNIN_DAYS = 90;
+
 /**
- * Every action the activity log records: how it reads, the badge it wears,
- * and what kind of thing it acts on.
+ * Every action the audit log records: how it reads, the badge it wears, what
+ * kind of thing it acts on, and which tab it belongs to (admin, landlord or
+ * signin). A landlord's room changes are filed under the room's listing, so
+ * a listing's history shows them.
  */
-function admin_action_types()
+function audit_action_types()
 {
     return [
-        'listing_approve' => ['label' => 'Approved listing',    'badge' => 'badge-success',   'target' => 'listing'],
-        'listing_reject'  => ['label' => 'Rejected listing',    'badge' => 'badge-warning',   'target' => 'listing'],
-        'listing_remove'  => ['label' => 'Removed listing',     'badge' => 'badge-danger',    'target' => 'listing'],
-        'listing_restore' => ['label' => 'Restored listing',    'badge' => 'badge-info',      'target' => 'listing'],
-        'user_activate'   => ['label' => 'Activated account',   'badge' => 'badge-success',   'target' => 'user'],
-        'user_deactivate' => ['label' => 'Deactivated account', 'badge' => 'badge-warning',   'target' => 'user'],
-        'user_remove'     => ['label' => 'Removed account',     'badge' => 'badge-danger',    'target' => 'user'],
-        'user_restore'    => ['label' => 'Restored account',    'badge' => 'badge-info',      'target' => 'user'],
-        'export_users'    => ['label' => 'Exported users',      'badge' => 'badge-secondary', 'target' => 'export'],
-        'export_listings' => ['label' => 'Exported listings',   'badge' => 'badge-secondary', 'target' => 'export'],
+        // What administrators decide and export.
+        'listing_approve' => ['label' => 'Approved listing',    'badge' => 'badge-success',   'target' => 'listing', 'group' => 'admin'],
+        'listing_reject'  => ['label' => 'Rejected listing',    'badge' => 'badge-warning',   'target' => 'listing', 'group' => 'admin'],
+        'listing_remove'  => ['label' => 'Removed listing',     'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'admin'],
+        'listing_restore' => ['label' => 'Restored listing',    'badge' => 'badge-info',      'target' => 'listing', 'group' => 'admin'],
+        'user_activate'   => ['label' => 'Activated account',   'badge' => 'badge-success',   'target' => 'user',    'group' => 'admin'],
+        'user_deactivate' => ['label' => 'Deactivated account', 'badge' => 'badge-warning',   'target' => 'user',    'group' => 'admin'],
+        'user_remove'     => ['label' => 'Removed account',     'badge' => 'badge-danger',    'target' => 'user',    'group' => 'admin'],
+        'user_restore'    => ['label' => 'Restored account',    'badge' => 'badge-info',      'target' => 'user',    'group' => 'admin'],
+        'export_users'    => ['label' => 'Exported users',      'badge' => 'badge-secondary', 'target' => 'export',  'group' => 'admin'],
+        'export_listings' => ['label' => 'Exported listings',   'badge' => 'badge-secondary', 'target' => 'export',  'group' => 'admin'],
+
+        // What landlords change.
+        'listing_create'  => ['label' => 'Created listing',     'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
+        'listing_edit'    => ['label' => 'Edited listing',      'badge' => 'badge-info',      'target' => 'listing', 'group' => 'landlord'],
+        'listing_delete'  => ['label' => 'Deleted listing',     'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'landlord'],
+        'room_create'     => ['label' => 'Added room',          'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
+        'room_edit'       => ['label' => 'Edited room',         'badge' => 'badge-info',      'target' => 'listing', 'group' => 'landlord'],
+        'room_delete'     => ['label' => 'Deleted room',        'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'landlord'],
+        'room_open'       => ['label' => 'Opened room',         'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
+        'room_close'      => ['label' => 'Closed room',         'badge' => 'badge-warning',   'target' => 'listing', 'group' => 'landlord'],
+        'room_slot_taken' => ['label' => 'Tenant moved in',     'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
+        'room_slot_freed' => ['label' => 'Tenant moved out',    'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
+        'photos_add'      => ['label' => 'Added photos',        'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
+        'photo_remove'    => ['label' => 'Removed photo',       'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
+
+        // Signing in and out, and the account's password.
+        'signin'          => ['label' => 'Signed in',           'badge' => 'badge-success',   'target' => 'account', 'group' => 'signin'],
+        'signin_failed'   => ['label' => 'Failed sign-in',      'badge' => 'badge-danger',    'target' => 'account', 'group' => 'signin'],
+        'signout'         => ['label' => 'Signed out',          'badge' => 'badge-secondary', 'target' => 'account', 'group' => 'signin'],
+        'signup'          => ['label' => 'Created account',     'badge' => 'badge-info',      'target' => 'account', 'group' => 'signin'],
+        'password_change' => ['label' => 'Changed password',    'badge' => 'badge-warning',   'target' => 'account', 'group' => 'signin'],
+        'password_reset'  => ['label' => 'Reset password',      'badge' => 'badge-warning',   'target' => 'account', 'group' => 'signin'],
     ];
 }
 
+/** The actions in one group (admin, landlord or signin), for an IN (...) list. */
+function audit_actions_in_group($group)
+{
+    return array_keys(array_filter(audit_action_types(), function ($type) use ($group) {
+        return $type['group'] === $group;
+    }));
+}
+
+/** "?, ?, ?" for an IN (...) list of $count values. */
+function sql_placeholders($count)
+{
+    return implode(', ', array_fill(0, max(1, (int) $count), '?'));
+}
+
 /**
- * Write one entry to the activity log, as the signed-in administrator.
+ * Write one entry to the audit log.
  *
- * $targetLabel is the listing or account name as it is now, so the entry still
- * reads correctly after a rename. A log that cannot be written is reported to
- * the PHP error log but never undoes or blocks the action it describes.
+ * The actor is whoever is signed in, unless $actor gives a user row: a
+ * sign-in is logged as the person it signs in, and a failed one with no
+ * account behind it has no actor at all (pass []). $targetLabel is the
+ * listing or account name as it is now, so the entry still reads correctly
+ * after a rename. Sign-in events also keep the IP address and a short
+ * browser description. A log that cannot be written is reported to the PHP
+ * error log but never undoes or blocks the action it describes.
  */
-function log_admin_action($action, $targetId, $targetLabel, $detail = null)
+function audit_log($action, $targetId, $targetLabel, $detail = null, ?array $actor = null)
 {
     global $pdo;
 
-    $types = admin_action_types();
+    $types = audit_action_types();
     if (!isset($types[$action])) {
-        error_log('RoomEase: unknown activity log action ' . $action);
+        error_log('RoomEase: unknown audit log action ' . $action);
         return;
     }
 
+    if ($actor === null) {
+        $actorId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+        $actorRole = $_SESSION['role'] ?? null;
+    } else {
+        $actorId = isset($actor['user_id']) ? (int) $actor['user_id'] : null;
+        $actorRole = $actor['role'] ?? null;
+    }
+
+    $isSignin = $types[$action]['group'] === 'signin';
+
     try {
         $pdo->prepare(
-            'INSERT INTO admin_actions (admin_id, action, target_type, target_id, target_label, detail)
-             VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO audit_logs (actor_id, actor_role, action, target_type, target_id, target_label, detail,
+                                     ip_address, user_agent)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )->execute([
-            isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null,
+            $actorId,
+            $actorRole,
             $action,
             $types[$action]['target'],
             $targetId === null ? null : (int) $targetId,
             mb_substr((string) $targetLabel, 0, 200),
             ($detail === null || trim((string) $detail) === '') ? null : mb_substr(trim((string) $detail), 0, 500),
+            $isSignin ? client_ip() : null,
+            $isSignin ? short_user_agent($_SERVER['HTTP_USER_AGENT'] ?? '') : null,
         ]);
     } catch (PDOException $e) {
-        error_log('RoomEase: could not write the activity log - ' . $e->getMessage());
+        error_log('RoomEase: could not write the audit log - ' . $e->getMessage());
     }
 }
 
 /**
- * The activity log for one listing or account, newest first, with the name of
- * the administrator behind each entry.
+ * What a failed sign-in typed into the email box, fit for the log. People now
+ * and then type their password there by mistake, so anything that is not an
+ * email address is never written down.
  */
-function admin_actions_for($targetType, $targetId, $limit = 20)
+function audit_typed_login($loginId)
+{
+    $loginId = trim((string) $loginId);
+    return filter_var($loginId, FILTER_VALIDATE_EMAIL) ? $loginId : '(not an email address)';
+}
+
+/**
+ * "Changed: rent, house rules" for the audit log, naming the fields whose
+ * value differs between $before and $after, or null when none did. Only the
+ * names are kept, never the old and new values. $labels maps each field to
+ * compare onto the name to show. Numbers compare by value, so a stored
+ * "500.00" and a submitted "500" count as the same.
+ */
+function audit_changed_fields(array $before, array $after, array $labels)
+{
+    $changed = [];
+    foreach ($labels as $key => $label) {
+        $old = $before[$key] ?? null;
+        $new = $after[$key] ?? null;
+        // A textarea posts its line breaks as \r\n whatever the database
+        // holds, which is not a change anyone made.
+        $old = $old === null ? '' : trim(str_replace("\r\n", "\n", (string) $old));
+        $new = $new === null ? '' : trim(str_replace("\r\n", "\n", (string) $new));
+        $same = (is_numeric($old) && is_numeric($new)) ? (float) $old === (float) $new : $old === $new;
+        if (!$same) {
+            $changed[] = $label;
+        }
+    }
+    return $changed ? 'Changed: ' . implode(', ', $changed) : null;
+}
+
+/**
+ * "Chrome on Windows" from a browser's User-Agent string: enough for an
+ * administrator to notice a sign-in from somewhere unusual, without keeping
+ * the whole fingerprint.
+ */
+function short_user_agent($ua)
+{
+    $ua = (string) $ua;
+    if ($ua === '') {
+        return null;
+    }
+    $browser = 'Browser';
+    foreach (['Edg/' => 'Edge', 'OPR/' => 'Opera', 'SamsungBrowser' => 'Samsung Internet', 'Firefox/' => 'Firefox',
+              'Chrome/' => 'Chrome', 'Safari/' => 'Safari'] as $needle => $name) {
+        if (stripos($ua, $needle) !== false) {
+            $browser = $name;
+            break;
+        }
+    }
+    $system = 'another system';
+    foreach (['Android' => 'Android', 'iPhone' => 'iPhone', 'iPad' => 'iPad', 'Windows' => 'Windows',
+              'Mac OS' => 'macOS', 'CrOS' => 'ChromeOS', 'Linux' => 'Linux'] as $needle => $name) {
+        if (stripos($ua, $needle) !== false) {
+            $system = $name;
+            break;
+        }
+    }
+    return $browser . ' on ' . $system;
+}
+
+/**
+ * Sign-in records older than AUDIT_SIGNIN_DAYS are deleted, as the Privacy
+ * Policy promises. Run when the Audit Log is opened, which is often enough
+ * for a site this size and needs no scheduled task.
+ */
+function audit_purge_old_signins()
 {
     global $pdo;
+    $actions = audit_actions_in_group('signin');
+    try {
+        $pdo->prepare(
+            'DELETE FROM audit_logs
+              WHERE action IN (' . sql_placeholders(count($actions)) . ')
+                AND created_at < NOW() - INTERVAL ' . AUDIT_SIGNIN_DAYS . ' DAY'
+        )->execute($actions);
+    } catch (PDOException $e) {
+        error_log('RoomEase: could not purge old sign-in records - ' . $e->getMessage());
+    }
+}
+
+/**
+ * The audit log for one listing or account, newest first, with the name of
+ * whoever did each entry. $group narrows it to one tab's actions, e.g.
+ * 'landlord' for the changes a landlord made to a listing.
+ */
+function audit_entries_for($targetType, $targetId, $limit = 20, $group = null)
+{
+    global $pdo;
+    $params = [$targetType, (int) $targetId];
+    $groupSql = '';
+    if ($group !== null) {
+        $actions = audit_actions_in_group($group);
+        $groupSql = ' AND a.action IN (' . sql_placeholders(count($actions)) . ')';
+        $params = array_merge($params, $actions);
+    }
     try {
         $stmt = $pdo->prepare(
-            "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name
-               FROM admin_actions a
-               LEFT JOIN users u ON u.user_id = a.admin_id
-              WHERE a.target_type = ? AND a.target_id = ?
-              ORDER BY a.created_at DESC, a.action_id DESC
+            "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+               FROM audit_logs a
+               LEFT JOIN users u ON u.user_id = a.actor_id
+              WHERE a.target_type = ? AND a.target_id = ?$groupSql
+              ORDER BY a.created_at DESC, a.log_id DESC
               LIMIT " . (int) $limit
         );
-        $stmt->execute([$targetType, (int) $targetId]);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     } catch (PDOException $e) {
         return [];
@@ -1596,12 +1752,12 @@ function landlord_recent_decisions($landlordId, $days = 30, $limit = 5)
     try {
         $stmt = $pdo->prepare(
             "SELECT a.action, a.detail, a.created_at, bh.boarding_house_id, bh.name, bh.deleted_at
-               FROM admin_actions a
+               FROM audit_logs a
                JOIN boarding_houses bh ON bh.boarding_house_id = a.target_id
               WHERE a.target_type = 'listing' AND bh.landlord_id = ?
                 AND a.action IN ('listing_approve', 'listing_reject', 'listing_remove', 'listing_restore')
                 AND a.created_at > NOW() - INTERVAL " . (int) $days . " DAY
-              ORDER BY a.created_at DESC, a.action_id DESC
+              ORDER BY a.created_at DESC, a.log_id DESC
               LIMIT " . (int) $limit
         );
         $stmt->execute([(int) $landlordId]);
@@ -1611,7 +1767,7 @@ function landlord_recent_decisions($landlordId, $days = 30, $limit = 5)
     }
 }
 
-/** Where the activity log links an entry to, or null for an export. */
+/** Where the audit log links an entry to, or null for an export. */
 function admin_target_url($targetType, $targetId)
 {
     if ($targetId === null) {
@@ -1621,6 +1777,7 @@ function admin_target_url($targetType, $targetId)
         case 'listing':
             return base_url('admin/listing.php?id=' . (int) $targetId);
         case 'user':
+        case 'account':
             return base_url('admin/user.php?id=' . (int) $targetId);
         default:
             return null;

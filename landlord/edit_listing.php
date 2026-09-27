@@ -56,6 +56,11 @@ $roomStmt = $pdo->prepare(
 $roomStmt->execute([$boardingHouseId]);
 $rooms = $roomStmt->fetchAll();
 
+// As stored, for the audit log's "Changed: ..." once the form is saved.
+$storedListing = $listing;
+$storedAmens = $selectedAmens;
+$storedUtils = $selectedUtils;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // PHP drops $_POST and $_FILES wholesale when the body exceeds
     // post_max_size, which would otherwise look like a CSRF failure.
@@ -122,8 +127,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         save_listing_lookups($boardingHouseId, $landlordId, $lookups, true);
 
+        // Which fields changed, by name only. Amenities and utilities count as
+        // changed when the set ticked differs, or a new one was added.
+        $changed = audit_changed_fields($storedListing, array_merge($listing, $stayTerms), array_merge([
+            'name' => 'name', 'address' => 'address', 'reservation_fee' => 'reservation fee',
+            'availability_status' => 'availability', 'description' => 'description',
+            'contact_number' => 'contact number', 'house_rules' => 'house rules',
+        ], array_combine(STAY_TERM_COLUMNS, array_map(function ($column) {
+            return in_array($column, ['latitude', 'longitude'], true) ? 'map pin' : str_replace('_', ' ', $column);
+        }, STAY_TERM_COLUMNS))));
+        $changed = $changed === null ? [] : explode(', ', substr($changed, strlen('Changed: ')));
+        $amensNow = $lookups['amenity_ids'];
+        sort($amensNow);
+        $amensBefore = $storedAmens;
+        sort($amensBefore);
+        if ($amensNow !== $amensBefore || $lookups['new_amenities']) {
+            $changed[] = 'amenities';
+        }
+        $utilsNow = $lookups['utilities'];
+        ksort($utilsNow);
+        $utilsBefore = $storedUtils;
+        ksort($utilsBefore);
+        if ($utilsNow != $utilsBefore || $lookups['new_utilities']) {
+            $changed[] = 'utilities';
+        }
+        $changed = array_values(array_unique($changed));
+
         // House photos. If the house has no cover yet, the first photo in
         // this batch becomes it.
+        $paths = [];
         try {
             $paths = handle_photo_uploads('photos', $boardingHouseId);
             if ($paths) {
@@ -139,8 +171,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } catch (RuntimeException $e) {
+            if ($changed) {
+                audit_log('listing_edit', $boardingHouseId, $listing['name'], 'Changed: ' . implode(', ', $changed));
+            }
             flash_set('Listing updated, but the photos could not be uploaded: ' . $e->getMessage(), 'error');
             redirect('landlord/edit_listing.php?id=' . $boardingHouseId);
+        }
+
+        // A save that changed nothing and added no photo is not worth an entry.
+        if ($changed) {
+            audit_log('listing_edit', $boardingHouseId, $listing['name'], 'Changed: ' . implode(', ', $changed));
+        }
+        if ($paths) {
+            audit_log('photos_add', $boardingHouseId, $listing['name'],
+                count($paths) . ' house ' . (count($paths) === 1 ? 'photo' : 'photos'));
         }
 
         flash_set('Boarding house listing updated successfully.', 'success');

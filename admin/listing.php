@@ -86,8 +86,10 @@ $otherStmt = $pdo->prepare(
 $otherStmt->execute([$listing['landlord_id'], $listingId]);
 $otherListings = $otherStmt->fetchAll();
 
-$history = admin_actions_for('listing', $listingId);
-$types = admin_action_types();
+// Decisions and the landlord's own changes, in one timeline, so a reviewer
+// can see what was edited since the last approval.
+$history = audit_entries_for('listing', $listingId, 40);
+$types = audit_action_types();
 
 // Stay terms, only the ones the landlord stated.
 $terms = [];
@@ -422,12 +424,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
       <div class="re-tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-panel-history" hidden>
         <div class="card shadow-sm">
-          <?php panel_card_header('History', 'Every decision made on this listing, and the reason given.'); ?>
+          <?php panel_card_header('History', 'Every decision made on this listing, and every change its landlord made, newest first.'); ?>
           <div class="card-body<?= $history ? '' : ' p-0' ?>">
             <?php if (!$history): ?>
               <?= re_empty(
-                'No decisions yet',
-                'No administrator has acted on this listing since the activity log started.',
+                'Nothing logged yet',
+                'Neither an administrator nor the landlord has changed this listing since the audit log started.',
                 'fa-history'
               ) ?>
             <?php else: ?>
@@ -436,7 +438,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
                   <li>
                     <span class="badge <?= h($type['badge']) ?>"><?= h(preg_replace('/ listing$/', '', $type['label'])) ?></span>
-                    by <?= $e['admin_name'] !== null ? h($e['admin_name']) : 'an administrator' ?>
+                    by <?= $e['admin_name'] !== null ? h($e['admin_name']) : ($e['actor_role'] === 'landlord' ? 'the landlord' : 'an administrator') ?>
                     <small class="text-muted d-block"><?= h(date('M j, Y g:i A', strtotime($e['created_at']))) ?></small>
                     <?php if ($e['detail']): ?>
                       <div class="mt-1"><?= h($e['detail']) ?></div>

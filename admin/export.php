@@ -11,7 +11,7 @@
  * otherwise type "=HYPERLINK(...)" as a listing name and have it run in the
  * spreadsheet of the administrator who opens the export.
  *
- * Every export is written to the activity log.
+ * Every export is written to the audit log.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
@@ -110,7 +110,7 @@ if ($type === 'users') {
   }
 }
 
-log_admin_action('export_' . $type, null, ucfirst($type) . ' CSV',
+audit_log('export_' . $type, null, ucfirst($type) . ' CSV',
   count($rows) . ' ' . (count($rows) === 1 ? 'row' : 'rows') . ($filters ? ' (' . implode(', ', $filters) . ')' : ''));
 
 $filename = 'roomease-' . $type . ($filters ? '-' . implode('-', $filters) : '') . '-' . substr(db_now(), 0, 10) . '.csv';

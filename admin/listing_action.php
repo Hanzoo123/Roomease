@@ -8,7 +8,7 @@
  * and its photos from disk, with no way back. An archived listing is off the
  * site for everyone but administrators and comes back whole when restored.
  *
- * Every action is written to the activity log, and the landlord hears about it
+ * Every action is written to the audit log, and the landlord hears about it
  * by email and on their dashboard.
  */
 require __DIR__ . '/../config/db.php';
@@ -106,7 +106,7 @@ if ($action === 'approve') {
             SET moderation_status = 'approved', rejection_reason = NULL, moderated_at = NOW(), moderated_by = ?
           WHERE boarding_house_id = ?"
     )->execute([$adminId, $boardingHouseId]);
-    log_admin_action('listing_approve', $boardingHouseId, $listing['name']);
+    audit_log('listing_approve', $boardingHouseId, $listing['name']);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_approve');
     flash_set('"' . $name . '" is now approved and visible to boarders.' . $emailNote($sent), 'success');
 
@@ -124,7 +124,7 @@ if ($action === 'approve') {
             SET moderation_status = 'rejected', rejection_reason = ?, moderated_at = NOW(), moderated_by = ?
           WHERE boarding_house_id = ?"
     )->execute([$reason, $adminId, $boardingHouseId]);
-    log_admin_action('listing_reject', $boardingHouseId, $listing['name'], $reason);
+    audit_log('listing_reject', $boardingHouseId, $listing['name'], $reason);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_reject', $reason);
     flash_set('"' . $name . '" was rejected.' . $emailNote($sent), 'success');
 
@@ -138,7 +138,7 @@ if ($action === 'approve') {
 
     $pdo->prepare('UPDATE boarding_houses SET deleted_at = NOW() WHERE boarding_house_id = ? AND deleted_at IS NULL')
         ->execute([$boardingHouseId]);
-    log_admin_action('listing_remove', $boardingHouseId, $listing['name'], $reason);
+    audit_log('listing_remove', $boardingHouseId, $listing['name'], $reason);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_remove', $reason);
     flash_set('"' . $name . '" was removed from the site. It can be restored from the Removed tab.' . $emailNote($sent), 'success');
     if (strpos($returnTo, 'listing.php') === false) {
@@ -153,7 +153,7 @@ if ($action === 'approve') {
 
     $pdo->prepare('UPDATE boarding_houses SET deleted_at = NULL WHERE boarding_house_id = ?')
         ->execute([$boardingHouseId]);
-    log_admin_action('listing_restore', $boardingHouseId, $listing['name']);
+    audit_log('listing_restore', $boardingHouseId, $listing['name']);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_restore');
     $where = $listing['moderation_status'] === 'approved'
         ? ' It is visible to boarders again.'

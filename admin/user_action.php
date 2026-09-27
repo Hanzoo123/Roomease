@@ -3,7 +3,7 @@
  * Administrator actions on an account: activate or deactivate it, remove it
  * (archive), restore it, or leave and delete notes about it.
  *
- * The first four are written to the activity log. Notes are not: each note
+ * The first four are written to the audit log. Notes are not: each note
  * already carries its author and its time, and a log entry per note would
  * bury the approvals and removals the log exists for.
  */
@@ -72,7 +72,7 @@ if ($action === 'add_note') {
         // Deactivation also ends every "Remember me" device for the account.
         forget_all_remembered_logins($userId);
     }
-    log_admin_action($newStatus ? 'user_activate' : 'user_deactivate', $userId, $fullName);
+    audit_log($newStatus ? 'user_activate' : 'user_deactivate', $userId, $fullName);
     flash_set('"' . $name . '" was ' . ($newStatus ? 'activated' : 'deactivated') . '.', 'success');
     redirect($back('admin/manage_users.php'));
 
@@ -93,7 +93,7 @@ if ($action === 'add_note') {
     $pdo->prepare('UPDATE users SET deleted_at = NOW(), is_active = 0 WHERE user_id = ?')
         ->execute([$userId]);
     forget_all_remembered_logins($userId);
-    log_admin_action('user_remove', $userId, $fullName);
+    audit_log('user_remove', $userId, $fullName);
     flash_set('"' . $name . '" was removed. Their listings are hidden, and the account can be restored.', 'success');
     redirect($back('admin/manage_users.php?view=archived'));
 
@@ -104,7 +104,7 @@ if ($action === 'add_note') {
     }
     $pdo->prepare('UPDATE users SET deleted_at = NULL, is_active = 1 WHERE user_id = ?')
         ->execute([$userId]);
-    log_admin_action('user_restore', $userId, $fullName);
+    audit_log('user_restore', $userId, $fullName);
     flash_set('"' . $name . '" was restored, along with their listings.', 'success');
     redirect($back('admin/manage_users.php'));
 }

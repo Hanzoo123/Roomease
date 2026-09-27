@@ -40,6 +40,11 @@ the site is live.
    imported over an existing copy — but that destroys whatever was there.
    There are no separate migration steps: this one file is the whole schema.
 
+   **Already have a RoomEase database with data you want to keep?** If it still
+   has the older `admin_actions` table, run `database/upgrade_audit_logs.sql`
+   once instead of re-importing. It renames that table to `audit_logs` and keeps
+   every entry.
+
 4. **Set up the optional features.** Nothing here touches the database —
    step 3 already created every table, including brute-force throttling,
    "Remember me", room photos, stay terms and the Appearance page. These are
@@ -203,6 +208,7 @@ roomease/
     ├── roomease.sql             Older schema file; superseded, see the note below
     ├── seed_demo.sql            OPTIONAL demo accounts and sample listings
     ├── seed_landlords.sql       OPTIONAL bulk demo landlords and listings
+    ├── upgrade_audit_logs.sql   One-off: admin_actions becomes audit_logs, keeping entries
     └── set_admin_password.php   CLI tool to set the administrator password
 ```
 

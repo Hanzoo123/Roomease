@@ -12,6 +12,9 @@ require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
 
 $wasAdmin = is_admin();
+if (is_logged_in()) {
+    audit_log('signout', $_SESSION['user_id'], $_SESSION['email'] ?? '');
+}
 forget_remembered_login();
 
 $_SESSION = [];
