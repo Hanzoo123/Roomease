@@ -99,7 +99,6 @@ try {
 }
 
 $history = audit_entries_for('user', $userId);
-$notes = account_notes($userId);
 $types = audit_action_types();
 
 $pageTitle = $fullName;
@@ -315,7 +314,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
         <div class="row">
           <!-- A few of the things, with the full list a tab away -->
-          <div class="col-lg-7">
+          <div class="col-12">
             <div class="card shadow-sm">
               <?php
               $recent = $isLandlord ? array_slice($listings, 0, 4) : array_slice($saved, 0, 4);
@@ -371,71 +370,6 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             </div>
           </div>
 
-          <!-- What administrators have noticed about this account -->
-          <div class="col-lg-5">
-            <div class="card shadow-sm">
-              <?php panel_card_header(
-                'Notes',
-                'Only administrators see these. ' . ($isLandlord ? 'The landlord' : 'The boarder') . ' never does.',
-                $notes ? '<span class="re-count-pill">' . count($notes) . '</span>' : ''
-              ); ?>
-              <div class="card-body">
-                <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="re-note-form">
-                  <?= csrf_field() ?>
-                  <input type="hidden" name="user_id" value="<?= (int) $userId ?>">
-                  <input type="hidden" name="action" value="add_note">
-                  <label class="sr-only" for="note-body">Write a note about this account</label>
-                  <textarea class="form-control" id="note-body" name="body" rows="3"
-                    maxlength="<?= ACCOUNT_NOTE_MAX ?>" required
-                    placeholder="e.g. Asked to re-upload clearer photos, says they will by Friday."></textarea>
-                  <div class="text-right mt-2">
-                    <button type="submit" class="btn btn-sm btn-primary">
-                      <i class="fas fa-plus mr-1"></i> Add note
-                    </button>
-                  </div>
-                </form>
-
-                <?php if (!$notes): ?>
-                  <div class="re-section">
-                    <p class="text-muted mb-0" style="font-size: .845rem;">
-                      No notes yet. Anything written here stays with the account for whoever picks it up next.
-                    </p>
-                  </div>
-                <?php else: ?>
-                  <?php foreach ($notes as $n): ?>
-                    <div class="re-note">
-                      <?= avatar_html($n, 32) ?>
-                      <div style="min-width: 0; flex: 1 1 auto;">
-                        <div class="re-note-head">
-                          <span class="re-note-author">
-                            <?= $n['admin_name'] !== null ? h($n['admin_name']) : 'An administrator' ?>
-                          </span>
-                          <span class="re-note-when"><?= h(time_ago($n['created_at'])) ?></span>
-                        </div>
-                        <p class="re-note-body"><?= h($n['body']) ?></p>
-                      </div>
-                      <?php if ((int) $n['admin_id'] === (int) $_SESSION['user_id']): ?>
-                        <?php /* Only the author can delete a note: someone who
-                             disagrees should add their own rather than quietly
-                             remove the first. */ ?>
-                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="js-confirm"
-                          data-confirm="Delete this note? It cannot be undone.">
-                          <?= csrf_field() ?>
-                          <input type="hidden" name="user_id" value="<?= (int) $userId ?>">
-                          <input type="hidden" name="note_id" value="<?= (int) $n['note_id'] ?>">
-                          <input type="hidden" name="action" value="delete_note">
-                          <button type="submit" class="re-note-delete" title="Delete this note"
-                            aria-label="Delete this note">
-                            <i class="fas fa-times" aria-hidden="true"></i>
-                          </button>
-                        </form>
-                      <?php endif; ?>
-                    </div>
-                  <?php endforeach; ?>
-                <?php endif; ?>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

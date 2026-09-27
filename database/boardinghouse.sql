@@ -492,25 +492,6 @@ CREATE TABLE audit_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- ---------------------------------------------------------
--- Table: account_notes
--- Short notes an administrator leaves on a landlord's or boarder's account,
--- seen only inside the admin panel. Separate from audit_logs because that
--- table records what was *done* to an account and is written by the code,
--- while a note is what an administrator *observed* and can be deleted by
--- whoever wrote it.
--- ---------------------------------------------------------
-CREATE TABLE account_notes (
-    note_id     INT AUTO_INCREMENT PRIMARY KEY,
-    user_id     INT NOT NULL,
-    admin_id    INT NULL,
-    body        VARCHAR(1000) NOT NULL,
-    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    -- Serves the per-account lookup, newest first, which is the only read.
-    KEY idx_account_notes (user_id, created_at),
-    CONSTRAINT fk_notes_user  FOREIGN KEY (user_id)  REFERENCES users(user_id) ON DELETE CASCADE,
-    CONSTRAINT fk_notes_admin FOREIGN KEY (admin_id) REFERENCES users(user_id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =========================================================
 -- SEED DATA

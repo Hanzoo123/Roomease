@@ -142,3 +142,8 @@ UPDATE boarding_houses bh
   JOIN audit_logs a ON a.log_id = latest.log_id
    SET bh.deleted_by = a.actor_id, bh.updated_at = bh.updated_at
  WHERE bh.deleted_at IS NOT NULL;
+
+-- ---- account_notes ---------------------------------------------------
+-- Administrators' notes on accounts were never used and are gone from the
+-- admin panel. The audit log is where an account's history lives.
+DROP TABLE IF EXISTS account_notes;

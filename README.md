@@ -256,10 +256,6 @@ the cleanup log below for why that is worth saying.
   under `assets/uploads/avatars/`, and drawn wherever that person appears:
   the panel sidebar and account menu, the admin user directory and account
   pages, the activity log, and the landlord block on a public listing.
-- Admin: leave notes on a landlord or boarder from that account's page. Notes
-  record what was observed, as against the Activity Log recording what was
-  done, are never shown to the person they are about, and can be deleted only
-  by whoever wrote them.
 - Password reset by a 6-digit code emailed through Gmail. Codes are hashed,
   single use, expire after 10 minutes, and stop working after five wrong
   guesses.
