@@ -67,7 +67,8 @@ if ($action === 'add_note') {
         redirect($back('admin/manage_users.php'));
     }
     $newStatus = $target['is_active'] ? 0 : 1;
-    $pdo->prepare('UPDATE users SET is_active = ? WHERE user_id = ?')->execute([$newStatus, $userId]);
+    $pdo->prepare('UPDATE users SET is_active = ?, updated_by = ? WHERE user_id = ?')
+        ->execute([$newStatus, current_user_id(), $userId]);
     if (!$newStatus) {
         // Deactivation also ends every "Remember me" device for the account.
         forget_all_remembered_logins($userId);
@@ -90,8 +91,8 @@ if ($action === 'add_note') {
         flash_set('That account is already removed.', 'error');
         redirect($back('admin/manage_users.php?view=archived'));
     }
-    $pdo->prepare('UPDATE users SET deleted_at = NOW(), is_active = 0 WHERE user_id = ?')
-        ->execute([$userId]);
+    $pdo->prepare('UPDATE users SET deleted_at = NOW(), is_active = 0, updated_by = ? WHERE user_id = ?')
+        ->execute([current_user_id(), $userId]);
     forget_all_remembered_logins($userId);
     audit_log('user_remove', $userId, $fullName);
     flash_set('"' . $name . '" was removed. Their listings are hidden, and the account can be restored.', 'success');
@@ -102,8 +103,8 @@ if ($action === 'add_note') {
         flash_set('That account is not removed.', 'error');
         redirect($back('admin/manage_users.php'));
     }
-    $pdo->prepare('UPDATE users SET deleted_at = NULL, is_active = 1 WHERE user_id = ?')
-        ->execute([$userId]);
+    $pdo->prepare('UPDATE users SET deleted_at = NULL, is_active = 1, updated_by = ? WHERE user_id = ?')
+        ->execute([current_user_id(), $userId]);
     audit_log('user_restore', $userId, $fullName);
     flash_set('"' . $name . '" was restored, along with their listings.', 'success');
     redirect($back('admin/manage_users.php'));

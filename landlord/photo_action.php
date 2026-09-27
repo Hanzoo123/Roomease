@@ -62,14 +62,15 @@ if ($action === 'delete') {
         $next->execute([$scopeParam]);
         $nextId = $next->fetchColumn();
         if ($nextId) {
-            $pdo->prepare('UPDATE images SET is_primary = 1 WHERE image_id = ?')->execute([$nextId]);
+            $pdo->prepare('UPDATE images SET is_primary = 1, updated_by = ? WHERE image_id = ?')
+                ->execute([current_user_id(), $nextId]);
         }
     }
 
     flash_set('Photo removed.', 'success');
 } elseif ($action === 'set_primary') {
-    $pdo->prepare("UPDATE images SET is_primary = 0 WHERE $scope")->execute([$scopeParam]);
-    $pdo->prepare('UPDATE images SET is_primary = 1 WHERE image_id = ?')->execute([$imageId]);
+    $pdo->prepare("UPDATE images SET is_primary = 0, updated_by = ? WHERE $scope")->execute([current_user_id(), $scopeParam]);
+    $pdo->prepare('UPDATE images SET is_primary = 1, updated_by = ? WHERE image_id = ?')->execute([current_user_id(), $imageId]);
     flash_set($roomId === null ? 'Cover photo updated.' : 'Main room photo updated.', 'success');
 } else {
     flash_set('Unknown photo action.', 'error');

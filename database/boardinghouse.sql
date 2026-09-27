@@ -82,12 +82,20 @@ CREATE TABLE users (
     role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     deleted_at      DATETIME NULL DEFAULT NULL,
+    -- Who created the account (themselves, on sign-up) and who last changed
+    -- it (themselves, or an administrator). NULL: created by the system.
+    created_by      INT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by      INT NULL,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY email (email),
     UNIQUE KEY uq_users_google_id (google_id),
     -- Every account listing filters on these three columns together.
-    KEY idx_users_live (deleted_at, is_active, role)
+    KEY idx_users_live (deleted_at, is_active, role),
+    CONSTRAINT fk_users_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_users_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -132,7 +140,11 @@ CREATE TABLE boarding_houses (
     cooking_allowed     TINYINT(1) DEFAULT NULL,
     latitude            DECIMAL(9, 6) DEFAULT NULL,
     longitude           DECIMAL(9, 6) DEFAULT NULL,
+    -- The landlord who created it, and whoever last changed it: the landlord,
+    -- or an administrator deciding on it.
+    created_by          INT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          INT NULL,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at          DATETIME NULL DEFAULT NULL,
     -- The two status columns lead because every browse query fixes both, and
@@ -144,6 +156,10 @@ CREATE TABLE boarding_houses (
     CONSTRAINT fk_bh_landlord FOREIGN KEY (landlord_id)
         REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_bh_moderated_by FOREIGN KEY (moderated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_bh_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_bh_updated_by FOREIGN KEY (updated_by)
         REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -155,7 +171,15 @@ CREATE TABLE boarding_houses (
 CREATE TABLE room_types (
     room_type_id    INT AUTO_INCREMENT PRIMARY KEY,
     room_type_name  VARCHAR(50) NOT NULL,
-    UNIQUE KEY room_type_name (room_type_name)
+    created_by      INT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by      INT NULL,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY room_type_name (room_type_name),
+    CONSTRAINT fk_room_types_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_room_types_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
@@ -168,9 +192,17 @@ CREATE TABLE amenities (
     amenity_id      INT AUTO_INCREMENT PRIMARY KEY,
     landlord_id     INT DEFAULT NULL,
     amenity_name    VARCHAR(100) NOT NULL,
+    created_by      INT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by      INT NULL,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_amenities_owner_name (landlord_id, amenity_name),
     CONSTRAINT fk_amenities_landlord FOREIGN KEY (landlord_id)
-        REFERENCES users(user_id) ON DELETE CASCADE
+        REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_amenities_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_amenities_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
@@ -181,9 +213,17 @@ CREATE TABLE utilities (
     utility_id      INT AUTO_INCREMENT PRIMARY KEY,
     landlord_id     INT DEFAULT NULL,
     utility_name    VARCHAR(100) NOT NULL,
+    created_by      INT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by      INT NULL,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_utilities_owner_name (landlord_id, utility_name),
     CONSTRAINT fk_utilities_landlord FOREIGN KEY (landlord_id)
-        REFERENCES users(user_id) ON DELETE CASCADE
+        REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_utilities_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_utilities_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
@@ -237,7 +277,9 @@ CREATE TABLE rooms (
     slots_taken         SMALLINT NOT NULL DEFAULT 0,
     is_open             TINYINT(1) NOT NULL DEFAULT 1,
     description         VARCHAR(500) DEFAULT NULL,
+    created_by          INT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          INT NULL,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_rooms_house_name (boarding_house_id, name),
     KEY idx_rooms_type_rent (room_type_id, is_open, monthly_rent),
@@ -246,7 +288,11 @@ CREATE TABLE rooms (
     CONSTRAINT fk_rooms_bh FOREIGN KEY (boarding_house_id)
         REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE,
     CONSTRAINT fk_rooms_type FOREIGN KEY (room_type_id)
-        REFERENCES room_types(room_type_id) ON DELETE RESTRICT
+        REFERENCES room_types(room_type_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_rooms_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_rooms_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
@@ -263,14 +309,21 @@ CREATE TABLE images (
     room_id             INT DEFAULT NULL,
     image_path          VARCHAR(255) NOT NULL,
     is_primary          TINYINT(1) NOT NULL DEFAULT 0,
-    uploaded_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by          INT NULL,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          INT NULL,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     -- Serves the per-listing cover photo lookup in browse and both dashboards.
     KEY idx_images_cover (boarding_house_id, is_primary, image_id),
     KEY idx_images_room  (room_id, is_primary, image_id),
     CONSTRAINT fk_images_bh FOREIGN KEY (boarding_house_id)
         REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE,
     CONSTRAINT fk_images_room FOREIGN KEY (room_id)
-        REFERENCES rooms(room_id) ON DELETE CASCADE
+        REFERENCES rooms(room_id) ON DELETE CASCADE,
+    CONSTRAINT fk_images_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_images_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
@@ -361,12 +414,16 @@ CREATE TABLE login_attempts (
     kind         VARCHAR(20) NOT NULL,
     -- The email address the attempt was aimed at, lowercased.
     identifier   VARCHAR(190) NOT NULL,
+    -- The account that email belongs to, or NULL when no account has it.
+    user_id      INT NULL,
     -- The address the request came from. IPv6 needs up to 45 characters.
     ip_address   VARCHAR(45) NOT NULL,
     attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_kind_identifier_time (kind, identifier, attempted_at),
     KEY idx_kind_ip_time (kind, ip_address, attempted_at),
-    KEY idx_attempted_at (attempted_at)
+    KEY idx_attempted_at (attempted_at),
+    CONSTRAINT fk_attempts_user FOREIGN KEY (user_id)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -384,7 +441,15 @@ CREATE TABLE login_attempts (
 CREATE TABLE site_settings (
     setting_key     VARCHAR(64) NOT NULL PRIMARY KEY,
     setting_value   TEXT DEFAULT NULL,
-    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    -- The administrator who first saved the setting, and who last changed it.
+    created_by      INT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by      INT NULL,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_settings_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_settings_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------

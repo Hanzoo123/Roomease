@@ -68,6 +68,28 @@ function is_logged_in()
     return isset($_SESSION['user_id']);
 }
 
+/**
+ * The signed-in user's id, or null. What a save writes into created_by and
+ * updated_by, the "who" columns on every table people create and edit rows
+ * in (database/boardinghouse.sql). NULL there means the system did it.
+ */
+function current_user_id()
+{
+    return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+}
+
+/**
+ * Mark a just-created account as created, and so far changed, by itself:
+ * the id a sign-up needs for its own created_by only exists once the row is
+ * in. Called by both kinds of sign-up (auth/register.php, Google).
+ */
+function mark_self_created($userId)
+{
+    global $pdo;
+    $pdo->prepare('UPDATE users SET created_by = user_id, updated_by = user_id WHERE user_id = ?')
+        ->execute([(int) $userId]);
+}
+
 /** Get the logged-in user's role, or null. */
 function current_role()
 {
@@ -1006,9 +1028,10 @@ function insert_room($houseId, array $room)
 {
     global $pdo;
     $pdo->prepare(
-        'INSERT INTO rooms (name, room_type_id, monthly_rent, capacity, slots_taken, is_open, description, boarding_house_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    )->execute(array_merge(room_values($room), [(int) $houseId]));
+        'INSERT INTO rooms (name, room_type_id, monthly_rent, capacity, slots_taken, is_open, description, boarding_house_id,
+                            created_by, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    )->execute(array_merge(room_values($room), [(int) $houseId, current_user_id(), current_user_id()]));
     return (int) $pdo->lastInsertId();
 }
 
@@ -1031,10 +1054,12 @@ function attach_room_photos($houseId, $roomId, $fileField)
     $needsMain = (int) $hasMain->fetchColumn() === 0;
 
     $insImg = $pdo->prepare(
-        'INSERT INTO images (boarding_house_id, room_id, image_path, is_primary) VALUES (?, ?, ?, ?)'
+        'INSERT INTO images (boarding_house_id, room_id, image_path, is_primary, created_by, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?)'
     );
     foreach ($paths as $i => $path) {
-        $insImg->execute([(int) $houseId, (int) $roomId, $path, ($needsMain && $i === 0) ? 1 : 0]);
+        $insImg->execute([(int) $houseId, (int) $roomId, $path, ($needsMain && $i === 0) ? 1 : 0,
+            current_user_id(), current_user_id()]);
     }
     return count($paths);
 }
@@ -1194,8 +1219,8 @@ function create_lookup($kind, $name, $landlordId = null, $reuse = false)
             : 'You already have "' . $clash['name'] . '".'];
     }
 
-    $pdo->prepare("INSERT INTO {$k['table']} (landlord_id, {$k['name']}) VALUES (?, ?)")
-        ->execute([$landlordId === null ? null : (int) $landlordId, $name]);
+    $pdo->prepare("INSERT INTO {$k['table']} (landlord_id, {$k['name']}, created_by, updated_by) VALUES (?, ?, ?, ?)")
+        ->execute([$landlordId === null ? null : (int) $landlordId, $name, current_user_id(), current_user_id()]);
     $id = (int) $pdo->lastInsertId();
 
     if ($landlordId === null) {
@@ -1221,8 +1246,8 @@ function rename_lookup($kind, $id, $name, $landlordId = null)
     }
 
     $owner = $landlordId === null ? 'landlord_id IS NULL' : 'landlord_id = ' . (int) $landlordId;
-    $pdo->prepare("UPDATE {$k['table']} SET {$k['name']} = ? WHERE {$k['id']} = ? AND $owner")
-        ->execute([$name, (int) $id]);
+    $pdo->prepare("UPDATE {$k['table']} SET {$k['name']} = ?, updated_by = ? WHERE {$k['id']} = ? AND $owner")
+        ->execute([$name, current_user_id(), (int) $id]);
 
     if ($landlordId === null) {
         merge_lookup_copies($kind, $id);
@@ -1257,7 +1282,8 @@ function promote_lookup($kind, $id)
         if ($existing) {
             $globalId = (int) $existing['id'];
         } else {
-            $pdo->prepare("UPDATE {$k['table']} SET landlord_id = NULL WHERE {$k['id']} = ?")->execute([(int) $id]);
+            $pdo->prepare("UPDATE {$k['table']} SET landlord_id = NULL, updated_by = ? WHERE {$k['id']} = ?")
+                ->execute([current_user_id(), (int) $id]);
             $globalId = (int) $id;
         }
         merge_lookup_copies($kind, $globalId);
@@ -2477,8 +2503,8 @@ function save_site_settings(array $values)
 {
     global $pdo;
     $upsert = $pdo->prepare(
-        'INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
+        'INSERT INTO site_settings (setting_key, setting_value, created_by, updated_by) VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_by = VALUES(updated_by)'
     );
     $delete = $pdo->prepare('DELETE FROM site_settings WHERE setting_key = ?');
 
@@ -2486,7 +2512,7 @@ function save_site_settings(array $values)
         if ($value === null) {
             $delete->execute([$key]);
         } else {
-            $upsert->execute([$key, (string) $value]);
+            $upsert->execute([$key, (string) $value, current_user_id(), current_user_id()]);
         }
     }
     site_setting('', null, true);

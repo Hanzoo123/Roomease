@@ -110,7 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $columns = array_merge(
             ['landlord_id', 'name', 'address', 'reservation_fee',
              'availability_status', 'description', 'contact_number', 'house_rules'],
-            STAY_TERM_COLUMNS
+            STAY_TERM_COLUMNS,
+            ['created_by', 'updated_by']
         );
         $stmt = $pdo->prepare(
             'INSERT INTO boarding_houses (' . implode(', ', $columns) . ')
@@ -125,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $listing['description'],
             $listing['contact_number'],
             $listing['house_rules'],
-        ], array_values($stayTerms)));
+        ], array_values($stayTerms), [$landlordId, $landlordId]));
         $newId = (int)$pdo->lastInsertId();
 
         save_listing_lookups($newId, $landlordId, $lookups, false);
@@ -153,9 +154,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $paths = handle_photo_uploads('photos', $newId);
             if ($paths) {
-                $insImg = $pdo->prepare('INSERT INTO images (boarding_house_id, image_path, is_primary) VALUES (?, ?, ?)');
+                $insImg = $pdo->prepare(
+                    'INSERT INTO images (boarding_house_id, image_path, is_primary, created_by, updated_by) VALUES (?, ?, ?, ?, ?)'
+                );
                 foreach ($paths as $i => $path) {
-                    $insImg->execute([$newId, $path, $i === 0 ? 1 : 0]);
+                    $insImg->execute([$newId, $path, $i === 0 ? 1 : 0, $landlordId, $landlordId]);
                 }
             }
         } catch (RuntimeException $e) {

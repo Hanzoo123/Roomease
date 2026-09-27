@@ -47,8 +47,8 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$errors) {
         $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-        $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ?')
-            ->execute([$newHash, $reset['user_id']]);
+        $pdo->prepare('UPDATE users SET password_hash = ?, updated_by = ? WHERE user_id = ?')
+            ->execute([$newHash, $reset['user_id'], $reset['user_id']]);
         audit_log('password_reset', $reset['user_id'], $reset['email'],
             ($signedIn ? 'From the profile' : 'With Forgot password') . ', by emailed code',
             ['user_id' => $reset['user_id'], 'role' => $reset['role']]);

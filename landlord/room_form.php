@@ -86,9 +86,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($room) {
             $pdo->prepare(
                 'UPDATE rooms SET name = ?, room_type_id = ?, monthly_rent = ?, capacity = ?, slots_taken = ?,
-                                  is_open = ?, description = ?
+                                  is_open = ?, description = ?, updated_by = ?
                   WHERE room_id = ?'
-            )->execute(array_merge(room_values($form), [$roomId]));
+            )->execute(array_merge(room_values($form), [$landlordId, $roomId]));
         } else {
             $roomId = insert_room($houseId, $form);
         }

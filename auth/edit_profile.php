@@ -46,7 +46,7 @@ if (post_too_large()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remove_photo') {
   verify_csrf();
   delete_avatar($user['avatar_path'] ?? null);
-  $pdo->prepare('UPDATE users SET avatar_path = NULL WHERE user_id = ?')->execute([$userId]);
+  $pdo->prepare('UPDATE users SET avatar_path = NULL, updated_by = ? WHERE user_id = ?')->execute([$userId, $userId]);
   $_SESSION['avatar_path'] = null;
   flash_set('Your photo was removed.', 'success');
   redirect('auth/edit_profile.php');
@@ -92,12 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   if (!$errors) {
-    $columns = ['first_name = ?', 'last_name = ?', 'email = ?', 'phone_number = ?'];
+    $columns = ['first_name = ?', 'last_name = ?', 'email = ?', 'phone_number = ?', 'updated_by = ?'];
     $values = [
       $old['first_name'],
       $old['last_name'],
       $old['email'],
       $old['phone_number'] !== '' ? $old['phone_number'] : null,
+      $userId,
     ];
     if ($newAvatar !== null) {
       $columns[] = 'avatar_path = ?';

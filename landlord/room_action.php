@@ -86,8 +86,8 @@ if ($action === 'slots') {
     // Clamped in the statement itself, so two quick taps can never push the
     // count below zero or past the room's capacity.
     $pdo->prepare(
-        'UPDATE rooms SET slots_taken = LEAST(capacity, GREATEST(0, slots_taken + ?)) WHERE room_id = ?'
-    )->execute([$delta, $roomId]);
+        'UPDATE rooms SET slots_taken = LEAST(capacity, GREATEST(0, slots_taken + ?)), updated_by = ? WHERE room_id = ?'
+    )->execute([$delta, $landlordId, $roomId]);
 
     $fresh = $roomPayload();
     // Only a tap that moved the count is logged; one that hit zero or the
@@ -105,7 +105,7 @@ if ($action === 'slots') {
 }
 
 if ($action === 'toggle_open') {
-    $pdo->prepare('UPDATE rooms SET is_open = 1 - is_open WHERE room_id = ?')->execute([$roomId]);
+    $pdo->prepare('UPDATE rooms SET is_open = 1 - is_open, updated_by = ? WHERE room_id = ?')->execute([$landlordId, $roomId]);
     $fresh = $roomPayload();
     audit_log($fresh['is_open'] ? 'room_open' : 'room_close', $houseId, $room['house_name'], $room['name']);
     room_action_reply(200, [

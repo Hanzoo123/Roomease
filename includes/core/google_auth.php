@@ -289,7 +289,7 @@ function google_find_account($googleId, $email)
     // sent to this address.
     $replacement = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
     $link = $pdo->prepare(
-        'UPDATE users SET google_id = ?, password_hash = ? WHERE user_id = ? AND google_id IS NULL'
+        'UPDATE users SET google_id = ?, password_hash = ?, updated_by = user_id WHERE user_id = ? AND google_id IS NULL'
     );
     $link->execute([$googleId, $replacement, $user['user_id']]);
     if ($link->rowCount() !== 1) {
@@ -328,9 +328,11 @@ function google_create_account(array $profile, $role, $phone = null)
         password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
         $phone,
     ]);
+    $newId = (int) $pdo->lastInsertId();
+    mark_self_created($newId);
 
     $stmt = $pdo->prepare('SELECT * FROM users WHERE user_id = ?');
-    $stmt->execute([(int) $pdo->lastInsertId()]);
+    $stmt->execute([$newId]);
     return $stmt->fetch();
 }
 

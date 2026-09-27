@@ -61,6 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       password_hash($password, PASSWORD_DEFAULT),
       $old['phone_number'] !== '' ? $old['phone_number'] : null,
     ]);
+    $newUserId = (int) $pdo->lastInsertId();
+    mark_self_created($newUserId);
 
     // Signed in straight away, exactly as auth/login.php does it: nobody
     // should have to type the password they chose a second ago. A guest who
@@ -68,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // back to it; anyone else lands on the home page, which sends a new
     // landlord on to their dashboard.
     $newUser = $pdo->prepare('SELECT * FROM users WHERE user_id = ?');
-    $newUser->execute([$pdo->lastInsertId()]);
+    $newUser->execute([$newUserId]);
     $user = $newUser->fetch();
 
     // Taken out first: start_user_session() empties the session.

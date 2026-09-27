@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$googleLinked) {
 
   if (!$errors) {
     $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-    $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ?')->execute([$newHash, $userId]);
+    $pdo->prepare('UPDATE users SET password_hash = ?, updated_by = ? WHERE user_id = ?')->execute([$newHash, $userId, $userId]);
     audit_log('password_change', $userId, $user['email'], 'Other devices signed out');
 
     // A password change invalidates every other copy of this session, so

@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }, STAY_TERM_COLUMNS));
         $stmt = $pdo->prepare(
             'UPDATE boarding_houses SET name=?, address=?, reservation_fee=?, availability_status=?, description=?,
-             contact_number=?, house_rules=?, ' . $stayAssignments . '
+             contact_number=?, house_rules=?, ' . $stayAssignments . ', updated_by=?
              WHERE boarding_house_id=? AND landlord_id=?'
         );
         $stmt->execute(array_merge([
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $listing['availability_status'],
             $listing['description'], $listing['contact_number'], $listing['house_rules'],
         ], array_values($stayTerms), [
-            $boardingHouseId, $landlordId,
+            $landlordId, $boardingHouseId, $landlordId,
         ]));
 
         // A rejected listing has presumably just been corrected, so put it
@@ -165,9 +165,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hasPrimary->execute([$boardingHouseId]);
                 $needsPrimary = (int) $hasPrimary->fetchColumn() === 0;
 
-                $insImg = $pdo->prepare('INSERT INTO images (boarding_house_id, image_path, is_primary) VALUES (?, ?, ?)');
+                $insImg = $pdo->prepare(
+                    'INSERT INTO images (boarding_house_id, image_path, is_primary, created_by, updated_by) VALUES (?, ?, ?, ?, ?)'
+                );
                 foreach ($paths as $i => $path) {
-                    $insImg->execute([$boardingHouseId, $path, ($needsPrimary && $i === 0) ? 1 : 0]);
+                    $insImg->execute([$boardingHouseId, $path, ($needsPrimary && $i === 0) ? 1 : 0, $landlordId, $landlordId]);
                 }
             }
         } catch (RuntimeException $e) {

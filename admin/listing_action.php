@@ -103,9 +103,10 @@ if ($action === 'approve') {
 
     $pdo->prepare(
         "UPDATE boarding_houses
-            SET moderation_status = 'approved', rejection_reason = NULL, moderated_at = NOW(), moderated_by = ?
+            SET moderation_status = 'approved', rejection_reason = NULL, moderated_at = NOW(), moderated_by = ?,
+                updated_by = ?
           WHERE boarding_house_id = ?"
-    )->execute([$adminId, $boardingHouseId]);
+    )->execute([$adminId, $adminId, $boardingHouseId]);
     audit_log('listing_approve', $boardingHouseId, $listing['name']);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_approve');
     flash_set('"' . $name . '" is now approved and visible to boarders.' . $emailNote($sent), 'success');
@@ -121,9 +122,10 @@ if ($action === 'approve') {
     }
     $pdo->prepare(
         "UPDATE boarding_houses
-            SET moderation_status = 'rejected', rejection_reason = ?, moderated_at = NOW(), moderated_by = ?
+            SET moderation_status = 'rejected', rejection_reason = ?, moderated_at = NOW(), moderated_by = ?,
+                updated_by = ?
           WHERE boarding_house_id = ?"
-    )->execute([$reason, $adminId, $boardingHouseId]);
+    )->execute([$reason, $adminId, $adminId, $boardingHouseId]);
     audit_log('listing_reject', $boardingHouseId, $listing['name'], $reason);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_reject', $reason);
     flash_set('"' . $name . '" was rejected.' . $emailNote($sent), 'success');
@@ -136,8 +138,8 @@ if ($action === 'approve') {
     }
     $reason = mb_substr(trim($_POST['removal_reason'] ?? ''), 0, 500);
 
-    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NOW() WHERE boarding_house_id = ? AND deleted_at IS NULL')
-        ->execute([$boardingHouseId]);
+    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NOW(), updated_by = ? WHERE boarding_house_id = ? AND deleted_at IS NULL')
+        ->execute([current_user_id(), $boardingHouseId]);
     audit_log('listing_remove', $boardingHouseId, $listing['name'], $reason);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_remove', $reason);
     flash_set('"' . $name . '" was removed from the site. It can be restored from the Removed tab.' . $emailNote($sent), 'success');
@@ -151,8 +153,8 @@ if ($action === 'approve') {
         redirect($returnTo);
     }
 
-    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NULL WHERE boarding_house_id = ?')
-        ->execute([$boardingHouseId]);
+    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NULL, updated_by = ? WHERE boarding_house_id = ?')
+        ->execute([current_user_id(), $boardingHouseId]);
     audit_log('listing_restore', $boardingHouseId, $listing['name']);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_restore');
     $where = $listing['moderation_status'] === 'approved'

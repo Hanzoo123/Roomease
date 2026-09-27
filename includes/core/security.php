@@ -685,7 +685,11 @@ function upgrade_password_hash(array $user, $password)
     }
     $newHash = password_hash($password, PASSWORD_DEFAULT);
     try {
-        $update = $pdo->prepare('UPDATE users SET password_hash = ? WHERE user_id = ? AND password_hash = ?');
+        // Housekeeping, not an edit: updated_at = updated_at keeps the
+        // account's last-changed time, and updated_by is left alone.
+        $update = $pdo->prepare(
+            'UPDATE users SET password_hash = ?, updated_at = updated_at WHERE user_id = ? AND password_hash = ?'
+        );
         $update->execute([$newHash, $user['user_id'], $user['password_hash']]);
         if ($update->rowCount() === 1) {
             return $newHash;

@@ -44,6 +44,11 @@ the site is live.
    has the older `admin_actions` table, run `database/upgrade_audit_logs.sql`
    once instead of re-importing. It renames that table to `audit_logs` and keeps
    every entry.
+   Then, if its tables have no `created_by` / `updated_by` columns yet, run
+   `database/upgrade_audit_columns.sql` once as well. A database that also lacks
+   foreign keys (for example a `rooms` table still in MyISAM) needs
+   `database/repair_foreign_keys.sql` first; it adds the missing links without
+   deleting anything, and stops if a row points at something that is gone.
 
 4. **Set up the optional features.** Nothing here touches the database —
    step 3 already created every table, including brute-force throttling,
@@ -209,6 +214,8 @@ roomease/
     ├── seed_demo.sql            OPTIONAL demo accounts and sample listings
     ├── seed_landlords.sql       OPTIONAL bulk demo landlords and listings
     ├── upgrade_audit_logs.sql   One-off: admin_actions becomes audit_logs, keeping entries
+    ├── upgrade_audit_columns.sql One-off: created_by/created_at/updated_by/updated_at
+    ├── repair_foreign_keys.sql  One-off: adds foreign keys a drifted database is missing
     └── set_admin_password.php   CLI tool to set the administrator password
 ```
 
