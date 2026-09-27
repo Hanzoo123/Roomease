@@ -19,7 +19,7 @@ $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
 if (!$user) {
-    die('User not found.');
+  die('User not found.');
 }
 
 $googleLinked = !empty($user['google_id']);
@@ -31,46 +31,50 @@ $fullName = trim($user['first_name'] . ' ' . $user['last_name']);
 // than a copy of the form. Administrators have neither.
 $activity = null;
 if ($role === 'boarder') {
-    $saved = count(saved_listing_ids($userId));
-    $activity = [
-        'label' => 'Saved rooms',
-        'value' => $saved === 0 ? 'None yet' : (string) $saved,
-        'link'  => ['href' => $saved === 0 ? 'boarder/browse.php' : 'boarder/saved.php',
-                    'label' => $saved === 0 ? 'Browse rooms' : 'View'],
-    ];
+  $saved = count(saved_listing_ids($userId));
+  $activity = [
+    'label' => 'Saved rooms',
+    'value' => $saved === 0 ? 'None yet' : (string) $saved,
+    'link' => [
+      'href' => $saved === 0 ? 'boarder/browse.php' : 'boarder/saved.php',
+      'label' => $saved === 0 ? 'Browse rooms' : 'View'
+    ],
+  ];
 } elseif ($role === 'landlord') {
-    // "Live" as boarders see it: approved and open, the same test as browse.
-    $countStmt = $pdo->prepare(
-        "SELECT COUNT(*) AS total,
+  // "Live" as boarders see it: approved and open, the same test as browse.
+  $countStmt = $pdo->prepare(
+    "SELECT COUNT(*) AS total,
                 COALESCE(SUM(moderation_status = 'approved' AND availability_status = 'available'), 0) AS live
            FROM boarding_houses
           WHERE landlord_id = ? AND deleted_at IS NULL"
-    );
-    $countStmt->execute([$userId]);
-    $counts = $countStmt->fetch();
-    $total = (int) $counts['total'];
-    $activity = [
-        'label' => 'Listings',
-        'value' => $total === 0 ? 'None yet' : $total . ', ' . (int) $counts['live'] . ' live',
-        'link'  => ['href' => $total === 0 ? 'landlord/add_listing.php' : 'landlord/listings.php',
-                    'label' => $total === 0 ? 'Add a listing' : 'Manage'],
-    ];
+  );
+  $countStmt->execute([$userId]);
+  $counts = $countStmt->fetch();
+  $total = (int) $counts['total'];
+  $activity = [
+    'label' => 'Listings',
+    'value' => $total === 0 ? 'None yet' : $total . ', ' . (int) $counts['live'] . ' live',
+    'link' => [
+      'href' => $total === 0 ? 'landlord/add_listing.php' : 'landlord/listings.php',
+      'label' => $total === 0 ? 'Add a listing' : 'Manage'
+    ],
+  ];
 }
 
 $pageTitle = 'My Profile';
-$profileSubtitle = 'Your account on RoomEase, and how you sign in.';
+
 require __DIR__ . '/../includes/layouts/profile_top.php';
 
 $roleBadge = $usePanel
-    ? ['administrator' => 'badge badge-primary', 'landlord' => 'badge badge-info', 'boarder' => 'badge badge-secondary'][$role]
-    : 'profile-role';
+  ? ['administrator' => 'badge badge-primary', 'landlord' => 'badge badge-info', 'boarder' => 'badge badge-secondary'][$role]
+  : 'profile-role';
 ?>
 
+<!-- my profile account settings -->
 <div class="<?= $usePanel ? 'card profile-card' : 'panel on-seam profile-card' ?>">
   <?php if ($usePanel): ?>
     <div class="card-header">
-      <h3 class="card-title">Account</h3>
-      <span class="card-subtitle">Only you and the administrators can see this page.</span>
+      <h3 class="card-title">Profile</h3>
     </div>
   <?php endif; ?>
 
@@ -118,7 +122,8 @@ $roleBadge = $usePanel
         <dt><?= h($activity['label']) ?></dt>
         <dd>
           <?= h($activity['value']) ?>
-          <a href="<?= base_url($activity['link']['href']) ?>" class="profile-fact-link"><?= h($activity['link']['label']) ?> &rarr;</a>
+          <a href="<?= base_url($activity['link']['href']) ?>"
+            class="profile-fact-link"><?= h($activity['link']['label']) ?> &rarr;</a>
         </dd>
       </div>
     <?php endif; ?>

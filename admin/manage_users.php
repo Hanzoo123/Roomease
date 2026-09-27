@@ -71,7 +71,7 @@ $pageActions .= $showArchived
   <?php panel_page_header($showArchived ? 'Removed accounts' : 'Manage Users', [
     'subtitle' => $showArchived
       ? 'Accounts an administrator has archived. Nothing is deleted, and restoring one brings its listings back with it.'
-      : 'Every landlord and boarder on RoomEase, and what an administrator can do about them.',
+      : '',
     'back' => $showArchived ? 'admin/manage_users.php' : null,
     'backLabel' => 'Back to active accounts',
     'actions' => $pageActions,

@@ -94,7 +94,7 @@ foreach ($panel['menu'] as $idx => $item) {
         <li class="nav-divider" role="separator"></li>
 
         <li class="nav-item">
-          <a href="<?= base_url('boarder/browse.php') ?>" target="_blank" class="nav-link">
+          <a href="<?= base_url('boarder/browse.php') ?>" target="_self" class="nav-link">
             <i class="nav-icon fas fa-globe"></i>
             <p>
               View Main Site

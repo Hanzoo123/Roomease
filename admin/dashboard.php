@@ -104,7 +104,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <div class="content-wrapper">
   <?php panel_page_header('Dashboard', [
-    'subtitle' => 'What needs you now, how the last 30 days went, and what administrators have done lately.',
+    
     'actions' => '<a href="' . base_url('admin/manage_listings.php?status=pending')
       . '" class="btn btn-sm btn-primary"><i class="fas fa-clipboard-check mr-1"></i> Review queue</a>'
       . '<a href="' . base_url('admin/reports.php') . '" class="btn btn-sm btn-outline-secondary">'

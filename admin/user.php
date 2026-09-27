@@ -166,7 +166,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         <div class="row">
 
           <!-- Who they are -->
-          <div class="col-lg-5">
+          <div class="col-lg-7">
             <div class="card shadow-sm">
               <?php panel_card_header('Profile', 'Who this account belongs to, and how to reach them.'); ?>
               <div class="card-body">
@@ -229,7 +229,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <!-- What they have here -->
-          <div class="col-lg-7">
+          <div class="col-lg-5">
             <div class="card shadow-sm">
               <?php panel_card_header(
                 $isLandlord ? 'Portfolio' : 'Shortlist',

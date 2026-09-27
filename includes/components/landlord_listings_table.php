@@ -5,15 +5,15 @@
  * landlord/listings.php.
  *
  * Expects:
- *   $listings  rows from landlord_listings()
+ *   $listings  rows from landlord_listings(), or [] when there are none
  */
+$listings = $listings ?? [];
 ?>
 <div class="card card-primary card-outline shadow-sm" id="myListings">
   <?php panel_card_header(
     'My boarding houses',
     'Each listing, its rooms, and whether boarders can see it yet.',
-    '<a href="' . base_url('landlord/add_listing.php') . '" class="btn btn-sm btn-primary">'
-      . '<i class="fas fa-plus mr-1"></i> Add listing</a>'
+    
   ); ?>
 
   <div class="card-body<?= $listings ? '' : ' p-0' ?>">
