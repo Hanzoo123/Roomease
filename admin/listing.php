@@ -21,10 +21,12 @@ $stmt = $pdo->prepare(
           u.email AS landlord_email, u.phone_number AS landlord_phone, u.is_active AS landlord_active,
           u.deleted_at AS landlord_deleted_at, u.created_at AS landlord_joined, u.google_id AS landlord_google_id,
           u.avatar_path AS landlord_avatar,
-          CONCAT(m.first_name, ' ', m.last_name) AS moderator_name
+          CONCAT(m.first_name, ' ', m.last_name) AS moderator_name,
+          CONCAT(del.first_name, ' ', del.last_name) AS deleted_by_name, del.role AS deleted_by_role
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
      LEFT JOIN users m ON m.user_id = bh.moderated_by
+     LEFT JOIN users del ON del.user_id = bh.deleted_by
     WHERE bh.boarding_house_id = ?"
 );
 $stmt->execute([$listingId]);
@@ -175,7 +177,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <div>
             <div class="mb-1">
               <?= moderation_badge($listing['moderation_status']) ?>
-              <?php if ($archived): ?>
+              <?php if ($archived && $listing['deleted_by_role'] === 'landlord'): ?>
+                <span class="badge badge-secondary px-2 py-1"><i class="fas fa-trash mr-1"></i> Deleted by the landlord</span>
+              <?php elseif ($archived): ?>
                 <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed</span>
               <?php elseif ($listing['availability_status'] !== 'available'): ?>
                 <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i> Hidden by landlord</span>
@@ -195,7 +199,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <?= h(time_ago($listing['moderated_at'])) ?>
               <?php endif; ?>
               <?php if ($archived): ?>
-                &middot; removed <?= h(time_ago($listing['deleted_at'])) ?>
+                &middot; <?= $listing['deleted_by_role'] === 'landlord' ? 'deleted' : 'removed' ?>
+                <?= $listing['deleted_by_name'] ? 'by ' . h($listing['deleted_by_name']) : '' ?>
+                <?= h(time_ago($listing['deleted_at'])) ?>
               <?php endif; ?>
             </small>
             <?php if ($listing['moderation_status'] === 'rejected' && $listing['rejection_reason']): ?>

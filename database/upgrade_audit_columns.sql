@@ -114,3 +114,31 @@ ALTER TABLE login_attempts
     ADD CONSTRAINT fk_attempts_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL;
 
 UPDATE login_attempts a JOIN users u ON u.email = a.identifier SET a.user_id = u.user_id;
+
+-- ---- deleted_by --------------------------------------------------------
+-- Accounts and listings are archived, not erased: deleted_at says when, and
+-- deleted_by says who (an administrator, or a landlord deleting their own
+-- listing). Restoring clears both. Earlier removals take their remover from
+-- the audit log where it has one.
+ALTER TABLE users
+    ADD COLUMN deleted_by INT NULL AFTER deleted_at,
+    ADD CONSTRAINT fk_users_deleted_by FOREIGN KEY (deleted_by) REFERENCES users(user_id) ON DELETE SET NULL;
+
+ALTER TABLE boarding_houses
+    ADD COLUMN deleted_by INT NULL AFTER deleted_at,
+    ADD CONSTRAINT fk_bh_deleted_by FOREIGN KEY (deleted_by) REFERENCES users(user_id) ON DELETE SET NULL;
+
+UPDATE users u
+  JOIN (SELECT target_id, MAX(log_id) AS log_id FROM audit_logs
+         WHERE action = 'user_remove' GROUP BY target_id) latest ON latest.target_id = u.user_id
+  JOIN audit_logs a ON a.log_id = latest.log_id
+   SET u.deleted_by = a.actor_id, u.updated_at = u.updated_at
+ WHERE u.deleted_at IS NOT NULL;
+
+UPDATE boarding_houses bh
+  JOIN (SELECT target_id, MAX(log_id) AS log_id FROM audit_logs
+         WHERE action IN ('listing_remove', 'listing_delete') GROUP BY target_id) latest
+    ON latest.target_id = bh.boarding_house_id
+  JOIN audit_logs a ON a.log_id = latest.log_id
+   SET bh.deleted_by = a.actor_id, bh.updated_at = bh.updated_at
+ WHERE bh.deleted_at IS NOT NULL;

@@ -1,4 +1,14 @@
 <?php
+/**
+ * A landlord deleting one of their own listings.
+ *
+ * The listing is archived, not erased: deleted_at and deleted_by are set, and
+ * its rooms, photos and boarders' saves stay where they are. Every public,
+ * boarder and landlord page already leaves archived listings out, so to
+ * everyone but an administrator it is gone. An administrator sees it under
+ * Manage Listings, Removed, marked as deleted by the landlord, and can
+ * restore it if the landlord deleted it by mistake.
+ */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
 require_login('landlord');
@@ -9,28 +19,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 verify_csrf();
 
 $boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
+$landlordId = (int) $_SESSION['user_id'];
 
-// Its name, for the audit log, before the row is gone.
+// Its name, for the audit log.
 $nameStmt = $pdo->prepare('SELECT name FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ?');
-$nameStmt->execute([$boardingHouseId, $_SESSION['user_id']]);
+$nameStmt->execute([$boardingHouseId, $landlordId]);
 $listingName = (string) $nameStmt->fetchColumn();
 
 // Ownership check inside the WHERE clause itself. A listing an administrator
-// removed is archived and waiting to be reviewed or restored, so it is not the
-// landlord's to delete for good.
-$stmt = $pdo->prepare('DELETE FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ? AND deleted_at IS NULL');
-$stmt->execute([$boardingHouseId, $_SESSION['user_id']]);
+// already removed is not the landlord's to delete again.
+$stmt = $pdo->prepare(
+    'UPDATE boarding_houses SET deleted_at = NOW(), deleted_by = ?, updated_by = ?
+      WHERE boarding_house_id = ? AND landlord_id = ? AND deleted_at IS NULL'
+);
+$stmt->execute([$landlordId, $landlordId, $boardingHouseId, $landlordId]);
 
 if ($stmt->rowCount() > 0) {
     audit_log('listing_delete', $boardingHouseId, $listingName);
-
-    // Clean up uploaded image files for this boarding house
-    $dir = __DIR__ . '/../assets/uploads/boarding_houses/' . $boardingHouseId;
-    if (is_dir($dir)) {
-        array_map('unlink', glob("$dir/*.*") ?: []);
-        rmdir($dir);
-    }
-    flash_set('Boarding house listing deleted.', 'success');
+    flash_set('"' . $listingName . '" was deleted. Boarders no longer see it. If this was a mistake, an administrator can restore it.', 'success');
 } else {
     flash_set('Listing not found, or you do not have permission to delete it.', 'error');
 }

@@ -82,6 +82,7 @@ CREATE TABLE users (
     role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     deleted_at      DATETIME NULL DEFAULT NULL,
+    deleted_by      INT NULL,
     -- Who created the account (themselves, on sign-up) and who last changed
     -- it (themselves, or an administrator). NULL: created by the system.
     created_by      INT NULL,
@@ -95,6 +96,8 @@ CREATE TABLE users (
     CONSTRAINT fk_users_created_by FOREIGN KEY (created_by)
         REFERENCES users(user_id) ON DELETE SET NULL,
     CONSTRAINT fk_users_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_users_deleted_by FOREIGN KEY (deleted_by)
         REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -147,6 +150,9 @@ CREATE TABLE boarding_houses (
     updated_by          INT NULL,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at          DATETIME NULL DEFAULT NULL,
+    -- Who archived it: an administrator removing it, or its landlord deleting
+    -- it. Restoring clears this and deleted_at together.
+    deleted_by          INT NULL,
     -- The two status columns lead because every browse query fixes both, and
     -- the ordering column comes last so one index supplies the sort as well.
     KEY idx_bh_public_recent   (moderation_status, availability_status, created_at),
@@ -160,6 +166,8 @@ CREATE TABLE boarding_houses (
     CONSTRAINT fk_bh_created_by FOREIGN KEY (created_by)
         REFERENCES users(user_id) ON DELETE SET NULL,
     CONSTRAINT fk_bh_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_bh_deleted_by FOREIGN KEY (deleted_by)
         REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

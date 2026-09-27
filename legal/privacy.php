@@ -88,7 +88,8 @@ require __DIR__ . '/../includes/layouts/header.php';
   <h2>How long it is kept</h2>
   <ul>
     <li>Account and listing details are kept while your account exists. A removed account is archived rather than
-      erased straight away.</li>
+      erased straight away. A listing its landlord deletes is archived the same way, hidden from everyone but the
+      administrators, so it can be restored if it was deleted by mistake.</li>
     <li>Password reset codes stop working after <?= password_reset_ttl_minutes() ?> minutes.</li>
     <li>Records of sign-in attempts are cleared after about a day.</li>
     <li>Sign-in history in the audit log is deleted after <?= AUDIT_SIGNIN_DAYS ?> days. Records of changes to listings

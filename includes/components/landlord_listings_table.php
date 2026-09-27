@@ -124,7 +124,7 @@ $listings = $listings ?? [];
 
                   <!-- Delete Button -->
                   <form method="post" action="<?= base_url('landlord/delete_listing.php') ?>" class="d-inline js-confirm"
-                    data-confirm="Delete &quot;<?= h($l['name']) ?>&quot;? This cannot be undone.">
+                    data-confirm="Delete &quot;<?= h($l['name']) ?>&quot;? Boarders will no longer see it. An administrator can restore it if this was a mistake.">
                     <?= csrf_field() ?>
                     <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
                     <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete Listing">

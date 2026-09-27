@@ -138,8 +138,8 @@ if ($action === 'approve') {
     }
     $reason = mb_substr(trim($_POST['removal_reason'] ?? ''), 0, 500);
 
-    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NOW(), updated_by = ? WHERE boarding_house_id = ? AND deleted_at IS NULL')
-        ->execute([current_user_id(), $boardingHouseId]);
+    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NOW(), deleted_by = ?, updated_by = ? WHERE boarding_house_id = ? AND deleted_at IS NULL')
+        ->execute([current_user_id(), current_user_id(), $boardingHouseId]);
     audit_log('listing_remove', $boardingHouseId, $listing['name'], $reason);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_remove', $reason);
     flash_set('"' . $name . '" was removed from the site. It can be restored from the Removed tab.' . $emailNote($sent), 'success');
@@ -153,7 +153,7 @@ if ($action === 'approve') {
         redirect($returnTo);
     }
 
-    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NULL, updated_by = ? WHERE boarding_house_id = ?')
+    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NULL, deleted_by = NULL, updated_by = ? WHERE boarding_house_id = ?')
         ->execute([current_user_id(), $boardingHouseId]);
     audit_log('listing_restore', $boardingHouseId, $listing['name']);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_restore');

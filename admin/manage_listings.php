@@ -32,9 +32,11 @@ $stmt = $pdo->prepare(
           CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
           u.email AS landlord_email,
           u.is_active AS landlord_active,
-          u.deleted_at AS landlord_deleted_at
+          u.deleted_at AS landlord_deleted_at,
+          CONCAT(del.first_name, ' ', del.last_name) AS deleted_by_name, del.role AS deleted_by_role
      FROM boarding_houses bh
      JOIN users u ON u.user_id = bh.landlord_id
+     LEFT JOIN users del ON del.user_id = bh.deleted_by
      " . room_summary_join() . "
     WHERE " . implode(' AND ', $where) . "
     ORDER BY " . ($showRemoved ? 'bh.deleted_at DESC' : 'bh.created_at DESC')
@@ -90,7 +92,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
   panel_page_header($showRemoved ? 'Removed listings' : 'Manage Listings', [
     'subtitle' => $showRemoved
-      ? 'Listings an administrator has archived. Restoring one brings back its rooms, photos and approval.'
+      ? 'Listings an administrator removed or a landlord deleted. Both are archived, not erased: restoring one brings back its rooms, photos and approval.'
       : 'Every boarding house on RoomEase, by where it stands with approval.',
     'back' => $showRemoved ? 'admin/manage_listings.php' : null,
     'backLabel' => 'Back to all listings',
@@ -216,7 +218,16 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   </td>
                   <td>
                     <?php if ($showRemoved): ?>
-                      <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed</span>
+                      <?php /* Who archived it: a landlord deleting their own listing reads
+                           differently from an administrator taking it down. */ ?>
+                      <?php if ($l['deleted_by_role'] === 'landlord'): ?>
+                        <span class="badge badge-secondary px-2 py-1"><i class="fas fa-trash mr-1"></i> Deleted by the landlord</span>
+                      <?php else: ?>
+                        <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed by an administrator</span>
+                      <?php endif; ?>
+                      <?php if ($l['deleted_by_name'] !== null && $l['deleted_by_role'] !== 'landlord'): ?>
+                        <small class="text-muted d-block mt-1">by <?= h($l['deleted_by_name']) ?></small>
+                      <?php endif; ?>
                     <?php elseif ($l['availability_status'] === 'available'): ?>
                       <span class="badge badge-success px-2 py-1"><i class="fas fa-eye mr-1"></i> Shown</span>
                     <?php else: ?>

@@ -91,8 +91,8 @@ if ($action === 'add_note') {
         flash_set('That account is already removed.', 'error');
         redirect($back('admin/manage_users.php?view=archived'));
     }
-    $pdo->prepare('UPDATE users SET deleted_at = NOW(), is_active = 0, updated_by = ? WHERE user_id = ?')
-        ->execute([current_user_id(), $userId]);
+    $pdo->prepare('UPDATE users SET deleted_at = NOW(), deleted_by = ?, is_active = 0, updated_by = ? WHERE user_id = ?')
+        ->execute([current_user_id(), current_user_id(), $userId]);
     forget_all_remembered_logins($userId);
     audit_log('user_remove', $userId, $fullName);
     flash_set('"' . $name . '" was removed. Their listings are hidden, and the account can be restored.', 'success');
@@ -103,7 +103,7 @@ if ($action === 'add_note') {
         flash_set('That account is not removed.', 'error');
         redirect($back('admin/manage_users.php'));
     }
-    $pdo->prepare('UPDATE users SET deleted_at = NULL, is_active = 1, updated_by = ? WHERE user_id = ?')
+    $pdo->prepare('UPDATE users SET deleted_at = NULL, deleted_by = NULL, is_active = 1, updated_by = ? WHERE user_id = ?')
         ->execute([current_user_id(), $userId]);
     audit_log('user_restore', $userId, $fullName);
     flash_set('"' . $name . '" was restored, along with their listings.', 'success');
