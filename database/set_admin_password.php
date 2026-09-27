@@ -8,7 +8,7 @@
  * password gets set, so the credential never has to live in a tracked file.
  *
  *   php database/set_admin_password.php "YourStrongPassword"
- *   php database/set_admin_password.php "YourStrongPassword" admin@roomease.local
+ *   php database/set_admin_password.php "YourStrongPassword" admin@roomease.com
  *
  * CLI only: it refuses to run over HTTP, and database/.htaccess already blocks
  * that folder, so it cannot be reached from a browser even if that changed.
@@ -24,7 +24,7 @@ if (PHP_SAPI !== 'cli') {
 // earlier version of this script hashed the (empty) database password instead
 // of the one given on the command line, and locked the admin out silently.
 $newPassword = $argv[1] ?? '';
-$adminEmail  = $argv[2] ?? 'admin@roomease.local';
+$adminEmail  = $argv[2] ?? 'admin@roomease.com';
 
 if ($newPassword === '') {
     fwrite(STDERR, "Usage: php database/set_admin_password.php \"NewPassword\" [email]\n");

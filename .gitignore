@@ -36,3 +36,8 @@ config/google.local.php
 
 # Gmail App Password for outgoing email. Copy config/mail.local.example.php to create it.
 config/mail.local.php
+
+
+# Files kept on this computer only: old schema versions, upgrade scripts,
+# demo data and notes. Nothing the running site needs.
+local-only/

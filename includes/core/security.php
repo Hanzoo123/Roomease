@@ -319,7 +319,7 @@ const REMEMBER_LIFETIME = 2592000; // 30 days
 
 const REMEMBER_COOKIE = 'roomease_remember';
 
-/** True when the remember_tokens table exists (database/boardinghouse.sql). */
+/** True when the remember_tokens table exists (database/roomease.sql). */
 function remember_available()
 {
     global $pdo;
@@ -335,7 +335,7 @@ function remember_available()
         } catch (PDOException $e) {
             $available = false;
             error_log('RoomEase: remember_tokens table missing - "Remember me" is OFF. '
-                . 'Import database/boardinghouse.sql to enable it.');
+                . 'Import database/roomease.sql to enable it.');
         }
     }
 
@@ -508,7 +508,7 @@ function restore_remembered_login()
  *
  * Login and password-reset are the two endpoints an outsider can hammer, and
  * neither costs an attacker anything to retry. Attempts are recorded in the
- * login_attempts table (database/boardinghouse.sql) and counted over a
+ * login_attempts table (database/roomease.sql) and counted over a
  * rolling window.
  * ------------------------------------------------------------------------ */
 
@@ -529,7 +529,7 @@ function throttle_available()
         } catch (PDOException $e) {
             $available = false;
             error_log('RoomEase: login_attempts table missing - brute-force throttling is OFF. '
-                . 'Import database/boardinghouse.sql to enable it.');
+                . 'Import database/roomease.sql to enable it.');
         }
     }
 

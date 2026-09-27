@@ -2,7 +2,7 @@
 /**
  * RoomEase Admin - Audit Log
  *
- * Who did what, from audit_logs (database/boardinghouse.sql), on three tabs:
+ * Who did what, from audit_logs (database/roomease.sql), on three tabs:
  *
  *   Administrators  every approval, rejection, removal and restore of a
  *                   listing, every change to an account, and every export

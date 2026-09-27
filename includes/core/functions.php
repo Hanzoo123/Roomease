@@ -71,7 +71,7 @@ function is_logged_in()
 /**
  * The signed-in user's id, or null. What a save writes into created_by and
  * updated_by, the "who" columns on every table people create and edit rows
- * in (database/boardinghouse.sql). NULL there means the system did it.
+ * in (database/roomease.sql). NULL there means the system did it.
  */
 function current_user_id()
 {
@@ -625,7 +625,7 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
 }
 
 /* ---------------------------------------------------------------------------
- * Rooms (database/boardinghouse.sql)
+ * Rooms (database/roomease.sql)
  *
  * Rent, room type and capacity belong to each room. Whether a room is
  * available is never stored: it is open with a slot left, full, or closed.
@@ -1432,7 +1432,7 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
 }
 
 /* ---------------------------------------------------------------------------
- * Stay terms (database/boardinghouse.sql)
+ * Stay terms (database/roomease.sql)
  *
  * What a boarder asks before visiting: curfew, deposit, minimum stay, how rent
  * is paid, who the house accepts, and whether visitors, pets and cooking are
@@ -1442,7 +1442,7 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
  * ------------------------------------------------------------------------ */
 
 /* ---------------------------------------------------------------------------
- * The audit log (audit_logs, database/boardinghouse.sql)
+ * The audit log (audit_logs, database/roomease.sql)
  *
  * One table for who did what: administrators' decisions and exports,
  * landlords' changes to their listings and rooms, and every sign-in. The
@@ -2093,7 +2093,7 @@ function shows_save_heart()
 }
 
 /* ---------------------------------------------------------------------------
- * Password reset by emailed code (database/boardinghouse.sql)
+ * Password reset by emailed code (database/roomease.sql)
  *
  * 1. auth/forgot_password.php takes an email address and emails a 6-digit
  *    code. The attempt is remembered in $_SESSION['password_reset'].
@@ -2385,7 +2385,7 @@ function send_password_reset_code($email, $firstName, $code, $scope = 'public')
 }
 
 /* ---------------------------------------------------------------------------
- * Site settings (database/boardinghouse.sql)
+ * Site settings (database/roomease.sql)
  * ------------------------------------------------------------------------ */
 
 /**
