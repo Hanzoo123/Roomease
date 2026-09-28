@@ -35,7 +35,7 @@ $pdo = (static function (): PDO {
     $password = env_value('ROOMEASE_DB_PASS', '');
 
     try {
-        return new PDO(
+        $pdo = new PDO(
             "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
             $username,
             $password,
@@ -44,6 +44,14 @@ $pdo = (static function (): PDO {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]
         );
+        // MySQL 8's own default mode, set here because WAMP ships with an
+        // empty one. Without it a value too long for its column is silently
+        // cut off and an out-of-range number silently capped; with it, as on
+        // most hosting, the save fails and the mistake is seen. Setting it on
+        // the connection makes every copy of RoomEase behave the same.
+        $pdo->exec("SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
+            . "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
+        return $pdo;
     } catch (PDOException $e) {
         // The driver message names the host, database and user, so it goes to
         // the error log rather than to whoever happened to load the page.

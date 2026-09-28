@@ -47,6 +47,18 @@ These steps set up a copy on your own machine.
    "Remember me", room photos, stay terms and the Appearance page. These are
    the two features that need credentials of their own.
 
+   **First, install the PHP libraries.** Both features read their settings
+   from the `.env` file, and `.env` is read by a library in `vendor/`, which
+   git ignores. In the project folder, run:
+   ```
+   composer install
+   ```
+   (Get Composer from https://getcomposer.org, or copy the `vendor/` folder
+   from a teammate who has it.) Without `vendor/` the site still runs on the
+   database defaults, but `.env` is never read: reset codes are not emailed
+   and "Continue with Google" says it is not set up, even when `.env` has the
+   right values.
+
    The listing map and the landlord's pin picker draw OpenStreetMap tiles, so
    they need an internet connection. Offline, the rest of the listing page
    works and the map says it could not load.

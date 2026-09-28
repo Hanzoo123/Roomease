@@ -85,13 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newAmenityNames = $lookups['new_amenities'];
     $newUtilityRows = $lookups['new_utilities'];
 
-    if ($listing['name'] === '') $errors[] = 'Boarding house name is required.';
-    if ($listing['address'] === '') $errors[] = 'Complete address is required.';
-    if ($listing['reservation_fee'] !== '' &&
-        (!is_numeric($listing['reservation_fee']) || (float)$listing['reservation_fee'] < 0)) {
-        $errors[] = 'Reservation fee must be a valid amount, or left blank if none is required.';
-    }
-    if ($listing['contact_number'] === '') $errors[] = 'Contact number is required.';
+    $errors = listing_errors($listing);
     if (!in_array($listing['availability_status'], ['available', 'unavailable'], true)) {
         $listing['availability_status'] = 'available';
     }

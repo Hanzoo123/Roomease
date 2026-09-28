@@ -536,16 +536,26 @@ function throttle_available()
     return $available;
 }
 
-/** Record one failed attempt against both the identifier and the caller's IP. */
+/**
+ * Record one failed attempt against both the identifier and the caller's IP.
+ * user_id is the account the identifier belongs to, looked up in the same
+ * statement, or NULL when no account has that email.
+ */
 function record_failed_attempt($kind, $identifier)
 {
     global $pdo;
     if (!throttle_available()) {
         return;
     }
+    // Cut to the column's 190 characters, so an absurdly long typed "email"
+    // is still counted rather than refused by strict mode. No account's email
+    // is that long, so nothing real is lost.
+    $identifier = mb_substr(mb_strtolower(trim($identifier)), 0, 190);
     try {
-        $pdo->prepare('INSERT INTO login_attempts (kind, identifier, ip_address) VALUES (?, ?, ?)')
-            ->execute([$kind, mb_strtolower(trim($identifier)), client_ip()]);
+        $pdo->prepare(
+            'INSERT INTO login_attempts (kind, identifier, user_id, ip_address)
+             VALUES (?, ?, (SELECT u.user_id FROM users u WHERE u.email = ? LIMIT 1), ?)'
+        )->execute([$kind, $identifier, $identifier, client_ip()]);
 
         // Opportunistic housekeeping so the table cannot grow without bound.
         if (random_int(1, 50) === 1) {

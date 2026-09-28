@@ -39,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Choose whether you are looking for a room or have rooms to rent.';
         $role = '';
     }
-    if (mb_strlen($phone) > 30) {
-        $errors[] = 'Phone number must be 30 characters or fewer.';
+    if ($phone !== '' && ($problem = phone_problem($phone))) {
+        $errors[] = $problem;
     }
 
     if (!$errors) {

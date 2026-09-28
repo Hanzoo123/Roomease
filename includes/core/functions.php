@@ -148,10 +148,23 @@ function csrf_field()
     return '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">';
 }
 
+/**
+ * True when the form sent the token this session was given. An empty token on
+ * either side is never a match: a session that has not shown a form since
+ * signing in has no token yet, and '' equal to '' would let a form with no
+ * token through. The pages that answer fetch() with JSON check this before
+ * verify_csrf(), so they can reply in JSON.
+ */
+function csrf_ok()
+{
+    $expected = $_SESSION['csrf_token'] ?? '';
+    $sent = $_POST['csrf_token'] ?? '';
+    return is_string($expected) && is_string($sent) && $expected !== '' && hash_equals($expected, $sent);
+}
+
 function verify_csrf()
 {
-    $token = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+    if (!csrf_ok()) {
         http_response_code(403);
         die('Invalid or expired form submission. Please go back and try again.');
     }
@@ -171,6 +184,66 @@ function flash_get()
     $flash = $_SESSION['flash'];
     unset($_SESSION['flash']);
     return $flash;
+}
+
+/* ---------------------------------------------------------------------------
+ * Checking typed values
+ *
+ * One rule and one message per kind of value, shared by every form, so sign
+ * up, the profile and the listing form cannot drift apart. Each returns the
+ * message to show, or null when the value is fine. A length limit is the
+ * column's size in database/roomease.sql, so nothing is cut off on save.
+ * ------------------------------------------------------------------------ */
+
+/** "First name must be 100 characters or fewer.", or null. */
+function too_long($value, $max, $label)
+{
+    return mb_strlen((string) $value) > $max
+        ? $label . ' must be ' . number_format($max) . ' characters or fewer.'
+        : null;
+}
+
+/**
+ * A phone number anyone could dial: digits, spaces and + - ( ), with 7 to 15
+ * digits. That takes 0917 123 4567, +63 917 123 4567 and (053) 335-1234 alike.
+ */
+function phone_problem($phone, $label = 'Phone number')
+{
+    $phone = (string) $phone;
+    if (!preg_match('/^[0-9+()\-\s]+$/', $phone)) {
+        return $label . ' can only use digits, spaces and + - ( ), like 0917 123 4567.';
+    }
+    $digits = strlen(preg_replace('/\D/', '', $phone));
+    if ($digits < 7 || $digits > 15) {
+        return $label . ' must have 7 to 15 digits.';
+    }
+    // Only reachable with a great deal of spacing; users.phone_number is 30.
+    return too_long($phone, 30, $label);
+}
+
+/** A peso amount from 0 to 1,000,000, the same cap as a room's rent. */
+function money_problem($value, $label)
+{
+    if (!is_numeric($value) || (float) $value < 0 || (float) $value > 1000000) {
+        return $label . ' must be an amount from 0 to 1,000,000.';
+    }
+    return null;
+}
+
+/**
+ * At least 8 characters, and at most 72 bytes: password_hash() reads only the
+ * first 72 bytes, so anything typed after them would be silently ignored.
+ */
+function password_problem($password, $label = 'Password')
+{
+    $password = (string) $password;
+    if (strlen($password) < 8) {
+        return $label . ' must be at least 8 characters.';
+    }
+    if (strlen($password) > 72) {
+        return $label . ' must be 72 characters or fewer.';
+    }
+    return null;
 }
 
 /**
@@ -1397,12 +1470,19 @@ function listing_lookups_from_post(array $post, $landlordId)
         }
     }
 
+    // A billing note longer than its column is refused with one message, not
+    // cut off: a cut note can end mid-sentence and say something else.
+    $policyTooLong = 'Each utility\'s billing note must be 150 characters or fewer.';
+
     $utilities = [];
     $policies = (array) ($post['billing_policy'] ?? []);
     foreach ((array) ($post['utilities'] ?? []) as $id) {
         if (is_scalar($id) && isset($allowedUtilities[(int) $id])) {
             $policy = is_string($policies[(int) $id] ?? null) ? trim($policies[(int) $id]) : '';
-            $utilities[(int) $id] = mb_substr($policy, 0, 150);
+            if (mb_strlen($policy) > 150) {
+                $errors[$policyTooLong] = $policyTooLong;
+            }
+            $utilities[(int) $id] = $policy;
         }
     }
 
@@ -1431,7 +1511,10 @@ function listing_lookups_from_post(array $post, $landlordId)
             continue;
         }
         $policy = is_string($newPolicies[$i] ?? null) ? trim($newPolicies[$i]) : '';
-        $newUtilities[mb_strtolower($name)] = ['name' => $name, 'policy' => mb_substr($policy, 0, 150)];
+        if (mb_strlen($policy) > 150) {
+            $errors[$policyTooLong] = $policyTooLong;
+        }
+        $newUtilities[mb_strtolower($name)] = ['name' => $name, 'policy' => $policy];
     }
 
     return [
@@ -1439,7 +1522,7 @@ function listing_lookups_from_post(array $post, $landlordId)
         'utilities' => $utilities,
         'new_amenities' => array_values($newAmenities),
         'new_utilities' => array_values($newUtilities),
-        'errors' => $errors,
+        'errors' => array_values($errors),
     ];
 }
 
@@ -2011,6 +2094,37 @@ function payment_methods_label($stored)
 }
 
 /**
+ * What is wrong with a listing's own fields as typed on Add Listing or Edit
+ * Listing, as messages ready to show. Both pages call this, so the two forms
+ * always accept exactly the same listing. Stay terms, amenities and utilities,
+ * and rooms are checked by their own functions.
+ */
+function listing_errors(array $listing)
+{
+    $errors = [];
+    if ($listing['name'] === '') {
+        $errors[] = 'Boarding house name is required.';
+    }
+    if ($listing['address'] === '') {
+        $errors[] = 'Complete address in Baybay City is required.';
+    }
+    if ($listing['contact_number'] === '') {
+        $errors[] = 'Landlord contact number is required.';
+    } else {
+        $errors[] = phone_problem($listing['contact_number'], 'Contact number');
+    }
+    if ($listing['reservation_fee'] !== '') {
+        $errors[] = money_problem($listing['reservation_fee'], 'Reservation fee');
+    }
+    $errors[] = too_long($listing['name'], 150, 'Boarding house name');
+    $errors[] = too_long($listing['address'], 500, 'Address');
+    $errors[] = too_long($listing['description'], 2000, 'Description');
+    $errors[] = too_long($listing['house_rules'], 2000, 'House rules');
+
+    return array_values(array_filter($errors));
+}
+
+/**
  * Read and validate the stay-term fields from a submitted listing form.
  *
  * Returns [$values, $errors, $echo]:
@@ -2039,8 +2153,8 @@ function stay_terms_from_post(array $post)
 
     $deposit = $text('security_deposit');
     if ($deposit !== '') {
-        if (!is_numeric($deposit) || (float) $deposit < 0) {
-            $errors[] = 'Security deposit must be a valid amount, 0 if none is required, or left blank.';
+        if ($problem = money_problem($deposit, 'Security deposit')) {
+            $errors[] = $problem;
         } else {
             $values['security_deposit'] = $deposit;
         }

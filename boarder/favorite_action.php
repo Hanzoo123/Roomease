@@ -56,7 +56,7 @@ if ($return === 'view') {
 // back where they tapped. The token is checked first, so another site cannot
 // queue a save for whoever signs in next on this browser.
 if (!is_logged_in()) {
-    if (hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
+    if (csrf_ok()) {
         remember_after_login($target, $boardingHouseId);
     }
     // The log-in page itself says what the sign-in is for, so no flash here.
@@ -79,7 +79,7 @@ if (!can_save_listings()) {
 
 // A stale token means the page has been open since the session rolled over.
 // Answer that as JSON instead of the plain-text die() inside verify_csrf().
-if ($wantsJson && !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
+if ($wantsJson && !csrf_ok()) {
     favorite_json(403, [
         'ok'      => false,
         'reload'  => true,

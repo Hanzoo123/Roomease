@@ -63,8 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$googleLinked) {
   } elseif (!password_verify($currentPassword, $user['password_hash'])) {
     $errors[] = 'Incorrect current password.';
   }
-  if (strlen($newPassword) < 8) {
-    $errors[] = 'New password must be at least 8 characters.';
+  if ($problem = password_problem($newPassword, 'New password')) {
+    $errors[] = $problem;
   }
   if ($newPassword !== $confirmPassword) {
     $errors[] = 'New passwords do not match.';

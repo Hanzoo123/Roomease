@@ -33,8 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors[] = 'Last name is required.';
   if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL))
     $errors[] = 'A valid email is required.';
-  if (strlen($password) < 8)
-    $errors[] = 'Password must be at least 8 characters.';
+  $errors = array_merge($errors, array_filter([
+    too_long($old['first_name'], 100, 'First name'),
+    too_long($old['last_name'], 100, 'Last name'),
+    too_long($old['email'], 150, 'Email'),
+    $old['phone_number'] !== '' ? phone_problem($old['phone_number']) : null,
+    password_problem($password),
+  ]));
   if ($password !== $confirm)
     $errors[] = 'Passwords do not match.';
   if (!in_array($old['role'], ['landlord', 'boarder'], true))

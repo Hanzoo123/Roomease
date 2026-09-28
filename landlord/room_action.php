@@ -37,7 +37,7 @@ if (!is_logged_in() || current_role() !== 'landlord') {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('landlord/dashboard.php');
 }
-if ($wantsJson && !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
+if ($wantsJson && !csrf_ok()) {
     room_action_reply(403, ['ok' => false, 'reload' => true,
         'message' => 'Your session expired. Please refresh the page and try again.']);
 }

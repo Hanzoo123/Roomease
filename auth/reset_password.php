@@ -38,8 +38,8 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $newPassword     = $_POST['new_password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    if (strlen($newPassword) < 8) {
-        $errors[] = 'New password must be at least 8 characters.';
+    if ($problem = password_problem($newPassword, 'New password')) {
+        $errors[] = $problem;
     }
     if ($newPassword !== $confirmPassword) {
         $errors[] = 'The two passwords do not match.';

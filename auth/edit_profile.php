@@ -71,6 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
     $errors[] = 'A valid email is required.';
   }
+  $errors = array_merge($errors, array_filter([
+    too_long($old['first_name'], 100, 'First name'),
+    too_long($old['last_name'], 100, 'Last name'),
+    too_long($old['email'], 150, 'Email'),
+    $old['phone_number'] !== '' ? phone_problem($old['phone_number']) : null,
+  ]));
 
   if (!$errors) {
     $check = $pdo->prepare('SELECT user_id FROM users WHERE email = ? AND user_id != ?');

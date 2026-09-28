@@ -52,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSend) {
     if (mb_strlen($old['message']) < 10) {
         $errors[] = 'Please write a little more, so we know how to help.';
     }
+    $errors = array_merge($errors, array_filter([
+        too_long($old['name'], 100, 'Your name'),
+        too_long($old['email'], 150, 'Email'),
+        too_long($old['message'], 5000, 'Your message'),
+    ]));
 
     // Counted the same way as sign-ins and reset requests, so one address
     // cannot post all afternoon.
