@@ -25,3 +25,40 @@ function env_value($key, $default = '')
 
     return $value !== false ? $value : $default;
 }
+
+/**
+ * Read the project's .env into $_ENV without phpdotenv, for a copy where
+ * `composer install` was never run. vendor/ is not in git, so a fresh clone
+ * has no phpdotenv, and its .env used to be ignored without a word: settings
+ * that worked on one computer silently fell back to the defaults on the next.
+ *
+ * Only plain KEY=VALUE lines are understood, which is all .env.example uses.
+ * Like phpdotenv's immutable loader, a value already in the environment wins.
+ */
+function load_env_file($path)
+{
+    if (!is_file($path) || !is_readable($path)) {
+        return;
+    }
+    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#' || strpos($line, '=') === false) {
+            continue;
+        }
+        [$key, $value] = array_map('trim', explode('=', $line, 2));
+        if (strncmp($key, 'export ', 7) === 0) {
+            $key = trim(substr($key, 7));
+        }
+        if ($key === '' || isset($_ENV[$key]) || getenv($key) !== false) {
+            continue;
+        }
+        $quote = $value[0] ?? '';
+        if (($quote === '"' || $quote === "'") && strlen($value) > 1 && substr($value, -1) === $quote) {
+            $value = substr($value, 1, -1);
+        } else {
+            // An unquoted value ends at a comment, as in phpdotenv.
+            $value = rtrim(preg_replace('/\s+#.*$/', '', $value));
+        }
+        $_ENV[$key] = $value;
+    }
+}

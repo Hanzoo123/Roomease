@@ -19,24 +19,30 @@
 require_once __DIR__ . '/../includes/core/env.php';
 
 // vendor/ and .env both sit in the project root, one level above config/.
-// Without `composer install` the site still runs on the defaults below, and
 // safeLoad() (unlike load()) doesn't throw when there is no .env file.
+// Without `composer install` the .env is still read, by load_env_file().
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($autoload)) {
     require_once $autoload;
     Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
+} else {
+    load_env_file(dirname(__DIR__) . '/.env');
 }
 unset($autoload);
 
 $pdo = (static function (): PDO {
     $host     = env_value('ROOMEASE_DB_HOST', 'localhost');
+    // Empty means the driver's default, 3306. WAMP runs MariaDB on 3307 when
+    // MySQL holds 3306, so a database imported through phpMyAdmin's "MariaDB"
+    // server needs ROOMEASE_DB_PORT=3307.
+    $port     = env_value('ROOMEASE_DB_PORT', '');
     $dbname   = env_value('ROOMEASE_DB_NAME', 'roomease');
     $username = env_value('ROOMEASE_DB_USER', 'root');
     $password = env_value('ROOMEASE_DB_PASS', '');
 
     try {
         return new PDO(
-            "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+            "mysql:host=$host;" . ($port !== '' ? "port=$port;" : '') . "dbname=$dbname;charset=utf8mb4",
             $username,
             $password,
             [

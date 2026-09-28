@@ -111,9 +111,19 @@ These steps set up a copy on your own machine.
 
 6. **Check the database config.** Open `config/db.php`. The defaults
    (`localhost` / `root` / no password) match a stock XAMPP install. Set the
-   `ROOMEASE_DB_HOST`, `ROOMEASE_DB_NAME`, `ROOMEASE_DB_USER` and
-   `ROOMEASE_DB_PASS` environment variables to override them without editing
-   the file, which is what a real deployment should do.
+   `ROOMEASE_DB_HOST`, `ROOMEASE_DB_PORT`, `ROOMEASE_DB_NAME`,
+   `ROOMEASE_DB_USER` and `ROOMEASE_DB_PASS` environment variables, or put
+   them in the project's `.env`, to override them without editing the file,
+   which is what a real deployment should do. `.env` is read whether or not
+   `composer install` has been run.
+
+   **"The site is temporarily unavailable"** means PHP could not connect to
+   the database; the reason is in PHP's error log (WAMP:
+   `C:\wamp64\logs\php_error.log`, XAMPP: `C:\xampp\php\logs\php_error_log`),
+   on a line starting `RoomEase: database connection failed`. On WAMP, check
+   which server phpMyAdmin shows the `roomease` database under: WAMP runs
+   MySQL on port 3306 and MariaDB on 3307, and RoomEase uses 3306 unless told
+   otherwise. If it is under MariaDB, add `ROOMEASE_DB_PORT=3307` to `.env`.
 
 7. **Visit the site.** Go to `http://localhost/roomease/` in your browser.
 
