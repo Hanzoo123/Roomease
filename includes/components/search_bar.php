@@ -8,17 +8,28 @@
  *   'id'         optional id, used by browse as the #listings anchor
  *   'room_types' room_type_id => name, from room_type_options()
  *   'q', 'room_type', 'max_rent'  current values, to keep them filled in
+ *   'vacant'     true when "Has a free slot" is ticked
+ *   'amenities'  the ticked amenity ids
+ *   'amenity_options'  from filter_amenity_options(); looked up when left out
  */
 function render_search_bar(array $opts)
 {
     $roomType = $opts['room_type'] ?? '';
     $maxRent = $opts['max_rent'] ?? '';
+    $vacant = !empty($opts['vacant']);
+    $amenityOptions = $opts['amenity_options'] ?? filter_amenity_options();
+    $ticked = array_flip($opts['amenities'] ?? []);
     $action = ($opts['action'] ?? '') . (!empty($opts['anchor']) ? '#' . $opts['anchor'] : '');
 
-    // On a phone the two room filters fold under "More filters". A search that
+    // On a phone the room filters fold under "More filters". A search that
     // used them comes back with them open, so the boarder can see why the
     // results are what they are.
-    $moreSet = ($roomType !== '' ? 1 : 0) + ($maxRent !== '' ? 1 : 0);
+    $moreSet = ($roomType !== '' ? 1 : 0) + ($maxRent !== '' ? 1 : 0) + ($vacant ? 1 : 0) + count($ticked);
+
+    // Landlords' own amenities wait behind "+ N more", unless one of them is
+    // ticked, in which case the whole list is shown so it can be seen.
+    $extraCount = count(array_filter($amenityOptions, function ($a) { return $a['extra']; }));
+    $extraTicked = (bool) array_filter(array_intersect_key($amenityOptions, $ticked), function ($a) { return $a['extra']; });
     ?>
     <form method="get" class="search-bar" role="search"
       <?= $action !== '' ? 'action="' . h($action) . '"' : '' ?>
@@ -49,6 +60,34 @@ function render_search_bar(array $opts)
           <input type="number" id="max_rent" name="max_rent" value="<?= h($maxRent) ?>"
             min="100" step="100" inputmode="numeric">
         </div>
+        <div class="filter-extras">
+          <?php if ($amenityOptions): ?>
+            <?php /* Like "More filters": a real button, shown only where the
+                     script runs. Without it the amenities are simply listed. */ ?>
+            <button type="button" class="amenity-toggle" data-amenity-toggle
+              aria-expanded="<?= $ticked ? 'true' : 'false' ?>" aria-controls="amenity-options">
+              Amenities<?= $ticked ? ' (' . count($ticked) . ')' : '' ?>
+            </button>
+          <?php endif; ?>
+          <label class="vacant-check">
+            <input type="checkbox" name="vacant" value="1" <?= $vacant ? 'checked' : '' ?>>
+            Has a free slot
+          </label>
+        </div>
+        <?php if ($amenityOptions): ?>
+          <fieldset class="amenity-options<?= $ticked ? ' is-open' : '' ?><?= $extraTicked ? ' show-all' : '' ?>" id="amenity-options">
+            <legend class="sr-only">Amenities the boarding house must have</legend>
+            <?php foreach ($amenityOptions as $id => $a): ?>
+              <label class="amenity-pill<?= $a['extra'] ? ' is-extra' : '' ?>">
+                <input type="checkbox" name="amenities[]" value="<?= (int) $id ?>" <?= isset($ticked[$id]) ? 'checked' : '' ?>>
+                <?= h($a['name']) ?>
+              </label>
+            <?php endforeach; ?>
+            <?php if ($extraCount && !$extraTicked): ?>
+              <button type="button" class="amenity-more" data-amenity-more>+ <?= $extraCount ?> more</button>
+            <?php endif; ?>
+          </fieldset>
+        <?php endif; ?>
       </div>
       <?php /* The magnifying glass is drawn inline rather than loaded, because the
            public theme has no icon font; stroke="currentColor" keeps it the
@@ -73,6 +112,26 @@ function render_search_bar(array $opts)
           toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
           fields.classList.toggle('is-open', open);
         });
+      })();
+      (function () {
+        var toggle = document.querySelector('[data-amenity-toggle]');
+        var list = toggle && document.getElementById(toggle.getAttribute('aria-controls'));
+        if (!list) return;
+        toggle.addEventListener('click', function () {
+          var open = toggle.getAttribute('aria-expanded') !== 'true';
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          list.classList.toggle('is-open', open);
+        });
+        var more = list.querySelector('[data-amenity-more]');
+        if (more) {
+          more.addEventListener('click', function () {
+            list.classList.add('show-all');
+            more.remove();
+            // Keyboard focus moves to the first amenity that just appeared.
+            var first = list.querySelector('.is-extra input');
+            if (first) first.focus();
+          });
+        }
       })();
     </script>
     <?php

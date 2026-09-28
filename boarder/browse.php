@@ -11,6 +11,9 @@ $filters = browse_filters($_GET, $roomTypes);
 $q = $filters['q'] ?? '';
 $roomType = $filters['room_type'] ?? '';
 $maxRent = $filters['max_rent'] ?? '';
+$vacant = !empty($filters['vacant']);
+$amenityOptions = filter_amenity_options();
+$amenityIds = $filters['amenities'] ?? [];
 $searchFilters = array_diff_key($filters, ['page' => 1]);
 $filtered = (bool) $searchFilters;
 
@@ -19,12 +22,17 @@ $filtered = (bool) $searchFilters;
  * of the "try instead" suggestions under an empty result, count with this, so
  * a suggestion's number is exactly what following it shows.
  *
- * Room type and budget match a room inside the listing, not the listing as a
- * whole: a listing appears when at least one of its open rooms fits. Full
- * rooms still count, so a fully occupied listing that fits is still found;
- * it is simply sorted after listings with space.
+ * Room type, budget and "has a free slot" match a room inside the listing, not
+ * the listing as a whole: a listing appears when at least one of its open rooms
+ * fits all of them at once. Without "has a free slot", full rooms still count,
+ * so a fully occupied listing that fits is still found; it is simply sorted
+ * after listings with space.
+ *
+ * Amenities belong to the listing, and it must offer every one ticked. Each is
+ * matched by name, so a choice that stands for the same name added by two
+ * landlords finds both (filter_amenity_options()).
  */
-$whereFor = function (array $f) {
+$whereFor = function (array $f) use ($amenityOptions) {
   // LIVE_LISTING_WHERE also requires at least one room.
   $where = [LIVE_LISTING_WHERE];
   $params = [];
@@ -43,9 +51,20 @@ $whereFor = function (array $f) {
     $roomMatch[] = 'fr.monthly_rent <= ?';
     $params[] = $f['max_rent'];
   }
+  if (!empty($f['vacant'])) {
+    $roomMatch[] = 'fr.slots_taken < fr.capacity';
+  }
   if ($roomMatch) {
     $where[] = 'EXISTS (SELECT 1 FROM rooms fr WHERE fr.boarding_house_id = bh.boarding_house_id AND fr.is_open = 1 AND '
       . implode(' AND ', $roomMatch) . ')';
+  }
+  // After the room clause, so the parameters stay in the order of their ?s.
+  foreach ($f['amenities'] ?? [] as $amenityId) {
+    $where[] = 'EXISTS (SELECT 1 FROM boarding_house_amenities fa
+                          JOIN amenities a ON a.amenity_id = fa.amenity_id
+                         WHERE fa.boarding_house_id = bh.boarding_house_id AND fa.is_available = 1
+                           AND a.amenity_name = ?)';
+    $params[] = $amenityOptions[$amenityId]['name'];
   }
   return [implode(' AND ', $where), $params];
 };
@@ -84,6 +103,11 @@ if ($roomType !== '') {
 if ($maxRent !== '') {
   $matchConds[] = 'mr.monthly_rent <= ?';
   $matchParams[] = $maxRent;
+}
+// "Has a free slot" on its own quotes the listing's rent as usual; with a room
+// filter it narrows the quoted room to one with space, as it narrowed the match.
+if ($matchConds && $vacant) {
+  $matchConds[] = 'mr.slots_taken < mr.capacity';
 }
 if ($matchConds) {
   $matchSelect = ', m.match_rent, m.match_count';
@@ -127,15 +151,30 @@ $moreUrl = base_url(browse_path($searchFilters + ['page' => $page + 1], 'chunk-'
  * The search in words, each part removable, and what to try when nothing
  * matched. The suggestions only ever quote real counts and real rents.
  * ------------------------------------------------------------------------ */
+// The search without one of its parts, for a chip's link and the suggestions.
+$without = function ($key, $amenityId = null) use ($searchFilters) {
+  if ($amenityId === null) {
+    return array_diff_key($searchFilters, [$key => 1]);
+  }
+  $rest = array_values(array_diff($searchFilters['amenities'], [$amenityId]));
+  return $rest ? ['amenities' => $rest] + $searchFilters : array_diff_key($searchFilters, ['amenities' => 1]);
+};
+
 $chips = [];
 if ($q !== '') {
-  $chips[] = ['label' => '“' . $q . '”', 'drop' => 'q'];
+  $chips[] = ['label' => '“' . $q . '”', 'without' => $without('q')];
 }
 if ($roomType !== '') {
-  $chips[] = ['label' => $roomTypes[$roomType], 'drop' => 'room_type'];
+  $chips[] = ['label' => $roomTypes[$roomType], 'without' => $without('room_type')];
 }
 if ($maxRent !== '') {
-  $chips[] = ['label' => 'Up to ' . peso_round($maxRent), 'drop' => 'max_rent'];
+  $chips[] = ['label' => 'Up to ' . peso_round($maxRent), 'without' => $without('max_rent')];
+}
+if ($vacant) {
+  $chips[] = ['label' => 'Has a free slot', 'without' => $without('vacant')];
+}
+foreach ($amenityIds as $amenityId) {
+  $chips[] = ['label' => $amenityOptions[$amenityId]['name'], 'without' => $without('amenities', $amenityId)];
 }
 
 $emptyMessage = '';
@@ -143,22 +182,32 @@ $suggestions = [];
 if (!$listings && $filtered) {
   $typeName = $roomType !== '' ? $roomTypes[$roomType] : '';
   $budget = $maxRent !== '' ? peso_round($maxRent) : '';
-  if ($typeName !== '' && $budget !== '') {
-    $roomPhrase = 'an open ' . $typeName . ' room for ' . $budget . ' or less';
-  } elseif ($typeName !== '') {
-    $roomPhrase = 'an open ' . $typeName . ' room';
-  } elseif ($budget !== '') {
-    $roomPhrase = 'an open room for ' . $budget . ' or less';
+  $roomPhrase = ($typeName !== '' || $budget !== '' || $vacant)
+    ? ($vacant ? 'a ' : 'an open ') . ($typeName !== '' ? $typeName . ' ' : '') . 'room'
+      . ($vacant ? ' with a free slot' : '')
+      . ($budget !== '' ? ' for ' . $budget . ' or less' : '')
+    : '';
+
+  // "Wi-Fi, Laundry Area and Kitchen Access"
+  $amenityNames = array_map(function ($id) use ($amenityOptions) {
+    return $amenityOptions[$id]['name'];
+  }, $amenityIds);
+  $lastAmenity = array_pop($amenityNames);
+  $amenityPhrase = $lastAmenity === null ? ''
+    : ($amenityNames ? implode(', ', $amenityNames) . ' and ' : '') . $lastAmenity;
+
+  if ($roomPhrase !== '') {
+    $wants = 'has ' . $roomPhrase . ($amenityPhrase !== '' ? ' and offers ' . $amenityPhrase : '');
   } else {
-    $roomPhrase = '';
+    $wants = $amenityPhrase !== '' ? 'offers ' . $amenityPhrase : '';
   }
 
-  if ($q !== '' && $roomPhrase !== '') {
-    $emptyMessage = 'No boarding house matching “' . $q . '” has ' . $roomPhrase . '.';
+  if ($q !== '' && $wants !== '') {
+    $emptyMessage = 'No boarding house matching “' . $q . '” ' . $wants . '.';
   } elseif ($q !== '') {
     $emptyMessage = 'No boarding house name or address matches “' . $q . '”.';
   } else {
-    $emptyMessage = 'No boarding house has ' . $roomPhrase . ' right now.';
+    $emptyMessage = 'No boarding house ' . $wants . ' right now.';
   }
 
   // The lowest rent that would match everything else the boarder asked for.
@@ -168,7 +217,8 @@ if (!$listings && $filtered) {
     $rentSql = 'SELECT MIN(r.monthly_rent) FROM rooms r
                   JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id ' . LIVE_LANDLORD_JOIN . '
                  WHERE r.is_open = 1 AND ' . $rentWhere
-      . ($roomType !== '' ? ' AND r.room_type_id = ?' : '');
+      . ($roomType !== '' ? ' AND r.room_type_id = ?' : '')
+      . ($vacant ? ' AND r.slots_taken < r.capacity' : '');
     $rentStmt = $pdo->prepare($rentSql);
     $rentStmt->execute($roomType !== '' ? array_merge($rentParams, [$roomType]) : $rentParams);
     $lowest = $rentStmt->fetchColumn();
@@ -192,6 +242,24 @@ if (!$listings && $filtered) {
       $suggestions[] = ['href' => browse_path($anyType, 'results'), 'label' => 'Any room type', 'note' => '', 'count' => $n];
     }
   }
+  if ($vacant && count($chips) > 1) {
+    $withFull = $without('vacant');
+    $n = $countFor($withFull);
+    if ($n > 0) {
+      $suggestions[] = ['href' => browse_path($withFull, 'results'), 'label' => 'Include full rooms',
+        'note' => 'a slot may open up soon', 'count' => $n];
+    }
+  }
+  if (count($chips) > 1) {
+    foreach (array_slice($amenityIds, 0, 3) as $amenityId) {
+      $lessOne = $without('amenities', $amenityId);
+      $n = $countFor($lessOne);
+      if ($n > 0) {
+        $suggestions[] = ['href' => browse_path($lessOne, 'results'),
+          'label' => 'Without ' . $amenityOptions[$amenityId]['name'], 'note' => '', 'count' => $n];
+      }
+    }
+  }
   if ($q !== '' && count($chips) > 1) {
     $noWords = array_diff_key($searchFilters, ['q' => 1]);
     $n = $countFor($noWords);
@@ -207,10 +275,10 @@ if (!$listings && $filtered) {
 
 $pageTitle = 'Browse rooms';
 $metaDescription = 'Browse every approved boarding house in Baybay City, Leyte. '
-  . 'Filter by name, room type and budget, and see what each room includes before you visit.';
+  . 'Filter by name, room type, budget, free slots and amenities, and see what each room includes before you visit.';
 $band = [
   'title' => 'Rooms in Baybay City',
-  'lede' => 'Every boarding house here is approved. Filter by name, or by the room type and budget you need.',
+  'lede' => 'Every boarding house here is approved. Filter by name, room type, budget, free slots, or the amenities you need.',
 ];
 require __DIR__ . '/../includes/layouts/header.php';
 
@@ -224,6 +292,9 @@ render_search_bar([
   'q' => $q,
   'room_type' => $roomType,
   'max_rent' => $maxRent,
+  'vacant' => $vacant,
+  'amenity_options' => $amenityOptions,
+  'amenities' => $amenityIds,
 ]);
 ?>
 
@@ -238,7 +309,7 @@ render_search_bar([
   <ul class="filter-summary" aria-label="Your search">
     <?php foreach ($chips as $chip): ?>
       <li>
-        <a class="filter-chip" href="<?= h(base_url(browse_path(array_diff_key($searchFilters, [$chip['drop'] => 1]), 'results'))) ?>"
+        <a class="filter-chip" href="<?= h(base_url(browse_path($chip['without'], 'results'))) ?>"
           aria-label="Remove <?= h($chip['label']) ?> from your search">
           <?= h($chip['label']) ?><?= icon('x', 14) ?>
         </a>

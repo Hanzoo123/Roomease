@@ -1495,6 +1495,127 @@ input[type=checkbox] {
   display: none;
 }
 
+/* The Search button keeps its place at the end of the first row; the free
+   slot box and the amenities take a full-width row of their own under it. */
+.search-bar > .btn {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.filter-extras,
+.amenity-options {
+  grid-column: 1 / -1;
+}
+
+.filter-extras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s4);
+}
+
+.search-bar .vacant-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.vacant-check input,
+.amenity-pill input {
+  margin: 0;
+}
+
+/* Ticked amenities read as chosen at a glance: the same leaf and forest as
+   the chips under the results heading. */
+.amenity-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.search-bar .amenity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  margin: 0;
+  padding: 6px 13px 6px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.search-bar .amenity-pill:has(input:checked) {
+  border-color: var(--forest-line);
+  background: var(--leaf);
+  color: var(--forest);
+  font-weight: 500;
+}
+
+/* Where the script runs, the amenities fold under their button and the
+   landlords' own wait behind "+ N more". Without it, all are shown. */
+.amenity-toggle,
+.amenity-more {
+  display: none;
+}
+
+html.js .amenity-toggle,
+html.js .amenity-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  color: var(--forest);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+html.js .amenity-toggle::after {
+  content: '+';
+  font-size: 16px;
+  line-height: 1;
+}
+
+html.js .amenity-toggle[aria-expanded="true"]::after {
+  content: '−';
+}
+
+html.js .amenity-more {
+  border-style: dashed;
+}
+
+html.js .amenity-options {
+  display: none;
+}
+
+html.js .amenity-options.is-open {
+  display: flex;
+}
+
+html.js .amenity-options:not(.show-all) .is-extra {
+  display: none;
+}
+
 #listings,
 #results {
   scroll-margin-top: calc(var(--header-offset, 0px) + var(--s4));
@@ -4129,6 +4250,11 @@ body.page-white {
 
   .search-bar .btn {
     width: 100%;
+  }
+
+  .search-bar > .btn {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   /* Without the script the two fields are simply shown; with it they fold

@@ -79,7 +79,10 @@ function render_listing_card(array $l, ?array $save = null)
             <input type="hidden" name="action" value="<?= $saved ? 'unsave' : 'save' ?>">
             <input type="hidden" name="return" value="<?= h($save['return'] ?? 'browse') ?>">
             <?php foreach (($save['fields'] ?? []) as $name => $value): ?>
-              <input type="hidden" name="<?= h($name) ?>" value="<?= h($value) ?>">
+              <?php /* A list, such as the ticked amenities, goes back as name[]. */ ?>
+              <?php foreach ((array) $value as $item): ?>
+                <input type="hidden" name="<?= h($name) . (is_array($value) ? '[]' : '') ?>" value="<?= h($item) ?>">
+              <?php endforeach; ?>
             <?php endforeach; ?>
             <button type="submit" class="save-btn <?= $saved ? 'is-saved' : '' ?>" data-name="<?= h($l['name']) ?>"
               title="<?= $saved ? 'Remove from saved' : 'Save this listing' ?>"

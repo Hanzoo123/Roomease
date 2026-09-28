@@ -741,14 +741,57 @@ function listing_availability(array $listing)
  * ------------------------------------------------------------------------ */
 
 /**
+ * The amenities a boarder can filter by, as id => ['name', 'extra'].
+ *
+ * The administrator's amenities come first, in the order they were made,
+ * because every landlord picks from them. After them come the amenities
+ * landlords added themselves ('extra' => true), but only those on a listing
+ * boarders can see, since any other would find nothing. The same name added by
+ * two landlords is one choice, keyed by its lowest id: the filter matches by
+ * name (browse_amenity_where()), so ticking it finds both listings. The column
+ * collation ignores case, so "rooftop" and "Rooftop" are one choice too.
+ */
+function filter_amenity_options()
+{
+    global $pdo;
+    static $options = null;
+    if ($options !== null) {
+        return $options;
+    }
+
+    $options = [];
+    try {
+        $stmt = $pdo->query(
+            'SELECT MIN(a.amenity_id) AS id, a.amenity_name AS name, MAX(a.landlord_id IS NULL) AS standard
+               FROM amenities a
+              WHERE a.landlord_id IS NULL
+                 OR EXISTS (SELECT 1 FROM boarding_house_amenities fa
+                              JOIN boarding_houses bh ON bh.boarding_house_id = fa.boarding_house_id
+                              ' . LIVE_LANDLORD_JOIN . '
+                             WHERE fa.amenity_id = a.amenity_id AND fa.is_available = 1 AND ' . LIVE_LISTING_WHERE . ')
+              GROUP BY a.amenity_name
+              ORDER BY standard DESC, (CASE WHEN standard = 1 THEN id END), name'
+        );
+        foreach ($stmt as $row) {
+            $options[(int) $row['id']] = ['name' => $row['name'], 'extra' => !$row['standard']];
+        }
+    } catch (PDOException $e) {
+        error_log('RoomEase: amenity filter options failed - ' . $e->getMessage());
+    }
+    return $options;
+}
+
+/**
  * The browse filters that actually apply, from $_GET or a heart form's POST.
- * Returns only the keys that are set: q, room_type, max_rent, page.
+ * Returns only the keys that are set: q, room_type, max_rent, vacant,
+ * amenities (a sorted list of ids from filter_amenity_options()), page.
  */
 function browse_filters(array $src, array $roomTypes)
 {
     $filters = [];
 
-    $q = trim((string) ($src['q'] ?? ''));
+    // A list sent as q[] is no search, rather than a PHP warning.
+    $q = is_string($src['q'] ?? null) ? trim($src['q']) : '';
     if ($q !== '') {
         $filters['q'] = mb_substr($q, 0, 100);
     }
@@ -763,6 +806,22 @@ function browse_filters(array $src, array $roomTypes)
     $rent = $src['max_rent'] ?? '';
     if (is_numeric($rent) && (float) $rent > 0) {
         $filters['max_rent'] = (int) ceil((float) $rent);
+    }
+
+    // Only a listing with a room open and not yet full.
+    if (($src['vacant'] ?? '') === '1') {
+        $filters['vacant'] = 1;
+    }
+
+    // An id that is not a choice any more is dropped, not an error: a saved
+    // link can outlive the amenity it named.
+    $ticked = array_filter((array) ($src['amenities'] ?? []), function ($id) {
+        return is_scalar($id) && ctype_digit((string) $id);
+    });
+    $ticked = array_intersect(array_unique(array_map('intval', $ticked)), array_keys(filter_amenity_options()));
+    if ($ticked) {
+        sort($ticked);
+        $filters['amenities'] = array_slice($ticked, 0, 30);
     }
 
     $page = (int) ($src['page'] ?? 1);
