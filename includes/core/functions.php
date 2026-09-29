@@ -134,6 +134,28 @@ function is_admin()
     return in_array(current_role(), ['administrator', 'admin'], true);
 }
 
+/**
+ * True for a super admin: an administrator with users.is_super_admin set, who
+ * can also add and manage the other administrators (admin/admins.php) and
+ * change the site's Appearance. Everything else is the same for every
+ * administrator. The session copy is refreshed on every request by
+ * enforce_session_policy(), so a demotion takes effect on the next click.
+ */
+function is_super_admin()
+{
+    return is_admin() && !empty($_SESSION['is_super_admin']);
+}
+
+/** For pages only a super admin may open: anyone else goes to the dashboard. */
+function require_super_admin()
+{
+    require_login('admin');
+    if (!is_super_admin()) {
+        flash_set('Only a super admin can open that page.', 'error');
+        redirect('admin/dashboard.php');
+    }
+}
+
 /** Simple CSRF token helpers. */
 function csrf_token()
 {
@@ -1617,6 +1639,15 @@ function audit_action_types()
         'export_users'    => ['label' => 'Exported users',      'badge' => 'badge-secondary', 'target' => 'export',  'group' => 'admin'],
         'export_listings' => ['label' => 'Exported listings',   'badge' => 'badge-secondary', 'target' => 'export',  'group' => 'admin'],
 
+        // What a super admin does to the other administrators (admin/admins.php).
+        'admin_add'        => ['label' => 'Added administrator',       'badge' => 'badge-success', 'target' => 'administrator', 'group' => 'admin'],
+        'admin_activate'   => ['label' => 'Activated administrator',   'badge' => 'badge-success', 'target' => 'administrator', 'group' => 'admin'],
+        'admin_deactivate' => ['label' => 'Deactivated administrator', 'badge' => 'badge-warning', 'target' => 'administrator', 'group' => 'admin'],
+        'admin_remove'     => ['label' => 'Removed administrator',     'badge' => 'badge-danger',  'target' => 'administrator', 'group' => 'admin'],
+        'admin_restore'    => ['label' => 'Restored administrator',    'badge' => 'badge-info',    'target' => 'administrator', 'group' => 'admin'],
+        'admin_promote'    => ['label' => 'Made super admin',          'badge' => 'badge-primary', 'target' => 'administrator', 'group' => 'admin'],
+        'admin_demote'     => ['label' => 'Removed super admin',       'badge' => 'badge-warning', 'target' => 'administrator', 'group' => 'admin'],
+
         // What landlords change.
         'listing_create'  => ['label' => 'Created listing',     'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
         'listing_edit'    => ['label' => 'Edited listing',      'badge' => 'badge-info',      'target' => 'listing', 'group' => 'landlord'],
@@ -1862,6 +1893,10 @@ function admin_target_url($targetType, $targetId)
         case 'user':
         case 'account':
             return base_url('admin/user.php?id=' . (int) $targetId);
+        // Administrators have no page of their own; the list is for super
+        // admins only, so nobody else is shown a link they cannot follow.
+        case 'administrator':
+            return is_super_admin() ? base_url('admin/admins.php') : null;
         default:
             return null;
     }

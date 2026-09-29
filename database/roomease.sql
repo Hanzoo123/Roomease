@@ -79,6 +79,10 @@ CREATE TABLE users (
     -- account is drawn as its initials instead.
     avatar_path     VARCHAR(255) NULL DEFAULT NULL,
     role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
+    -- 1 for a super admin: an administrator who can also add and manage the
+    -- other administrators (admin/admins.php) and the site's Appearance.
+    -- Always 0 for landlords and boarders.
+    is_super_admin  TINYINT(1) NOT NULL DEFAULT 0,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     deleted_at      DATETIME NULL DEFAULT NULL,
     deleted_by      INT NULL,
@@ -500,7 +504,8 @@ CREATE TABLE audit_logs (
 -- page's appearance. No landlords, boarders, listings, rooms or photos.
 -- =========================================================
 
--- 1. The administrator account — the only account in this file.
+-- 1. The administrator account — the only account in this file. It is the
+--    super admin, so it can add the other administrators from the panel.
 --
 -- password_hash holds a bcrypt hash of the current administrator password.
 -- The password itself is not stored and cannot be read back out of here.
@@ -509,10 +514,10 @@ CREATE TABLE audit_logs (
 -- To set a different password after importing:
 --   php database/set_admin_password.php "YourNewPassword" admin@roomease.com
 INSERT INTO users
-    (user_id, email, password_hash, first_name, last_name, phone_number, role, is_active)
+    (user_id, email, password_hash, first_name, last_name, phone_number, role, is_super_admin, is_active)
 VALUES
     (1, 'admin@roomease.com', '$2y$10$ASqK/NDvxXriS5IfnBqLfuLZNdx2/d8zssHfHm3D6Q.fhB8.cG.ki',
-     'System', 'Administrator', '09000000000', 'administrator', 1);
+     'System', 'Administrator', '09000000000', 'administrator', 1, 1);
 
 -- 2. Room types. rooms.room_type_id points here, so no room can be added
 --    until these exist.

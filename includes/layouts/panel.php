@@ -23,11 +23,21 @@ require_once __DIR__ . '/../components/panel_page_header.php';
 function panel_config()
 {
     if (is_admin()) {
+        // A super admin sees two more items: the administrators, and the
+        // site's Appearance. Those pages also check for themselves
+        // (require_super_admin()), so hiding the links is not the only lock.
+        $super = is_super_admin();
+        $superMenu = $super ? [
+            ['url' => 'admin/admins.php',     'icon' => 'fa-user-shield', 'label' => 'Administrators',
+             'also' => ['add_admin.php']],
+            ['url' => 'admin/appearance.php', 'icon' => 'fa-paint-brush', 'label' => 'Appearance'],
+        ] : [];
+
         return [
             'name'  => 'Admin',
-            'badge' => ['label' => 'Administrator'],
+            'badge' => ['label' => $super ? 'Super admin' : 'Administrator'],
             'home'   => 'admin/dashboard.php',
-            'menu'  => [
+            'menu'  => array_merge([
                 ['url' => 'admin/dashboard.php',       'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
                 // A listing's review page and an account's page stay under their list.
                 ['url' => 'admin/manage_users.php',    'icon' => 'fa-users',          'label' => 'Manage Users',
@@ -40,8 +50,7 @@ function panel_config()
                 ['url' => 'admin/reports.php',         'icon' => 'fa-chart-bar',      'label' => 'Reports'],
                 ['url' => 'admin/activity.php',        'icon' => 'fa-history',        'label' => 'Audit Log'],
                 ['url' => 'admin/extras.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
-                ['url' => 'admin/appearance.php',      'icon' => 'fa-paint-brush',    'label' => 'Appearance'],
-            ],
+            ], $superMenu),
         ];
     }
 

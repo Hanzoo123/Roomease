@@ -206,7 +206,7 @@ function enforce_session_policy()
 
     try {
         $stmt = $pdo->prepare(
-            'SELECT role, is_active, deleted_at, avatar_path, password_hash FROM users WHERE user_id = ?'
+            'SELECT role, is_super_admin, is_active, deleted_at, avatar_path, password_hash FROM users WHERE user_id = ?'
         );
         $stmt->execute([$_SESSION['user_id']]);
         $account = $stmt->fetch();
@@ -252,6 +252,7 @@ function enforce_session_policy()
 
     // The session is a cache of the account, never the source of truth for it.
     $_SESSION['role'] = $account['role'];
+    $_SESSION['is_super_admin'] = !empty($account['is_super_admin']);
     $_SESSION['avatar_path'] = $account['avatar_path'];
 }
 
@@ -293,6 +294,8 @@ function start_user_session(array $user)
     $_SESSION['last_activity'] = time();
     $_SESSION['user_id'] = $user['user_id'];
     $_SESSION['role'] = $user['role'];
+    // Refreshed on every request too; a row without the column is not a super admin.
+    $_SESSION['is_super_admin'] = !empty($user['is_super_admin']);
     $_SESSION['first_name'] = $user['first_name'];
     $_SESSION['last_name'] = $user['last_name'];
     $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);

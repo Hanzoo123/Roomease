@@ -32,7 +32,7 @@ $groupActions = audit_actions_in_group($group);
 
 // Administrators: what it was done to. Sign-ins: only the failures.
 $kind = $_GET['kind'] ?? '';
-if (!in_array($kind, ['listing', 'user', 'export', 'failed'], true)) {
+if (!in_array($kind, ['listing', 'user', 'administrator', 'export', 'failed'], true)) {
   $kind = '';
 }
 $personFilter = is_string($_GET['who'] ?? null) ? (int) $_GET['who'] : 0;
@@ -40,7 +40,7 @@ $q = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
 
 $where = ['a.action IN (' . sql_placeholders(count($groupActions)) . ')'];
 $params = $groupActions;
-if ($group === 'admin' && in_array($kind, ['listing', 'user', 'export'], true)) {
+if ($group === 'admin' && in_array($kind, ['listing', 'user', 'administrator', 'export'], true)) {
   $where[] = 'a.target_type = ?';
   $params[] = $kind;
 }
@@ -146,6 +146,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <option value="">Everything</option>
                 <option value="listing" <?= $kind === 'listing' ? 'selected' : '' ?>>Listings</option>
                 <option value="user" <?= $kind === 'user' ? 'selected' : '' ?>>Accounts</option>
+                <option value="administrator" <?= $kind === 'administrator' ? 'selected' : '' ?>>Administrators</option>
                 <option value="export" <?= $kind === 'export' ? 'selected' : '' ?>>Exports</option>
               </select>
             <?php elseif ($group === 'signin'): ?>

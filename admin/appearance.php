@@ -2,11 +2,13 @@
 /**
  * Appearance: the background behind the sign-in pages (log in, sign up,
  * forgot password, reset password), a solid colour or an uploaded photo.
+ *
+ * Super admins only: it changes what everyone sees on signing in.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
 
-require_login('admin');
+require_super_admin();
 
 /** Largest background photo accepted, capped by what PHP itself will take. */
 $maxBytes = min(8 * 1024 * 1024, ini_bytes(ini_get('upload_max_filesize')));
