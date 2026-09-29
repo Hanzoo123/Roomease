@@ -64,30 +64,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Admin sign in';
-$authHeading = 'Sign in to the admin panel';
-$authAdmin = true;
-require __DIR__ . '/../includes/layouts/auth_header.php';
+// The page is AdminLTE's own login page, as the panel behind it is AdminLTE:
+// its grey background, text logo, card and olive button, with every message
+// shown as a toastr pop-up at the top. It stands alone rather than using the
+// public sign-in layout (includes/layouts/auth_header.php).
+//
+// A message to show: this page's own error, or one carried over from another
+// page, such as "You have been logged out" or a finished password reset.
+$toasts = [];
+if ($error !== '') {
+    $toasts[] = ['type' => 'error', 'message' => $error];
+}
+if ($flash = flash_get()) {
+    $toasts[] = [
+        'type' => in_array($flash['type'], ['success', 'error', 'warning', 'info'], true) ? $flash['type'] : 'info',
+        'message' => $flash['message'],
+    ];
+}
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoomEase | Log in</title>
+  <meta name="robots" content="noindex, nofollow">
+  <?php $metaSocial = false; require __DIR__ . '/../includes/components/head_meta.php'; ?>
 
-<?php if ($error): ?>
-  <div class="alert alert-error"><?= h($error) ?></div>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="<?= base_url('assets/adminlte/plugins/fontawesome-free/css/all.min.css') ?>">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="<?= base_url('assets/adminlte/dist/css/adminlte.min.css') ?>">
+  <!-- Toastr -->
+  <link rel="stylesheet" href="<?= base_url('assets/adminlte/plugins/toastr/toastr.min.css') ?>">
+</head>
+<body class="hold-transition login-page">
+<div class="login-box">
+  <div class="login-logo">
+    <a href="<?= base_url('admin/login.php') ?>"><b>Room</b>Ease</a>
+  </div>
+  <!-- /.login-logo -->
+  <div class="card">
+    <div class="card-body login-card-body">
+      <p class="login-box-msg">Sign in to start your session</p>
+
+      <form action="" method="post">
+        <?= csrf_field() ?>
+        <div class="input-group mb-3">
+          <input type="email" name="login_id" class="form-control" placeholder="Email" aria-label="Email"
+                 value="<?= h($loginId) ?>" autocomplete="username" required autofocus>
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-envelope"></span>
+            </div>
+          </div>
+        </div>
+        <div class="input-group mb-3">
+          <input type="password" name="password" class="form-control" placeholder="Password" aria-label="Password"
+                 autocomplete="current-password" required>
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-lock"></span>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <button type="submit" class="btn bg-olive btn-block">Sign In</button>
+          </div>
+          <!-- /.col -->
+        </div>
+      </form>
+
+      <p class="mb-0 mt-3">
+        <a href="<?= base_url('admin/forgot_password.php') ?>">I forgot my password</a>
+      </p>
+    </div>
+    <!-- /.login-card-body -->
+  </div>
+</div>
+<!-- /.login-box -->
+
+<!-- jQuery -->
+<script src="<?= base_url('assets/adminlte/plugins/jquery/jquery.min.js') ?>"></script>
+<!-- Bootstrap 4 -->
+<script src="<?= base_url('assets/adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
+<!-- AdminLTE App -->
+<script src="<?= base_url('assets/adminlte/dist/js/adminlte.min.js') ?>"></script>
+<!-- Toastr -->
+<script src="<?= base_url('assets/adminlte/plugins/toastr/toastr.min.js') ?>"></script>
+
+<?php if ($toasts): ?>
+<script>
+  $(document).ready(function () {
+    toastr.options = {
+      "closeButton": true,
+      "progressBar": true,
+      "positionClass": "toast-top-center",
+      "timeOut": "5000"
+    };
+    <?php /* json_encode with the HEX flags keeps any quote or tag in a message
+             from ever closing the string or the script. */ ?>
+    <?php foreach ($toasts as $toast): ?>
+    toastr[<?= json_encode($toast['type']) ?>](<?= json_encode($toast['message'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
+    <?php endforeach; ?>
+  });
+</script>
 <?php endif; ?>
 
-<form method="post" novalidate>
-  <?= csrf_field() ?>
-
-  <label for="login_id">Email address</label>
-  <input type="email" id="login_id" name="login_id" value="<?= h($loginId) ?>" autocomplete="username" required autofocus>
-
-  <label for="password">Password</label>
-  <input type="password" id="password" name="password" autocomplete="current-password" required>
-
-  <div class="auth-row auth-row--end">
-    <a href="<?= base_url('admin/forgot_password.php') ?>">Forgot password?</a>
-  </div>
-
-  <button type="submit" class="btn btn-primary btn-block btn-auth">Sign in</button>
-</form>
-
-<?php require __DIR__ . '/../includes/layouts/auth_footer.php'; ?>
+</body>
+</html>
