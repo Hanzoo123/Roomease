@@ -41,41 +41,11 @@ $landlordLive = $listing['landlord_deleted_at'] === null && (int) $listing['land
 $landlordName = trim($listing['landlord_first_name'] . ' ' . $listing['landlord_last_name']);
 
 // Photos: the house's own first, then each room's.
-$photoStmt = $pdo->prepare(
-  'SELECT i.*, r.name AS room_name FROM images i
-     LEFT JOIN rooms r ON r.room_id = i.room_id
-    WHERE i.boarding_house_id = ?
-    ORDER BY i.room_id IS NULL DESC, i.room_id, i.is_primary DESC, i.image_id ASC'
-);
-$photoStmt->execute([$listingId]);
-$photos = $photoStmt->fetchAll();
+$photos = listing_photos($listingId);
 
-$roomStmt = $pdo->prepare(
-  'SELECT r.*, rt.room_type_name FROM rooms r
-     JOIN room_types rt ON rt.room_type_id = r.room_type_id
-    WHERE r.boarding_house_id = ?
-    ORDER BY r.room_id ASC'
-);
-$roomStmt->execute([$listingId]);
-$rooms = $roomStmt->fetchAll();
-
-$amenStmt = $pdo->prepare(
-  'SELECT a.amenity_name FROM boarding_house_amenities bha
-     JOIN amenities a ON a.amenity_id = bha.amenity_id
-    WHERE bha.boarding_house_id = ? AND bha.is_available = 1
-    ORDER BY a.amenity_name'
-);
-$amenStmt->execute([$listingId]);
-$amenities = $amenStmt->fetchAll(PDO::FETCH_COLUMN);
-
-$utilStmt = $pdo->prepare(
-  'SELECT ut.utility_name, bhu.billing_policy FROM boarding_house_utilities bhu
-     JOIN utilities ut ON ut.utility_id = bhu.utility_id
-    WHERE bhu.boarding_house_id = ?
-    ORDER BY ut.utility_name'
-);
-$utilStmt->execute([$listingId]);
-$utilities = $utilStmt->fetchAll();
+$rooms = listing_rooms($listingId);
+$amenities = listing_amenity_names($listingId, true); // A to Z, as the review page always showed them
+$utilities = listing_utilities($listingId);
 
 // The landlord's other listings, removed ones included: a pattern of removed
 // or rejected listings is part of what an administrator is weighing.

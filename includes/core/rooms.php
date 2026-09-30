@@ -1,7 +1,22 @@
 <?php
 /**
- * Rooms inside a listing: reading them from a form and saving them.
+ * Rooms inside a listing: loading them, reading them from a form and saving them.
  */
+
+/** A listing's rooms in the order they were added, each with its room type name. */
+function listing_rooms($listingId)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        'SELECT r.*, rt.room_type_name
+           FROM rooms r
+           JOIN room_types rt ON rt.room_type_id = r.room_type_id
+          WHERE r.boarding_house_id = ?
+          ORDER BY r.room_id ASC'
+    );
+    $stmt->execute([(int) $listingId]);
+    return $stmt->fetchAll();
+}
 
 /**
  * A landlord's own room, joined to its listing, or false. Ownership is part of

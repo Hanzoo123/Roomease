@@ -62,6 +62,120 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
 }
 
 /* ---------------------------------------------------------------------------
+ * Loading one listing
+ *
+ * Shared by the public listing page and the administrator's review page.
+ * A listing's rooms come from listing_rooms() in rooms.php.
+ * ------------------------------------------------------------------------ */
+
+/** True when the signed-in user is the landlord who owns $listing. */
+function viewer_owns_listing(array $listing)
+{
+    return is_logged_in() && current_role() === 'landlord'
+        && (int) $listing['landlord_id'] === (int) $_SESSION['user_id'];
+}
+
+/**
+ * The listing a visitor may open, with its landlord's details, or false when
+ * it does not exist for them. This is the page's version of the
+ * LIVE_* rules above:
+ *  - Not yet approved (pending or rejected): only its landlord and
+ *    administrators can preview it.
+ *  - Its landlord is deactivated or removed: off the site for everyone
+ *    except that landlord and administrators.
+ *  - Archived by an administrator: administrators only, even for its landlord.
+ */
+function find_listing_for_viewer($listingId)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        "SELECT bh.*,
+                u.first_name AS landlord_first_name,
+                u.last_name AS landlord_last_name,
+                CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
+                u.phone_number AS landlord_phone,
+                u.email AS landlord_email,
+                u.is_active AS landlord_active,
+                u.deleted_at AS landlord_deleted_at,
+                u.avatar_path AS landlord_avatar
+           FROM boarding_houses bh
+           JOIN users u ON u.user_id = bh.landlord_id
+          WHERE bh.boarding_house_id = ?"
+    );
+    $stmt->execute([(int) $listingId]);
+    $listing = $stmt->fetch();
+    if (!$listing) {
+        return false;
+    }
+
+    $isOwner = viewer_owns_listing($listing);
+    $isAdmin = is_admin();
+    $landlordLive = $listing['landlord_deleted_at'] === null && (int) $listing['landlord_active'] === 1;
+
+    if ($listing['moderation_status'] !== 'approved' && !$isOwner && !$isAdmin) {
+        return false;
+    }
+    if (!$landlordLive && !$isOwner && !$isAdmin) {
+        return false;
+    }
+    if ($listing['deleted_at'] !== null && !$isAdmin) {
+        return false;
+    }
+    return $listing;
+}
+
+/**
+ * A listing's photos: the house's own first (cover first), then each room's.
+ * Each row also carries room_name, empty for a house photo.
+ */
+function listing_photos($listingId)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        'SELECT i.*, r.name AS room_name FROM images i
+           LEFT JOIN rooms r ON r.room_id = i.room_id
+          WHERE i.boarding_house_id = ?
+          ORDER BY i.room_id IS NULL DESC, i.room_id, i.is_primary DESC, i.image_id ASC'
+    );
+    $stmt->execute([(int) $listingId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * The names of the amenities a listing offers. By default in the order the
+ * amenities were added to the site (the order boarders see); $alphabetical
+ * sorts A to Z instead (the order administrators see).
+ */
+function listing_amenity_names($listingId, $alphabetical = false)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        'SELECT a.amenity_name
+           FROM boarding_house_amenities bha
+           JOIN amenities a ON a.amenity_id = bha.amenity_id
+          WHERE bha.boarding_house_id = ? AND bha.is_available = 1
+          ORDER BY ' . ($alphabetical ? 'a.amenity_name' : 'a.amenity_id')
+    );
+    $stmt->execute([(int) $listingId]);
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+/** A listing's utilities, A to Z, each with how it is billed. */
+function listing_utilities($listingId)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        'SELECT ut.utility_name, bhu.billing_policy
+           FROM boarding_house_utilities bhu
+           JOIN utilities ut ON ut.utility_id = bhu.utility_id
+          WHERE bhu.boarding_house_id = ?
+          ORDER BY ut.utility_name'
+    );
+    $stmt->execute([(int) $listingId]);
+    return $stmt->fetchAll();
+}
+
+/* ---------------------------------------------------------------------------
  * Rooms (database/roomease.sql)
  *
  * Rent, room type and capacity belong to each room. Whether a room is
@@ -282,6 +396,157 @@ function browse_path(array $filters, $fragment = '')
 {
     return 'boarder/browse.php' . ($filters ? '?' . http_build_query($filters) : '')
         . ($fragment !== '' ? '#' . $fragment : '');
+}
+
+/* ---------------------------------------------------------------------------
+ * Browse queries
+ *
+ * All take the filters from browse_filters() and share browse_where(), so a
+ * "try instead" suggestion's number is exactly what following it shows.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * The WHERE clause, on listing alias `bh`, and its named parameters.
+ *
+ * Room type, budget and "has a free slot" must all be met by one open room in
+ * the listing, not by the listing as a whole. Without "has a free slot", full
+ * rooms still count: a full listing that fits is found, sorted after those
+ * with space. Amenities belong to the listing, which must offer every one
+ * ticked; each is matched by name, so a choice that stands for the same name
+ * added by two landlords finds both (filter_amenity_options()).
+ */
+function browse_where(array $filters)
+{
+    $where = [LIVE_LISTING_WHERE]; // also requires at least one room
+    $params = [];
+    $bind = function ($value) use (&$params) {
+        $name = ':w' . count($params);
+        $params[$name] = $value;
+        return $name;
+    };
+
+    if (isset($filters['q'])) {
+        $like = '%' . $filters['q'] . '%';
+        $where[] = '(bh.name LIKE ' . $bind($like) . ' OR bh.address LIKE ' . $bind($like) . ')';
+    }
+
+    $roomMatch = [];
+    if (isset($filters['room_type'])) {
+        $roomMatch[] = 'fr.room_type_id = ' . $bind($filters['room_type']);
+    }
+    if (isset($filters['max_rent'])) {
+        $roomMatch[] = 'fr.monthly_rent <= ' . $bind($filters['max_rent']);
+    }
+    if (!empty($filters['vacant'])) {
+        $roomMatch[] = 'fr.slots_taken < fr.capacity';
+    }
+    if ($roomMatch) {
+        $where[] = 'EXISTS (SELECT 1 FROM rooms fr WHERE fr.boarding_house_id = bh.boarding_house_id AND fr.is_open = 1 AND '
+            . implode(' AND ', $roomMatch) . ')';
+    }
+
+    $amenityOptions = filter_amenity_options();
+    foreach ($filters['amenities'] ?? [] as $amenityId) {
+        $where[] = 'EXISTS (SELECT 1 FROM boarding_house_amenities fa
+                              JOIN amenities a ON a.amenity_id = fa.amenity_id
+                             WHERE fa.boarding_house_id = bh.boarding_house_id AND fa.is_available = 1
+                               AND a.amenity_name = ' . $bind($amenityOptions[$amenityId]['name']) . ')';
+    }
+
+    return [implode(' AND ', $where), $params];
+}
+
+/** How many live listings match the filters. */
+function browse_count(array $filters)
+{
+    global $pdo;
+    [$where, $params] = browse_where($filters);
+    // LIVE_LANDLORD_JOIN keeps a deactivated or removed landlord's listings out.
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' WHERE ' . $where);
+    $stmt->execute($params);
+    return (int) $stmt->fetchColumn();
+}
+
+/**
+ * The first $limit matching listings: those with a room available first, then
+ * fully occupied ones, newest first within each.
+ *
+ * With a room filter on, each listing also carries match_rent and match_count,
+ * for the room that matched, so a card quotes the Double Sharing room the
+ * boarder asked for rather than the listing's cheapest room of any kind. A
+ * room with a slot free is quoted before a full one.
+ */
+function browse_listings(array $filters, $limit)
+{
+    global $pdo;
+    [$where, $params] = browse_where($filters);
+
+    $matchConds = [];
+    if (isset($filters['room_type'])) {
+        $matchConds[] = 'mr.room_type_id = :mtype';
+        $params[':mtype'] = $filters['room_type'];
+    }
+    if (isset($filters['max_rent'])) {
+        $matchConds[] = 'mr.monthly_rent <= :mrent';
+        $params[':mrent'] = $filters['max_rent'];
+    }
+    // On its own, "has a free slot" quotes the listing's rent as usual; with a
+    // room filter it narrows the quoted room to one with space.
+    if ($matchConds && !empty($filters['vacant'])) {
+        $matchConds[] = 'mr.slots_taken < mr.capacity';
+    }
+
+    $matchSelect = '';
+    $matchJoin = '';
+    if ($matchConds) {
+        $matchSelect = ', m.match_rent, m.match_count';
+        $matchJoin = 'LEFT JOIN (
+            SELECT mr.boarding_house_id,
+                   COALESCE(MIN(CASE WHEN mr.slots_taken < mr.capacity THEN mr.monthly_rent END), MIN(mr.monthly_rent)) AS match_rent,
+                   COUNT(*) AS match_count
+              FROM rooms mr
+             WHERE mr.is_open = 1 AND ' . implode(' AND ', $matchConds) . '
+             GROUP BY mr.boarding_house_id
+        ) m ON m.boarding_house_id = bh.boarding_house_id';
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ', ' . COVER_PHOTO_SELECT . $matchSelect . '
+           FROM boarding_houses bh
+           ' . LIVE_LANDLORD_JOIN . '
+           ' . room_summary_join(true) . '
+           ' . $matchJoin . '
+          WHERE ' . $where . '
+          ORDER BY rs.rooms_available > 0 DESC, bh.created_at DESC, bh.boarding_house_id DESC
+          LIMIT ' . (int) $limit
+    );
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}
+
+/**
+ * The lowest rent of an open room in a matching listing, or null when nothing
+ * matches. Ask with the budget left out, and it is the lowest budget that
+ * would match everything else the boarder asked for.
+ */
+function browse_lowest_rent(array $filters)
+{
+    global $pdo;
+    [$where, $params] = browse_where($filters);
+    $sql = 'SELECT MIN(r.monthly_rent) FROM rooms r
+              JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id ' . LIVE_LANDLORD_JOIN . '
+             WHERE r.is_open = 1 AND ' . $where;
+    if (isset($filters['room_type'])) {
+        $sql .= ' AND r.room_type_id = :rtype';
+        $params[':rtype'] = $filters['room_type'];
+    }
+    if (!empty($filters['vacant'])) {
+        $sql .= ' AND r.slots_taken < r.capacity';
+    }
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $lowest = $stmt->fetchColumn();
+    return ($lowest === false || $lowest === null) ? null : $lowest;
 }
 
 /**
