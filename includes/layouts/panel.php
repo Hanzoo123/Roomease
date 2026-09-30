@@ -33,7 +33,8 @@ function panel_config()
             $super ? [['url' => 'admin/all_users.php', 'icon' => 'fa-address-book', 'label' => 'All Users']] : [],
             [['url' => 'admin/manage_users.php', 'icon' => 'fa-users', 'label' => 'Manage Users', 'also' => ['user.php']]],
             $super ? [
-                ['url' => 'admin/admins.php',   'icon' => 'fa-user-shield', 'label' => 'Administrators'],
+                ['url' => 'admin/admins.php',   'icon' => 'fa-user-shield', 'label' => 'Administrators',
+                 'also' => ['reset_admin_password.php']],
                 ['url' => 'admin/add_user.php', 'icon' => 'fa-user-plus',   'label' => 'Add User'],
             ] : []
         );

@@ -13,7 +13,8 @@ require __DIR__ . '/../includes/core/functions.php';
 
 $wasAdmin = is_admin();
 if (is_logged_in()) {
-    audit_log('signout', $_SESSION['user_id'], $_SESSION['email'] ?? '');
+    // An administrator with no email yet is logged by their username.
+    audit_log('signout', $_SESSION['user_id'], ($_SESSION['email'] ?? '') ?: ($_SESSION['username'] ?? ''));
 }
 forget_remembered_login();
 

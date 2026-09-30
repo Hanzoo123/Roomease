@@ -3,11 +3,11 @@
  * Add User: a new administrator account. Super admins only.
  *
  * Landlords and boarders sign up for themselves, so the only accounts made
- * here are administrators: a Role of Administrator or Super admin. The
- * super admin types a temporary password and gives it to the new
- * administrator privately; the new administrator signs in at the admin login
- * and changes it in My Profile, Change Password. The account is created
- * active.
+ * here are administrators, with a Role of Administrator or Super admin. The
+ * super admin gives only a username, a temporary password and the role. The
+ * new administrator signs in with the username and adds their own name and
+ * email before anything else (require_login() keeps them on Edit Profile
+ * until they do), then changes the password in My Profile, Change Password.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
@@ -15,82 +15,48 @@ require __DIR__ . '/../includes/core/functions.php';
 require_super_admin();
 
 $errors = [];
-$form = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'role' => 'administrator'];
+$form = ['username' => '', 'role' => 'administrator'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
-    $text = function ($key) {
-        return is_string($_POST[$key] ?? null) ? trim($_POST[$key]) : '';
-    };
     $form = [
-        'first_name' => $text('first_name'),
-        'last_name' => $text('last_name'),
-        'email' => $text('email'),
-        'phone_number' => $text('phone_number'),
-        'role' => $text('role'),
+        'username' => is_string($_POST['username'] ?? null) ? trim($_POST['username']) : '',
+        'role' => is_string($_POST['role'] ?? null) ? $_POST['role'] : '',
     ];
     $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
     $confirm = is_string($_POST['confirm_password'] ?? null) ? $_POST['confirm_password'] : '';
 
-    if ($form['first_name'] === '') {
-        $errors[] = 'First name is required.';
-    }
-    if ($form['last_name'] === '') {
-        $errors[] = 'Last name is required.';
-    }
-    if (!filter_var($form['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'A valid email is required.';
-    }
-    $errors = array_merge($errors, array_filter([
-        too_long($form['first_name'], 100, 'First name'),
-        too_long($form['last_name'], 100, 'Last name'),
-        too_long($form['email'], 150, 'Email'),
-        $form['phone_number'] !== '' ? phone_problem($form['phone_number']) : null,
+    $errors = array_values(array_filter([
+        username_problem($form['username']),
         password_problem($password, 'Temporary password'),
+        $password !== $confirm ? 'The two passwords do not match.' : null,
     ]));
-    if ($password !== $confirm) {
-        $errors[] = 'The two passwords do not match.';
-    }
     if (!in_array($form['role'], ['administrator', 'super_admin'], true)) {
         $errors[] = 'Choose a role from the list.';
         $form['role'] = 'administrator';
     }
     $isSuper = $form['role'] === 'super_admin';
 
-    // Any account, removed ones included, keeps its email: the column is unique.
     if (!$errors) {
-        $check = $pdo->prepare('SELECT role, deleted_at FROM users WHERE email = ?');
-        $check->execute([$form['email']]);
-        if ($taken = $check->fetch()) {
-            $errors[] = $taken['role'] === 'administrator'
-                ? 'That email already belongs to an administrator' . ($taken['deleted_at'] !== null ? ' who was removed. Restore them instead.' : '.')
-                : 'That email already belongs to a ' . $taken['role'] . ' account. Use a different email for the administrator.';
-        }
-    }
-
-    if (!$errors) {
+        // No name or email yet: the new administrator adds both on first
+        // sign-in. email stays NULL until then, which its unique key allows.
         $pdo->prepare(
-            "INSERT INTO users (role, is_super_admin, first_name, last_name, email, password_hash, phone_number,
+            "INSERT INTO users (role, is_super_admin, username, first_name, last_name, email, password_hash,
                                 is_active, created_by, updated_by)
-             VALUES ('administrator', ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+             VALUES ('administrator', ?, ?, '', '', NULL, ?, 1, ?, ?)"
         )->execute([
             $isSuper ? 1 : 0,
-            $form['first_name'],
-            $form['last_name'],
-            $form['email'],
+            $form['username'],
             password_hash($password, PASSWORD_DEFAULT),
-            $form['phone_number'] !== '' ? $form['phone_number'] : null,
             current_user_id(),
             current_user_id(),
         ]);
         $newId = (int) $pdo->lastInsertId();
-        $name = trim($form['first_name'] . ' ' . $form['last_name']);
 
-        audit_log('admin_add', $newId, $name, 'As ' . ($isSuper ? 'a super admin' : 'an administrator')
-            . ' (' . $form['email'] . ')');
-        flash_set($name . ' was added. Give them the temporary password privately, and ask them to change it in '
-            . 'My Profile, Change Password, after they sign in.', 'success');
+        audit_log('admin_add', $newId, $form['username'], 'As ' . ($isSuper ? 'a super admin' : 'an administrator'));
+        flash_set($form['username'] . ' was added. Give them the username and temporary password privately. '
+            . 'When they first sign in, they will add their name and email.', 'success');
         redirect('admin/admins.php');
     }
 }
@@ -114,14 +80,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   <section class="content">
     <div class="container-fluid">
       <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-6">
 
           <div class="card card-primary card-outline shadow-sm">
             <div class="card-header">
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-user-plus mr-1"></i> User details
               </h3>
-              <span class="card-subtitle">They sign in at the admin login with this email and the temporary password.</span>
+              <span class="card-subtitle">They add their own name and email the first time they sign in.</span>
             </div>
 
             <?php if ($errors): ?>
@@ -142,30 +108,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <div class="card-body">
                 <?= csrf_field() ?>
 
-                <div class="form-row">
-                  <div class="col-md-6 form-group">
-                    <label for="first_name">First name</label>
-                    <input type="text" class="form-control" id="first_name" name="first_name" maxlength="100" required
-                      value="<?= h($form['first_name']) ?>" autocomplete="off" autofocus>
-                  </div>
-                  <div class="col-md-6 form-group">
-                    <label for="last_name">Last name</label>
-                    <input type="text" class="form-control" id="last_name" name="last_name" maxlength="100" required
-                      value="<?= h($form['last_name']) ?>" autocomplete="off">
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="col-md-6 form-group">
-                    <label for="email">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" maxlength="150" required
-                      value="<?= h($form['email']) ?>" autocomplete="off">
-                  </div>
-                  <div class="col-md-6 form-group">
-                    <label for="phone_number">Phone <span class="text-muted font-weight-normal">(optional)</span></label>
-                    <input type="tel" class="form-control" id="phone_number" name="phone_number" maxlength="30"
-                      value="<?= h($form['phone_number']) ?>" placeholder="e.g. 0917 123 4567" autocomplete="off">
-                  </div>
+                <div class="form-group">
+                  <label for="username">Username</label>
+                  <input type="text" class="form-control" id="username" name="username" maxlength="30" required
+                    value="<?= h($form['username']) ?>" autocomplete="off" autocapitalize="none" spellcheck="false"
+                    placeholder="e.g. juan.delacruz" autofocus>
+                  <small class="form-text text-muted">3 to 30 letters, numbers, dots or underscores. They sign in with it.</small>
                 </div>
 
                 <div class="form-row">
@@ -182,19 +130,15 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   </div>
                 </div>
 
-                <div class="form-row">
-                  <div class="col-md-6 form-group mb-0">
-                    <label for="role">Role</label>
-                    <select class="form-control" id="role" name="role" required>
-                      <option value="administrator" <?= $form['role'] === 'administrator' ? 'selected' : '' ?>>Administrator</option>
-                      <option value="super_admin" <?= $form['role'] === 'super_admin' ? 'selected' : '' ?>>Super admin</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6 form-group mb-0 d-flex align-items-end">
-                    <small class="form-text text-muted">
-                      A super admin can also add and manage administrators, and change the site's Appearance.
-                    </small>
-                  </div>
+                <div class="form-group mb-0">
+                  <label for="role">Role</label>
+                  <select class="form-control" id="role" name="role" required>
+                    <option value="administrator" <?= $form['role'] === 'administrator' ? 'selected' : '' ?>>Administrator</option>
+                    <option value="super_admin" <?= $form['role'] === 'super_admin' ? 'selected' : '' ?>>Super admin</option>
+                  </select>
+                  <small class="form-text text-muted">
+                    A super admin can also add and manage administrators, and change the site's Appearance.
+                  </small>
                 </div>
               </div>
               <div class="card-footer d-flex flex-wrap justify-content-between" style="gap: 8px;">

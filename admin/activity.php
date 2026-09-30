@@ -69,7 +69,7 @@ $pages = max(1, (int) ceil($total / $perPage));
 $page = min($pages, max(1, (int) ($_GET['page'] ?? 1)));
 
 $stmt = $pdo->prepare(
-  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+  "SELECT a.*, " . account_name_sql('u') . " AS admin_name, u.avatar_path
      FROM audit_logs a
      LEFT JOIN users u ON u.user_id = a.actor_id
      $whereSql
@@ -81,7 +81,7 @@ $entries = $stmt->fetchAll();
 
 // Everyone who appears on this tab, for the "who" filter.
 $people = $pdo->prepare(
-  "SELECT DISTINCT u.user_id, CONCAT(u.first_name, ' ', u.last_name) AS name
+  "SELECT DISTINCT u.user_id, " . account_name_sql('u') . " AS name
      FROM audit_logs a JOIN users u ON u.user_id = a.actor_id
     WHERE a.action IN (" . sql_placeholders(count($groupActions)) . ")
     ORDER BY name"

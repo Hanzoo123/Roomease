@@ -49,6 +49,8 @@ $flash = flash_get();
       };
       <?php if ($flash['type'] === 'error'): ?>
         toastr.error(<?= json_encode($flash['message']) ?>, 'Error');
+      <?php elseif ($flash['type'] === 'info'): ?>
+        toastr.info(<?= json_encode($flash['message']) ?>);
       <?php else: ?>
         toastr.success(<?= json_encode($flash['message']) ?>, 'Success');
       <?php endif; ?>

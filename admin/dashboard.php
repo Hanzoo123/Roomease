@@ -72,7 +72,7 @@ $recentActivity = null;
 if (is_super_admin()) {
   $adminActions = audit_actions_in_group('admin');
   $recentActivity = $pdo->prepare(
-    "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+    "SELECT a.*, " . account_name_sql('u') . " AS admin_name, u.avatar_path
        FROM audit_logs a LEFT JOIN users u ON u.user_id = a.actor_id
       WHERE a.action IN (" . sql_placeholders(count($adminActions)) . ")
       ORDER BY a.created_at DESC, a.log_id DESC

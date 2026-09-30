@@ -206,7 +206,9 @@ function enforce_session_policy()
 
     try {
         $stmt = $pdo->prepare(
-            'SELECT role, is_super_admin, is_active, deleted_at, avatar_path, password_hash FROM users WHERE user_id = ?'
+            'SELECT role, is_super_admin, is_active, deleted_at, avatar_path, password_hash,
+                    first_name, last_name, email, username
+               FROM users WHERE user_id = ?'
         );
         $stmt->execute([$_SESSION['user_id']]);
         $account = $stmt->fetch();
@@ -253,6 +255,14 @@ function enforce_session_policy()
     // The session is a cache of the account, never the source of truth for it.
     $_SESSION['role'] = $account['role'];
     $_SESSION['is_super_admin'] = !empty($account['is_super_admin']);
+    // The name and email too, so an administrator who has just added theirs is
+    // shown by name, and let out of Edit Profile, on the very next page.
+    $_SESSION['full_name'] = account_display_name($account);
+    $_SESSION['email'] = (string) ($account['email'] ?? '');
+    $_SESSION['username'] = $account['username'] ?? null;
+    $_SESSION['profile_incomplete'] = $account['role'] === 'administrator'
+        && (trim((string) $account['first_name']) === '' || trim((string) $account['last_name']) === ''
+            || (string) ($account['email'] ?? '') === '');
     $_SESSION['avatar_path'] = $account['avatar_path'];
 }
 
@@ -298,8 +308,10 @@ function start_user_session(array $user)
     $_SESSION['is_super_admin'] = !empty($user['is_super_admin']);
     $_SESSION['first_name'] = $user['first_name'];
     $_SESSION['last_name'] = $user['last_name'];
-    $_SESSION['full_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
-    $_SESSION['email'] = $user['email'];
+    // A new administrator has no name or email yet; their username stands in.
+    $_SESSION['full_name'] = account_display_name($user);
+    $_SESSION['email'] = (string) ($user['email'] ?? '');
+    $_SESSION['username'] = $user['username'] ?? null;
     $_SESSION['avatar_path'] = $user['avatar_path'] ?? null;
     $_SESSION['password_fingerprint'] = isset($user['password_hash'])
         ? password_fingerprint($user['password_hash'])
@@ -557,8 +569,8 @@ function record_failed_attempt($kind, $identifier)
     try {
         $pdo->prepare(
             'INSERT INTO login_attempts (kind, identifier, user_id, ip_address)
-             VALUES (?, ?, (SELECT u.user_id FROM users u WHERE u.email = ? LIMIT 1), ?)'
-        )->execute([$kind, $identifier, $identifier, client_ip()]);
+             VALUES (?, ?, (SELECT u.user_id FROM users u WHERE u.email = ? OR u.username = ? LIMIT 1), ?)'
+        )->execute([$kind, $identifier, $identifier, $identifier, client_ip()]);
 
         // Opportunistic housekeeping so the table cannot grow without bound.
         if (random_int(1, 50) === 1) {

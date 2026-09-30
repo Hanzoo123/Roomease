@@ -25,7 +25,9 @@ if (!$user) {
 $googleLinked = !empty($user['google_id']);
 $role = $user['role'];
 $roleLabels = ['administrator' => 'Administrator', 'landlord' => 'Landlord', 'boarder' => 'Boarder'];
-$fullName = trim($user['first_name'] . ' ' . $user['last_name']);
+// A new administrator has only a username until they add their name.
+$fullName = account_display_name($user);
+$user['full_name'] = $fullName;
 
 // What the account has on RoomEase, so the page is worth opening for more
 // than a copy of the form. Administrators have neither.
@@ -82,7 +84,7 @@ $roleBadge = $usePanel
     <div class="profile-avatar"><?= avatar_html($user, 112, $cls['avatar']) ?></div>
     <div class="profile-id">
       <h2 class="profile-name"><?= h($fullName) ?></h2>
-      <p class="profile-email"><?= h($user['email']) ?></p>
+      <p class="profile-email"><?= (string) $user['email'] !== '' ? h($user['email']) : 'No email yet' ?></p>
       <span class="<?= $roleBadge ?>"><?= h($roleLabels[$role] ?? ucfirst($role)) ?></span>
     </div>
     <div class="profile-actions">
@@ -112,6 +114,8 @@ $roleBadge = $usePanel
       <dd class="profile-signin">
         <?php if ($googleLinked): ?>
           <?= google_logo_svg(16) ?> Google
+        <?php elseif ((string) ($user['username'] ?? '') !== ''): ?>
+          Username <strong>@<?= h($user['username']) ?></strong> or email, and password
         <?php else: ?>
           Email and password
         <?php endif; ?>

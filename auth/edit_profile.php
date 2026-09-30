@@ -26,7 +26,7 @@ if (!$user) {
 $old = [
   'first_name' => $user['first_name'],
   'last_name' => $user['last_name'],
-  'email' => $user['email'],
+  'email' => (string) ($user['email'] ?? ''),
   'phone_number' => $user['phone_number'] ?? '',
 ];
 
@@ -151,6 +151,15 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
     <div class="card-body">
     <?php endif; ?>
 
+    <?php if (profile_incomplete()): ?>
+      <?php /* A new administrator, added with only a username: nothing else in
+               the panel opens until this form is saved (require_login()). */ ?>
+      <div class="alert alert-info">
+        <strong>Welcome to RoomEase!</strong> Please add your first name, last name and email to finish
+        setting up your account. You can also change your temporary password in Change Password.
+      </div>
+    <?php endif; ?>
+
     <?php if ($errors): ?>
       <div class="<?= $cls['alert'] ?>">
         <?php foreach ($errors as $e)
@@ -204,6 +213,17 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
             value="<?= h($old['last_name']) ?>" autocomplete="family-name" required>
         </div>
       </div>
+
+      <?php if ((string) ($user['username'] ?? '') !== ''): ?>
+        <?php /* Given by the super admin and shown only: it is not sent, and the
+                 server never reads it from this form. */ ?>
+        <div class="<?= $cls['group'] ?>">
+          <label for="username">Username</label>
+          <input type="text" class="<?= $cls['input'] ?> profile-locked" id="username" value="<?= h($user['username']) ?>"
+            readonly aria-describedby="username-note">
+          <p class="<?= $cls['hint'] ?>" id="username-note">You can sign in with this or your email. Only a super admin can change it.</p>
+        </div>
+      <?php endif; ?>
 
       <div class="<?= $cls['group'] ?>">
         <label for="email">Email address</label>

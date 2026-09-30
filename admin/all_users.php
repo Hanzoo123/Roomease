@@ -23,7 +23,7 @@ $counts = $pdo->query("SELECT role, COUNT(*) FROM users WHERE $base GROUP BY rol
 $total = array_sum($counts);
 
 $stmt = $pdo->prepare(
-    "SELECT *, CONCAT(first_name, ' ', last_name) AS full_name FROM users
+    "SELECT *, " . account_name_sql('users') . " AS full_name FROM users
       WHERE $base" . ($roleFilter !== '' ? ' AND role = ?' : '') . '
       ORDER BY created_at DESC'
 );
@@ -98,10 +98,21 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <td class="font-weight-bold">
                     <span class="d-flex align-items-center" style="gap: 8px;">
                       <?= avatar_html($u, 32) ?>
-                      <a href="<?= h($href) ?>"><?= h($u['full_name']) ?></a>
+                      <span>
+                        <a href="<?= h($href) ?>"><?= h($u['full_name']) ?></a>
+                        <?php if ((string) $u['username'] !== ''): ?>
+                          <span class="d-block text-muted text-sm font-weight-normal">@<?= h($u['username']) ?></span>
+                        <?php endif; ?>
+                      </span>
                     </span>
                   </td>
-                  <td><a href="mailto:<?= h($u['email']) ?>" class="text-muted"><?= h($u['email']) ?></a></td>
+                  <td>
+                    <?php if ((string) $u['email'] !== ''): ?>
+                      <a href="mailto:<?= h($u['email']) ?>" class="text-muted"><?= h($u['email']) ?></a>
+                    <?php else: ?>
+                      <span class="text-muted">&mdash;</span>
+                    <?php endif; ?>
+                  </td>
                   <td><?= h($u['phone_number'] ?: '—') ?></td>
                   <td>
                     <span class="badge <?= $badge ?> px-2 py-1"><i class="fas <?= $icon ?> mr-1"></i> <?= $roleLabel ?></span>

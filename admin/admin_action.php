@@ -39,7 +39,7 @@ if ($targetId === $myId) {
     redirect('admin/admins.php');
 }
 
-$name = trim($target['first_name'] . ' ' . $target['last_name']);
+$name = account_display_name($target);
 $live = $target['deleted_at'] === null;
 
 // Would this action leave no active super admin? Only a change to an active
