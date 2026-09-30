@@ -24,7 +24,7 @@ function panel_config()
 {
     if (is_admin()) {
         // A super admin sees more: All Users, Administrators and Add User
-        // under User Management, and the site's Appearance. Those pages also
+        // under User Management, the Audit Log, and the site's Appearance. Those pages also
         // check for themselves (require_super_admin()), so hiding the links is
         // not the only lock. A regular administrator's User Management holds
         // Manage Users only: landlords and boarders.
@@ -54,9 +54,11 @@ function panel_config()
                 ['url' => 'admin/manage_listings.php?status=pending', 'icon' => 'fa-clipboard-check', 'label' => 'Pending Approvals',
                  'count' => pending_listing_count()],
                 ['url' => 'admin/reports.php',         'icon' => 'fa-chart-bar',      'label' => 'Reports'],
-                ['url' => 'admin/activity.php',        'icon' => 'fa-history',        'label' => 'Audit Log'],
                 ['url' => 'admin/extras.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
             ], $super ? [
+                // The audit log shows what every administrator did, so it is
+                // for super admins only (admin/activity.php checks as well).
+                ['url' => 'admin/activity.php',   'icon' => 'fa-history',     'label' => 'Audit Log'],
                 ['url' => 'admin/appearance.php', 'icon' => 'fa-paint-brush', 'label' => 'Appearance'],
             ] : []),
         ];

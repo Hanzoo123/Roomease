@@ -65,17 +65,22 @@ $decided->execute([$since]);
 $decided = $decided->fetch();
 
 // Only what administrators did: the audit log also holds landlords' edits and
-// every sign-in, which have their own tabs on the Audit Log page.
-$adminActions = audit_actions_in_group('admin');
-$recentActivity = $pdo->prepare(
-  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
-     FROM audit_logs a LEFT JOIN users u ON u.user_id = a.actor_id
-    WHERE a.action IN (" . sql_placeholders(count($adminActions)) . ")
-    ORDER BY a.created_at DESC, a.log_id DESC
-    LIMIT 6"
-);
-$recentActivity->execute($adminActions);
-$recentActivity = $recentActivity->fetchAll();
+// every sign-in, which have their own tabs on the Audit Log page. Only a super
+// admin sees the audit log, so for anyone else this stays null and the card is
+// left out.
+$recentActivity = null;
+if (is_super_admin()) {
+  $adminActions = audit_actions_in_group('admin');
+  $recentActivity = $pdo->prepare(
+    "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+       FROM audit_logs a LEFT JOIN users u ON u.user_id = a.actor_id
+      WHERE a.action IN (" . sql_placeholders(count($adminActions)) . ")
+      ORDER BY a.created_at DESC, a.log_id DESC
+      LIMIT 6"
+  );
+  $recentActivity->execute($adminActions);
+  $recentActivity = $recentActivity->fetchAll();
+}
 $types = audit_action_types();
 
 $recentUsers = $pdo->query(
@@ -231,6 +236,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
 
         <div class="col-lg-4">
+          <?php /* The audit log is for super admins only, this glimpse of it included. */ ?>
+          <?php if ($recentActivity !== null): ?>
           <div class="card card-info card-outline shadow-sm">
             <?php panel_card_header(
               'Recent activity',
@@ -266,6 +273,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <?php endif; ?>
             </div>
           </div>
+
+          <?php endif; ?>
 
           <div class="card card-success card-outline shadow-sm">
             <?php panel_card_header(

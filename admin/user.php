@@ -98,7 +98,9 @@ try {
   // Either table may be missing on a database that skipped a migration.
 }
 
-$history = audit_entries_for('user', $userId);
+// The history is the audit log's entries for this page, so only a super
+// admin sees it; for anyone else the History tab is left out.
+$history = is_super_admin() ? audit_entries_for('user', $userId) : null;
 $types = audit_action_types();
 
 $pageTitle = $fullName;
@@ -149,13 +151,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
     'back' => 'admin/manage_users.php' . ($removed ? '?view=archived' : ''),
     'backLabel' => 'Back to Manage Users',
     'actions' => $pageActions,
-    'tabs' => [
+    'tabs' => array_values(array_filter([
       ['id' => 'panel-overview', 'label' => 'Overview'],
       $isLandlord
         ? ['id' => 'panel-things', 'label' => 'Listings', 'count' => count($listings)]
         : ['id' => 'panel-things', 'label' => 'Saved', 'count' => count($saved)],
-      ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)],
-    ],
+      $history !== null ? ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)] : null,
+    ])),
   ]);
   ?>
 
@@ -446,6 +448,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <?php endif; ?>
       </div>
 
+      <?php if ($history !== null): ?>
       <div class="re-tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-panel-history" hidden>
         <div class="card shadow-sm">
           <?php panel_card_header('History', 'Changes an administrator made to this account.'); ?>
@@ -471,6 +474,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
         </div>
       </div>
+      <?php endif; ?>
     </div>
   </section>
 </div>

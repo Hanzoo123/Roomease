@@ -90,7 +90,9 @@ $otherListings = $otherStmt->fetchAll();
 
 // Decisions and the landlord's own changes, in one timeline, so a reviewer
 // can see what was edited since the last approval.
-$history = audit_entries_for('listing', $listingId, 40);
+// The history is the audit log's entries for this page, so only a super
+// admin sees it; for anyone else the History tab is left out.
+$history = is_super_admin() ? audit_entries_for('listing', $listingId, 40) : null;
 $types = audit_action_types();
 
 // Stay terms, only the ones the landlord stated.
@@ -161,10 +163,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
     'back' => 'admin/manage_listings.php' . ($archived ? '?view=removed' : ''),
     'backLabel' => 'Back to Manage Listings',
     'lead' => listing_thumb_html($listing, 'queue-thumb'),
-    'tabs' => [
+    'tabs' => array_values(array_filter([
       ['id' => 'panel-review', 'label' => 'Review'],
-      ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)],
-    ],
+      $history !== null ? ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)] : null,
+    ])),
   ]);
   ?>
 
@@ -428,6 +430,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
       </div>
 
+      <?php if ($history !== null): ?>
       <div class="re-tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-panel-history" hidden>
         <div class="card shadow-sm">
           <?php panel_card_header('History', 'Every decision made on this listing, and every change its landlord made, newest first.'); ?>
@@ -456,6 +459,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
         </div>
       </div>
+      <?php endif; ?>
 
     </div>
   </section>
