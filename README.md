@@ -164,10 +164,10 @@ roomease/
 ├── index.php                  Home page: search, newest listings
 ├── 404.php                    Shown for an address that matches nothing
 ├── legal/                     The standing pages every visitor can read:
-│                              about, contact, terms, privacy. A page added
-│                              here must also be named in base_url() and
-│                              app_cookie_path(), which find the app root
-│                              by folder
+│                              about, contact, terms, privacy. A new folder
+│                              of pages must be named in app_root_path()
+│                              (includes/core/security.php), which finds
+│                              the app root by folder
 ├── admin/                     Admin panel: dashboard, manage users, manage listings
 ├── auth/                      Register, login, logout, profile, password reset by code
 ├── landlord/                  Dashboard, add/edit/delete listing, photo actions

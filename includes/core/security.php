@@ -37,20 +37,33 @@ function is_https_request()
 }
 
 /**
- * The URL path the app is served from, used to scope the session cookie so a
- * neighbouring app in the same webroot cannot read or overwrite it.
+ * The URL path the app is served from ('' at a domain root, no trailing slash).
+ * It is the folder above the running script's own folder: auth/, landlord/,
+ * boarder/, admin/ or legal/, or the actions/ folder inside one of them.
+ * A new folder of pages must be added to the pattern, or its pages get the
+ * wrong base URL and a session cookie the rest of the site cannot see.
+ */
+function app_root_path()
+{
+    static $root = null;
+    if ($root === null) {
+        $script = $_SERVER['SCRIPT_NAME'] ?? '/';
+        $root = preg_replace('#/(auth|landlord|boarder|admin|legal)(/actions)?/[^/]*$#', '', $script);
+        if ($root === $script) {
+            $root = rtrim(dirname($script), '/');
+        }
+    }
+    return $root;
+}
+
+/**
+ * The URL path the session cookie is scoped to, so a neighbouring app in the
+ * same webroot cannot read or overwrite it.
  */
 function app_cookie_path()
 {
-    // The folder list matches base_url()'s. A page in a folder missing from
-    // here would scope its session cookie to that folder, and the sign-in it
-    // started would be invisible to the rest of the site.
-    $script  = $_SERVER['SCRIPT_NAME'] ?? '/';
-    $appRoot = preg_replace('#/(auth|landlord|boarder|admin|legal)/[^/]*$#', '', $script);
-    if ($appRoot === $script) {
-        $appRoot = rtrim(dirname($script), '/');
-    }
-    return ($appRoot === '' ? '/' : $appRoot . '/');
+    $root = app_root_path();
+    return $root === '' ? '/' : $root . '/';
 }
 
 /**
