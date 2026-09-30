@@ -8,7 +8,7 @@
  *
  * One table for who did what: administrators' decisions and exports,
  * landlords' changes to their listings and rooms, and every sign-in. The
- * Audit Log page (admin/activity.php) shows each group on its own tab, and
+ * Audit Log page (admin/audit_log.php) shows each group on its own tab, and
  * listing decisions are passed on to the landlord: by email, and on their
  * dashboard, which reads the same table.
  * ------------------------------------------------------------------------ */

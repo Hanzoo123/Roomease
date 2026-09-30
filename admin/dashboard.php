@@ -234,7 +234,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             <?php panel_card_header(
               'Recent activity',
               'The last few things an administrator did.',
-              '<a href="' . base_url('admin/activity.php') . '" class="btn btn-tool">Full log</a>'
+              '<a href="' . base_url('admin/audit_log.php') . '" class="btn btn-tool">Full log</a>'
             ); ?>
             <div class="card-body<?= $recentActivity ? '' : ' p-0' ?>">
               <?php if (!$recentActivity): ?>

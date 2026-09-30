@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash_set('Unknown action.', 'error');
     }
 
-    redirect('landlord/extras.php#' . $k['plural']);
+    redirect('landlord/utilities_amenities.php#' . $k['plural']);
 }
 
 // How many of this landlord's own listings use each item.

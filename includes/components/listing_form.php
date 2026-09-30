@@ -193,7 +193,7 @@ $policyPresets = [
   </button>
   <small class="form-text text-muted">
     Saved to your own list and added to this listing when you save. Manage your list under
-    <a href="<?= base_url('landlord/extras.php') ?>">Utilities &amp; Amenities</a>.
+    <a href="<?= base_url('landlord/utilities_amenities.php') ?>">Utilities &amp; Amenities</a>.
   </small>
 </div>
 

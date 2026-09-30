@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash_set('Unknown action.', 'error');
     }
 
-    redirect('admin/extras.php#' . $k['plural']);
+    redirect('admin/utilities_amenities.php#' . $k['plural']);
 }
 
 $pageTitle = 'Utilities & Amenities';

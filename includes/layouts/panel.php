@@ -48,8 +48,8 @@ function panel_config()
                 ['url' => 'admin/manage_listings.php?status=pending', 'icon' => 'fa-clipboard-check', 'label' => 'Pending Approvals',
                  'count' => pending_listing_count()],
                 ['url' => 'admin/reports.php',         'icon' => 'fa-chart-bar',      'label' => 'Reports'],
-                ['url' => 'admin/activity.php',        'icon' => 'fa-history',        'label' => 'Audit Log'],
-                ['url' => 'admin/extras.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
+                ['url' => 'admin/audit_log.php',        'icon' => 'fa-history',        'label' => 'Audit Log'],
+                ['url' => 'admin/utilities_amenities.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
             ], $superMenu),
         ];
     }
@@ -64,7 +64,7 @@ function panel_config()
             ['url' => 'landlord/listings.php',    'icon' => 'fa-home',           'label' => 'My Boarding Houses',
              'also' => ['edit_listing.php', 'room_form.php']],
             ['url' => 'landlord/add_listing.php', 'icon' => 'fa-plus-square',    'label' => 'Add Listing'],
-            ['url' => 'landlord/extras.php',      'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
+            ['url' => 'landlord/utilities_amenities.php',      'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
         ],
     ];
 }
