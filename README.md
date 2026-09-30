@@ -175,7 +175,19 @@ roomease/
 ├── config/db.php              Database connection (PDO)
 ├── includes/                  Shared code; never served over HTTP
 │   ├── core/                    Logic loaded by pages, no HTML
-│   │   ├── functions.php          Helpers; also boots security.php and the session
+│   │   ├── functions.php          Startup: loads everything below, starts the session
+│   │   ├── helpers.php            Escaping, redirects, URLs, flash messages, dates, money
+│   │   ├── auth.php               Who is signed in, role checks, return-after-login
+│   │   ├── csrf.php               Form tokens
+│   │   ├── validation.php         Checks for typed values
+│   │   ├── uploads.php            Listing photo uploads
+│   │   ├── avatars.php            Profile photos
+│   │   ├── lookups.php            Amenities, utilities, room types
+│   │   ├── listings.php           Listing queries, availability, browse filters, stay terms
+│   │   ├── rooms.php              Rooms inside a listing
+│   │   ├── audit.php              Audit log and landlord decision notices
+│   │   ├── password_reset.php     Reset by emailed code
+│   │   ├── site_settings.php      Administrator-controlled site settings
 │   │   ├── security.php           Session hardening, headers, login/reset throttling
 │   │   ├── mailer.php             Sends email through Gmail (reset codes)
 │   │   ├── google_auth.php        "Continue with Google"
