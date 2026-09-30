@@ -240,7 +240,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <td>
                     <div class="d-flex align-items-center flex-wrap" style="gap: 5px;">
                       <?php if ($showRemoved): ?>
-                        <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline">
+                        <form method="post" action="<?= base_url('admin/actions/listing_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
                           <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
                           <input type="hidden" name="action" value="restore">
@@ -257,7 +257,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                             ? 'Needs at least one room before it can be approved'
                             : (!$landlordLive ? 'The landlord\'s account is removed or deactivated' : '');
                           ?>
-                          <form method="post" action="<?= base_url('admin/listing_action.php') ?>" class="d-inline">
+                          <form method="post" action="<?= base_url('admin/actions/listing_action.php') ?>" class="d-inline">
                             <?= csrf_field() ?>
                             <input type="hidden" name="boarding_house_id" value="<?= (int) $l['boarding_house_id'] ?>">
                             <input type="hidden" name="action" value="approve">

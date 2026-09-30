@@ -519,7 +519,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php endif; ?>
 
       <?php if (can_save_listings()): ?>
-        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
+        <form method="post" action="<?= base_url('boarder/actions/favorite_action.php') ?>" class="save-form">
           <?= csrf_field() ?>
           <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
           <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">
@@ -596,7 +596,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php endif; ?>
 
       <?php if (can_save_listings()): ?>
-        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
+        <form method="post" action="<?= base_url('boarder/actions/favorite_action.php') ?>" class="save-form">
           <?= csrf_field() ?>
           <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
           <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">

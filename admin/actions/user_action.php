@@ -3,7 +3,7 @@
  * Administrator actions on an account: activate or deactivate it, remove it
  * (archive), or restore it. Each is written to the audit log.
  */
-require __DIR__ . '/../includes/init.php';
+require __DIR__ . '/../../includes/init.php';
 
 require_login('admin');
 

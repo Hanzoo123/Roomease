@@ -172,7 +172,7 @@ $pageActions .= $showArchived
                     <div class="d-flex align-items-center" style="gap: 5px;">
                       <?php if ($u['deleted_at'] !== null): ?>
                         <!-- Restore Button -->
-                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
+                        <form method="post" action="<?= base_url('admin/actions/user_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
                           <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                           <input type="hidden" name="action" value="restore">
@@ -182,7 +182,7 @@ $pageActions .= $showArchived
                         </form>
                       <?php else: ?>
                         <!-- Status Toggle Button -->
-                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
+                        <form method="post" action="<?= base_url('admin/actions/user_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
                           <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                           <input type="hidden" name="action" value="toggle_status">
@@ -198,7 +198,7 @@ $pageActions .= $showArchived
                         </form>
 
                         <!-- Remove (archive) Button -->
-                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline js-confirm"
+                        <form method="post" action="<?= base_url('admin/actions/user_action.php') ?>" class="d-inline js-confirm"
                           data-confirm="Remove <?= h($u['full_name']) ?>? Their account and listings will be hidden from the site. Nothing is deleted, and you can restore it from the Removed tab.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">

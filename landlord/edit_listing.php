@@ -266,7 +266,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                           <td class="align-middle">&#8369;<?= number_format((float) $room['monthly_rent'], 2) ?></td>
                           <td class="align-middle">
                             <div class="d-inline-flex align-items-center" style="gap: 6px;">
-                              <form method="post" action="<?= base_url('landlord/room_action.php') ?>" data-room-action>
+                              <form method="post" action="<?= base_url('landlord/actions/room_action.php') ?>" data-room-action>
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
                                 <input type="hidden" name="action" value="slots">
@@ -281,7 +281,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                                 data-slots-text aria-live="polite">
                                 <?= (int) $room['slots_taken'] ?> / <?= (int) $room['capacity'] ?>
                               </span>
-                              <form method="post" action="<?= base_url('landlord/room_action.php') ?>" data-room-action>
+                              <form method="post" action="<?= base_url('landlord/actions/room_action.php') ?>" data-room-action>
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
                                 <input type="hidden" name="action" value="slots">
@@ -303,7 +303,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                             </a>
                           </td>
                           <td class="align-middle text-right text-nowrap">
-                            <form method="post" action="<?= base_url('landlord/room_action.php') ?>" class="d-inline" data-room-action>
+                            <form method="post" action="<?= base_url('landlord/actions/room_action.php') ?>" class="d-inline" data-room-action>
                               <?= csrf_field() ?>
                               <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
                               <input type="hidden" name="action" value="toggle_open">
@@ -316,7 +316,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                               class="btn btn-xs btn-outline-primary" title="Edit room">
                               <i class="fas fa-edit"></i>
                             </a>
-                            <form method="post" action="<?= base_url('landlord/room_action.php') ?>" class="d-inline"
+                            <form method="post" action="<?= base_url('landlord/actions/room_action.php') ?>" class="d-inline"
                               data-room-action data-confirm="Delete <?= h($room['name']) ?> and its photos? This cannot be undone.">
                               <?= csrf_field() ?>
                               <input type="hidden" name="room_id" value="<?= (int) $room['room_id'] ?>">
@@ -426,7 +426,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       </div>
                       <div class="btn-group btn-group-sm d-flex mt-2" role="group">
                         <?php if (!$img['is_primary']): ?>
-                          <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100">
+                          <form method="post" action="<?= base_url('landlord/actions/photo_action.php') ?>" class="w-100">
                             <?= csrf_field() ?>
                             <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">
                             <input type="hidden" name="action" value="set_primary">
@@ -435,7 +435,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                             </button>
                           </form>
                         <?php endif; ?>
-                        <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100"
+                        <form method="post" action="<?= base_url('landlord/actions/photo_action.php') ?>" class="w-100"
                           class="js-confirm" data-confirm="Remove this photo? This cannot be undone.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">

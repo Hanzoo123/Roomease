@@ -11,7 +11,7 @@
  * Every action is written to the audit log, and the landlord hears about it
  * by email and on their dashboard.
  */
-require __DIR__ . '/../includes/init.php';
+require __DIR__ . '/../../includes/init.php';
 
 require_login('admin');
 
@@ -31,7 +31,8 @@ $action = $_POST['action'] ?? '';
 // comes next depends on what this action just did.
 $returnStatus = $_POST['return_status'] ?? '';
 $goToNext = ($_POST['return_to'] ?? '') === 'next';
-if ($goToNext || (($_POST['return_to'] ?? '') === 'review' && $boardingHouseId > 0)) {
+$returnsToReview = $goToNext || (($_POST['return_to'] ?? '') === 'review' && $boardingHouseId > 0);
+if ($returnsToReview) {
     $returnTo = 'admin/listing.php?id=' . $boardingHouseId;
 } elseif (($_POST['return_view'] ?? '') === 'removed') {
     $returnTo = 'admin/manage_listings.php?view=removed';
@@ -53,7 +54,7 @@ $listing = $stmt->fetch();
 
 if (!$listing) {
     flash_set('Listing not found.', 'error');
-    redirect(strpos($returnTo, 'listing.php') !== false ? 'admin/manage_listings.php' : $returnTo);
+    redirect($returnsToReview ? 'admin/manage_listings.php' : $returnTo);
 }
 
 // The name is whatever the landlord typed. The toast escapes its message, but
@@ -142,7 +143,7 @@ if ($action === 'approve') {
     audit_log('listing_remove', $boardingHouseId, $listing['name'], $reason);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_remove', $reason);
     flash_set('"' . $name . '" was removed from the site. It can be restored from the Removed tab.' . $emailNote($sent), 'success');
-    if (strpos($returnTo, 'listing.php') === false) {
+    if (!$returnsToReview) {
         $returnTo = 'admin/manage_listings.php?view=removed';
     }
 
@@ -160,7 +161,7 @@ if ($action === 'approve') {
         ? ' It is visible to boarders again.'
         : ' It is back with the ' . $listing['moderation_status'] . ' listings.';
     flash_set('"' . $name . '" was restored.' . $where . $emailNote($sent), 'success');
-    if (strpos($returnTo, 'listing.php') === false) {
+    if (!$returnsToReview) {
         $returnTo = 'admin/manage_listings.php';
     }
 

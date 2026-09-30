@@ -9,7 +9,7 @@
  * when the caller asks for it and a flash + redirect otherwise. Keeping both
  * paths means the button still works with JavaScript turned off.
  */
-require __DIR__ . '/../includes/init.php';
+require __DIR__ . '/../../includes/init.php';
 
 $wantsJson = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
 

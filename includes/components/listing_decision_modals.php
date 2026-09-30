@@ -23,7 +23,7 @@ $rejectReturnTo = $rejectReturnTo ?? $returnTo;
 ?>
 <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
-    <form method="post" action="<?= base_url('admin/listing_action.php') ?>">
+    <form method="post" action="<?= base_url('admin/actions/listing_action.php') ?>">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="rejectModalLabel">Reject listing</h5>
@@ -57,7 +57,7 @@ $rejectReturnTo = $rejectReturnTo ?? $returnTo;
 
 <div class="modal fade" id="removeModal" tabindex="-1" role="dialog" aria-labelledby="removeModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
-    <form method="post" action="<?= base_url('admin/listing_action.php') ?>">
+    <form method="post" action="<?= base_url('admin/actions/listing_action.php') ?>">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="removeModalLabel">Remove listing</h5>

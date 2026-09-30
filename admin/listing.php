@@ -213,7 +213,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
           <div class="d-flex flex-wrap" style="gap: 8px;">
             <?php if ($archived): ?>
-              <form method="post" action="<?= base_url('admin/listing_action.php') ?>">
+              <form method="post" action="<?= base_url('admin/actions/listing_action.php') ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
                 <input type="hidden" name="action" value="restore">
@@ -222,7 +222,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               </form>
             <?php else: ?>
               <?php if ($listing['moderation_status'] !== 'approved'): ?>
-                <form method="post" action="<?= base_url('admin/listing_action.php') ?>">
+                <form method="post" action="<?= base_url('admin/actions/listing_action.php') ?>">
                   <?= csrf_field() ?>
                   <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
                   <input type="hidden" name="action" value="approve">

@@ -169,9 +169,12 @@ roomease/
 │                              (includes/core/security.php), which finds
 │                              the app root by folder
 ├── admin/                     Admin panel: dashboard, manage users, manage listings
+│   └── actions/                 Form handlers (POST only): users, administrators, listings
 ├── auth/                      Register, login, logout, profile, password reset by code
-├── landlord/                  Dashboard, add/edit/delete listing, photo actions
+├── landlord/                  Dashboard, add/edit listing, rooms
+│   └── actions/                 Form handlers: delete listing, photos, rooms
 ├── boarder/                   Browse/search listings, listing detail, saved listings
+│   └── actions/                 Form handler: save or unsave a listing
 ├── config/db.php              Database connection (PDO)
 ├── includes/                  Shared code; never served over HTTP
 │   ├── init.php                 Startup: every page requires this one file
@@ -221,8 +224,9 @@ configured per role in `includes/layouts/panel.php`. There is exactly one copy o
 
 Every page starts with the same one line, which connects the database, loads
 the helpers and starts the session, in the right order. Then copy the skeleton
-that matches the kind of page (a page in the project root uses
-`/includes/...` instead of `/../includes/...`).
+that matches the kind of page. A page in the project root uses
+`/includes/...` instead of `/../includes/...`, and a file in an `actions/`
+folder uses `/../../includes/...`.
 
 **Public page** (guests and boarders):
 
@@ -254,12 +258,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
 ```
 
-**Form handler** (a page that only receives a POST). Every form that posts to
+**Form handler** (a file that only receives a POST). Put it in the role's
+`actions/` folder, for example `landlord/actions/`. Every form that posts to
 it needs `<?= csrf_field() ?>` inside the `<form>`:
 
 ```php
 <?php
-require __DIR__ . '/../includes/init.php';
+require __DIR__ . '/../../includes/init.php';
 require_login('landlord');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

@@ -10,7 +10,7 @@
  * without a reload. Without JavaScript they are ordinary form posts that
  * redirect back to the listing.
  */
-require __DIR__ . '/../includes/init.php';
+require __DIR__ . '/../../includes/init.php';
 
 $wantsJson = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
 
@@ -119,9 +119,9 @@ if ($action === 'delete') {
     // Photo files first, then the row; the images rows go with it by cascade.
     $photos = $pdo->prepare('SELECT image_path FROM images WHERE room_id = ?');
     $photos->execute([$roomId]);
-    $uploadRoot = realpath(__DIR__ . '/../assets/uploads');
+    $uploadRoot = realpath(__DIR__ . '/../../assets/uploads');
     foreach ($photos->fetchAll(PDO::FETCH_COLUMN) as $path) {
-        $target = realpath(__DIR__ . '/../' . $path);
+        $target = realpath(__DIR__ . '/../../' . $path);
         if ($uploadRoot && $target && strpos($target, $uploadRoot) === 0 && is_file($target)) {
             @unlink($target);
         }
