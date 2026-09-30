@@ -1,0 +1,14 @@
+# Read by most editors. New and edited code uses 4 spaces.
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{php,js,css,sql,json}]
+indent_style = space
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false

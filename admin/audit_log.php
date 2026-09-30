@@ -117,7 +117,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <div class="content-wrapper">
   <?php panel_page_header('Audit Log', [
-    'subtitle' => $subtitles[$group] . ' ' . number_format($total) . ' ' . ($total === 1 ? 'entry' : 'entries')
+    'subtitle' => $subtitles[$group] . ' ' . number_format($total) . ' ' . plural($total, 'entry', 'entries')
       . ($filtered ? ' match.' : '.'),
   ]); ?>
 

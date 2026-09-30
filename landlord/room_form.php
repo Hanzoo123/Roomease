@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $added = attach_room_photos($houseId, $roomId, 'photos');
             if ($added > 0) {
                 audit_log('photos_add', $houseId, $houseName,
-                    $added . ' ' . ($added === 1 ? 'photo' : 'photos') . ' of ' . $form['name']);
+                    $added . ' ' . plural($added, 'photo') . ' of ' . $form['name']);
             }
         } catch (RuntimeException $e) {
             flash_set('Room saved, but the photos could not be uploaded: ' . $e->getMessage(), 'error');

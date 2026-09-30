@@ -92,7 +92,7 @@ if (($listing['security_deposit'] ?? null) !== null) {
 }
 if (!empty($listing['minimum_stay_months'])) {
   $months = (int) $listing['minimum_stay_months'];
-  $terms[] = ['calendar', 'Minimum stay', $months . ' ' . ($months === 1 ? 'month' : 'months')];
+  $terms[] = ['calendar', 'Minimum stay', $months . ' ' . plural($months, 'month')];
 }
 $paymentLabel = payment_methods_label($listing['payment_methods'] ?? '');
 if ($paymentLabel !== '') {
@@ -287,7 +287,7 @@ require __DIR__ . '/../includes/layouts/header.php';
                 <li class="room-row room-row--<?= h($state['key']) ?>" data-room-type-name="<?= h($room['room_type_name']) ?>">
                   <div class="room-row-main">
                     <h3><?= h($room['name']) ?></h3>
-                    <p class="room-row-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></p>
+                    <p class="room-row-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= plural($capacity, 'person', 'people') ?></p>
                     <?php if (!empty($room['description'])): ?>
                       <p class="room-row-desc"><?= h($room['description']) ?></p>
                     <?php endif; ?>
@@ -323,7 +323,7 @@ require __DIR__ . '/../includes/layouts/header.php';
 
                 <div class="room-tile-body">
                   <h3><?= h($room['name']) ?></h3>
-                  <p class="room-tile-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></p>
+                  <p class="room-tile-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= plural($capacity, 'person', 'people') ?></p>
                   <p class="room-tile-rent"><?= peso_round($room['monthly_rent']) ?> <span>/ month</span></p>
                   <?php if (!empty($room['description'])): ?>
                     <p class="room-tile-desc"><?= h($room['description']) ?></p>

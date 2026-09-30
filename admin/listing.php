@@ -72,7 +72,7 @@ if (($listing['security_deposit'] ?? null) !== null) {
 }
 if (!empty($listing['minimum_stay_months'])) {
   $months = (int) $listing['minimum_stay_months'];
-  $terms['Minimum stay'] = $months . ' ' . ($months === 1 ? 'month' : 'months');
+  $terms['Minimum stay'] = $months . ' ' . plural($months, 'month');
 }
 $paymentLabel = payment_methods_label($listing['payment_methods'] ?? '');
 if ($paymentLabel !== '') {

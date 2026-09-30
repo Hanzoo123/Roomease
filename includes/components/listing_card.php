@@ -47,7 +47,7 @@ function render_listing_card(array $l, ?array $save = null)
     // listing's own summary, in the same words as its page.
     $slots = (int) ($l['slots_left'] ?? 0);
     $meta = $avail['key'] === 'available' && $slots > 0
-        ? $slots . ' ' . ($slots === 1 ? 'slot' : 'slots') . ' left'
+        ? $slots . ' ' . plural($slots, 'slot') . ' left'
         : $avail['summary'];
 
     $spoken = [];

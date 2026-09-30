@@ -275,7 +275,20 @@ verify_csrf();
 ```
 
 New helper functions go in the `includes/core/` file that matches their topic
-(the list is at the top of `includes/init.php`), not in the page.
+(the list is at the top of `includes/init.php`), not in the page. Pages call
+those functions for their data, so SQL that more than one page needs belongs in
+a function, not copied into each page. Code is indented with 4 spaces
+(`.editorconfig`).
+
+### Names used in the code
+
+| Word | Means |
+|---|---|
+| listing, boarding house | One place for rent. The table is `boarding_houses`. Older code calls its id `$houseId` or `$boardingHouseId`; in new code use `$listingId`. |
+| room | A rentable room inside a listing (`rooms`). Rent, room type and slots belong to the room. |
+| live | On the public site: approved, switched on, not removed, its landlord active, and at least one room (`LIVE_LISTING_WHERE`). |
+| administrator, admin | The role stored in the database is `administrator`; the helpers say admin (`is_admin()`, `require_login('admin')`). |
+| landlord, boarder | The other two roles. A boarder is someone looking for a room. |
 
 ## What's implemented (from the project scope)
 

@@ -234,10 +234,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 $isLandlord
                   ? 'What this landlord has on RoomEase, and where each listing stands.'
                   : 'The boarding houses this boarder has saved for later.',
-                '<span class="re-count-pill">' . ($isLandlord ? count($listings) : count($saved)) . ' '
-                  . ($isLandlord
-                      ? (count($listings) === 1 ? 'listing' : 'listings')
-                      : (count($saved) === 1 ? 'saved' : 'saved')) . '</span>'
+                '<span class="re-count-pill">' . ($isLandlord
+                  ? count($listings) . ' ' . plural(count($listings), 'listing')
+                  : count($saved) . ' saved') . '</span>'
               ); ?>
               <div class="card-body">
                 <?php if ($isLandlord): ?>

@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($paths) {
             audit_log('photos_add', $boardingHouseId, $listing['name'],
-                count($paths) . ' house ' . (count($paths) === 1 ? 'photo' : 'photos'));
+                count($paths) . ' house ' . plural(count($paths), 'photo'));
         }
 
         flash_set('Boarding house listing updated successfully.', 'success');

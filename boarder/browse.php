@@ -212,7 +212,7 @@ render_search_bar([
           <li>
             <a href="<?= h(base_url($s['href'])) ?>">
               <span><?= h($s['label']) ?><?php if ($s['note'] !== ''): ?>, <em><?= h($s['note']) ?></em><?php endif; ?></span>
-              <span class="empty-count"><?= (int) $s['count'] ?> <?= $s['count'] === 1 ? 'boarding house' : 'boarding houses' ?></span>
+              <span class="empty-count"><?= (int) $s['count'] ?> <?= plural($s['count'], 'boarding house') ?></span>
             </a>
           </li>
         <?php endforeach; ?>

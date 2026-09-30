@@ -70,6 +70,15 @@ function peso_round($amount)
     return '₱' . number_format($value, $decimals);
 }
 
+/**
+ * The word for a count: "room" for 1, "rooms" for anything else. Give the
+ * plural when adding an "s" is not enough: plural($n, 'entry', 'entries').
+ */
+function plural($count, $singular, $plural = null)
+{
+    return (int) $count === 1 ? $singular : ($plural ?? $singular . 's');
+}
+
 /* ---------------------------------------------------------------------------
  * Small display helpers for the public pages
  * ------------------------------------------------------------------------ */
