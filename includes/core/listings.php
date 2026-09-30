@@ -1,7 +1,7 @@
 <?php
 /**
- * Listing queries and rules: what is live, loading one listing, room
- * availability, stay terms, moderation status and saved listings.
+ * Listing queries and rules: what is live, room availability, browse filters,
+ * stay terms, moderation status and saved listings.
  */
 
 /**
@@ -59,120 +59,6 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
     }
     return '<span class="' . h($class) . ' ' . h($class) . '--empty" aria-hidden="true">'
         . '<i class="fas fa-camera"></i></span>';
-}
-
-/* ---------------------------------------------------------------------------
- * Loading one listing
- *
- * Shared by the public listing page and the administrator's review page.
- * A listing's rooms come from listing_rooms() in rooms.php.
- * ------------------------------------------------------------------------ */
-
-/** True when the signed-in user is the landlord who owns $listing. */
-function viewer_owns_listing(array $listing)
-{
-    return is_logged_in() && current_role() === 'landlord'
-        && (int) $listing['landlord_id'] === (int) $_SESSION['user_id'];
-}
-
-/**
- * The listing a visitor may open, with its landlord's details, or false when
- * it does not exist for them. This is the page's version of the
- * LIVE_* rules above:
- *  - Not yet approved (pending or rejected): only its landlord and
- *    administrators can preview it.
- *  - Its landlord is deactivated or removed: off the site for everyone
- *    except that landlord and administrators.
- *  - Archived by an administrator: administrators only, even for its landlord.
- */
-function find_listing_for_viewer($listingId)
-{
-    global $pdo;
-    $stmt = $pdo->prepare(
-        "SELECT bh.*,
-                u.first_name AS landlord_first_name,
-                u.last_name AS landlord_last_name,
-                CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
-                u.phone_number AS landlord_phone,
-                u.email AS landlord_email,
-                u.is_active AS landlord_active,
-                u.deleted_at AS landlord_deleted_at,
-                u.avatar_path AS landlord_avatar
-           FROM boarding_houses bh
-           JOIN users u ON u.user_id = bh.landlord_id
-          WHERE bh.boarding_house_id = ?"
-    );
-    $stmt->execute([(int) $listingId]);
-    $listing = $stmt->fetch();
-    if (!$listing) {
-        return false;
-    }
-
-    $isOwner = viewer_owns_listing($listing);
-    $isAdmin = is_admin();
-    $landlordLive = $listing['landlord_deleted_at'] === null && (int) $listing['landlord_active'] === 1;
-
-    if ($listing['moderation_status'] !== 'approved' && !$isOwner && !$isAdmin) {
-        return false;
-    }
-    if (!$landlordLive && !$isOwner && !$isAdmin) {
-        return false;
-    }
-    if ($listing['deleted_at'] !== null && !$isAdmin) {
-        return false;
-    }
-    return $listing;
-}
-
-/**
- * A listing's photos: the house's own first (cover first), then each room's.
- * Each row also carries room_name, empty for a house photo.
- */
-function listing_photos($listingId)
-{
-    global $pdo;
-    $stmt = $pdo->prepare(
-        'SELECT i.*, r.name AS room_name FROM images i
-           LEFT JOIN rooms r ON r.room_id = i.room_id
-          WHERE i.boarding_house_id = ?
-          ORDER BY i.room_id IS NULL DESC, i.room_id, i.is_primary DESC, i.image_id ASC'
-    );
-    $stmt->execute([(int) $listingId]);
-    return $stmt->fetchAll();
-}
-
-/**
- * The names of the amenities a listing offers. By default in the order the
- * amenities were added to the site (the order boarders see); $alphabetical
- * sorts A to Z instead (the order administrators see).
- */
-function listing_amenity_names($listingId, $alphabetical = false)
-{
-    global $pdo;
-    $stmt = $pdo->prepare(
-        'SELECT a.amenity_name
-           FROM boarding_house_amenities bha
-           JOIN amenities a ON a.amenity_id = bha.amenity_id
-          WHERE bha.boarding_house_id = ? AND bha.is_available = 1
-          ORDER BY ' . ($alphabetical ? 'a.amenity_name' : 'a.amenity_id')
-    );
-    $stmt->execute([(int) $listingId]);
-    return $stmt->fetchAll(PDO::FETCH_COLUMN);
-}
-
-/** A listing's utilities, A to Z, each with how it is billed. */
-function listing_utilities($listingId)
-{
-    global $pdo;
-    $stmt = $pdo->prepare(
-        'SELECT ut.utility_name, bhu.billing_policy
-           FROM boarding_house_utilities bhu
-           JOIN utilities ut ON ut.utility_id = bhu.utility_id
-          WHERE bhu.boarding_house_id = ?
-          ORDER BY ut.utility_name'
-    );
-    $stmt->execute([(int) $listingId]);
-    return $stmt->fetchAll();
 }
 
 /* ---------------------------------------------------------------------------
@@ -286,6 +172,116 @@ function listing_availability(array $listing)
     }
     return $base + ['key' => 'closed', 'label' => 'Not available', 'pill' => 'pill--rejected',
         'summary' => 'Not taking tenants right now'];
+}
+
+/* ---------------------------------------------------------------------------
+ * Browse filters
+ *
+ * Browse, its "try instead" suggestions and the heart forms on its cards all
+ * rebuild the filters from known keys here, so nothing from the request is
+ * echoed into a URL unchecked.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * The amenities a boarder can filter by, as id => ['name', 'extra'].
+ *
+ * The administrator's amenities come first, in the order they were made,
+ * because every landlord picks from them. After them come the amenities
+ * landlords added themselves ('extra' => true), but only those on a listing
+ * boarders can see, since any other would find nothing. The same name added by
+ * two landlords is one choice, keyed by its lowest id: the filter matches by
+ * name (browse_amenity_where()), so ticking it finds both listings. The column
+ * collation ignores case, so "rooftop" and "Rooftop" are one choice too.
+ */
+
+function filter_amenity_options()
+{
+    global $pdo;
+    static $options = null;
+    if ($options !== null) {
+        return $options;
+    }
+
+    $options = [];
+    try {
+        $stmt = $pdo->query(
+            'SELECT MIN(a.amenity_id) AS id, a.amenity_name AS name, MAX(a.landlord_id IS NULL) AS standard
+               FROM amenities a
+              WHERE a.landlord_id IS NULL
+                 OR EXISTS (SELECT 1 FROM boarding_house_amenities fa
+                              JOIN boarding_houses bh ON bh.boarding_house_id = fa.boarding_house_id
+                              ' . LIVE_LANDLORD_JOIN . '
+                             WHERE fa.amenity_id = a.amenity_id AND fa.is_available = 1 AND ' . LIVE_LISTING_WHERE . ')
+              GROUP BY a.amenity_name
+              ORDER BY standard DESC, (CASE WHEN standard = 1 THEN id END), name'
+        );
+        foreach ($stmt as $row) {
+            $options[(int) $row['id']] = ['name' => $row['name'], 'extra' => !$row['standard']];
+        }
+    } catch (PDOException $e) {
+        error_log('RoomEase: amenity filter options failed - ' . $e->getMessage());
+    }
+    return $options;
+}
+
+/**
+ * The browse filters that actually apply, from $_GET or a heart form's POST.
+ * Returns only the keys that are set: q, room_type, max_rent, vacant,
+ * amenities (a sorted list of ids from filter_amenity_options()), page.
+ */
+
+function browse_filters(array $src, array $roomTypes)
+{
+    $filters = [];
+
+    // A list sent as q[] is no search, rather than a PHP warning.
+    $q = is_string($src['q'] ?? null) ? trim($src['q']) : '';
+    if ($q !== '') {
+        $filters['q'] = mb_substr($q, 0, 100);
+    }
+
+    // An unrecognised room type is "no filter", not "no results".
+    $type = (int) ($src['room_type'] ?? 0);
+    if ($type > 0 && isset($roomTypes[$type])) {
+        $filters['room_type'] = $type;
+    }
+
+    // A budget of nothing, or less, is no budget at all.
+    $rent = $src['max_rent'] ?? '';
+    if (is_numeric($rent) && (float) $rent > 0) {
+        $filters['max_rent'] = (int) ceil((float) $rent);
+    }
+
+    // Only a listing with a room open and not yet full.
+    if (($src['vacant'] ?? '') === '1') {
+        $filters['vacant'] = 1;
+    }
+
+    // An id that is not a choice any more is dropped, not an error: a saved
+    // link can outlive the amenity it named.
+    $ticked = array_filter((array) ($src['amenities'] ?? []), function ($id) {
+        return is_scalar($id) && ctype_digit((string) $id);
+    });
+    $ticked = array_intersect(array_unique(array_map('intval', $ticked)), array_keys(filter_amenity_options()));
+    if ($ticked) {
+        sort($ticked);
+        $filters['amenities'] = array_slice($ticked, 0, 30);
+    }
+
+    $page = (int) ($src['page'] ?? 1);
+    if ($page > 1) {
+        $filters['page'] = min($page, 500);
+    }
+
+    return $filters;
+}
+
+/** Browse at the given filters, as a path for base_url() or redirect(). */
+
+function browse_path(array $filters, $fragment = '')
+{
+    return 'boarder/browse.php' . ($filters ? '?' . http_build_query($filters) : '')
+        . ($fragment !== '' ? '#' . $fragment : '');
 }
 
 /**

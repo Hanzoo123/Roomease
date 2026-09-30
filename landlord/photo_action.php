@@ -6,7 +6,7 @@
  * room's photos. Kept out of the edit pages so the controls do not have to
  * sit inside those pages' main forms.
  */
-require __DIR__ . '/../../includes/init.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -44,8 +44,8 @@ $scopeParam = $roomId === null ? $boardingHouseId : $roomId;
 
 if ($action === 'delete') {
     // Only ever unlink inside the uploads folder, whatever the stored path says.
-    $uploadRoot = realpath(__DIR__ . '/../../assets/uploads');
-    $target     = realpath(__DIR__ . '/../../' . $image['image_path']);
+    $uploadRoot = realpath(__DIR__ . '/../assets/uploads');
+    $target     = realpath(__DIR__ . '/../' . $image['image_path']);
     if ($uploadRoot && $target && strpos($target, $uploadRoot) === 0 && is_file($target)) {
         @unlink($target);
     }

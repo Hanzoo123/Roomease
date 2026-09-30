@@ -100,36 +100,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // together, so a failure part-way never leaves a listing with no rooms.
         $pdo->beginTransaction();
         try {
-            $columns = array_merge(
-                ['landlord_id', 'name', 'address', 'reservation_fee',
-                 'availability_status', 'description', 'contact_number', 'house_rules'],
-                STAY_TERM_COLUMNS,
-                ['created_by', 'updated_by']
-            );
-            $stmt = $pdo->prepare(
-                'INSERT INTO boarding_houses (' . implode(', ', $columns) . ')
-                 VALUES (' . implode(', ', array_fill(0, count($columns), '?')) . ')'
-            );
-            $stmt->execute(array_merge([
-                $landlordId,
-                $listing['name'],
-                $listing['address'],
-                $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
-                $listing['availability_status'],
-                $listing['description'],
-                $listing['contact_number'],
-                $listing['house_rules'],
-            ], array_values($stayTerms), [$landlordId, $landlordId]));
-            $newId = (int)$pdo->lastInsertId();
+        $columns = array_merge(
+            ['landlord_id', 'name', 'address', 'reservation_fee',
+             'availability_status', 'description', 'contact_number', 'house_rules'],
+            STAY_TERM_COLUMNS,
+            ['created_by', 'updated_by']
+        );
+        $stmt = $pdo->prepare(
+            'INSERT INTO boarding_houses (' . implode(', ', $columns) . ')
+             VALUES (' . implode(', ', array_fill(0, count($columns), '?')) . ')'
+        );
+        $stmt->execute(array_merge([
+            $landlordId,
+            $listing['name'],
+            $listing['address'],
+            $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
+            $listing['availability_status'],
+            $listing['description'],
+            $listing['contact_number'],
+            $listing['house_rules'],
+        ], array_values($stayTerms), [$landlordId, $landlordId]));
+        $newId = (int)$pdo->lastInsertId();
 
-            save_listing_lookups($newId, $landlordId, $lookups, false);
+        save_listing_lookups($newId, $landlordId, $lookups, false);
 
-            $roomIds = [];
-            foreach ($formRooms as $idx => $room) {
-                $roomIds[$idx] = insert_room($newId, $room);
-            }
+        $roomIds = [];
+        foreach ($formRooms as $idx => $room) {
+            $roomIds[$idx] = insert_room($newId, $room);
+        }
 
-            $pdo->commit();
+        $pdo->commit();
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         audit_log('listing_create', $newId, $listing['name'],
-            'With ' . count($roomIds) . ' ' . plural(count($roomIds), 'room'));
+            'With ' . count($roomIds) . ' ' . (count($roomIds) === 1 ? 'room' : 'rooms'));
 
         // Photos are moved into place only once the listing and its rooms are
         // saved. A refused photo does not undo the listing: the landlord is sent
@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $roomCount = count($roomIds);
-        $saved = 'Listing saved with ' . $roomCount . ' ' . plural($roomCount, 'room') . '.';
+        $saved = 'Listing saved with ' . $roomCount . ' ' . ($roomCount === 1 ? 'room' : 'rooms') . '.';
         if ($photoErrors) {
             flash_set($saved . ' Some photos could not be uploaded. ' . implode(' ', $photoErrors), 'error');
             redirect('landlord/edit_listing.php?id=' . $newId . '#rooms');

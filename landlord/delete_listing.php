@@ -9,7 +9,7 @@
  * Manage Listings, Removed, marked as deleted by the landlord, and can
  * restore it if the landlord deleted it by mistake.
  */
-require __DIR__ . '/../../includes/init.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

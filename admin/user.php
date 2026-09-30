@@ -112,7 +112,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   // than buried in the card below: they are what this page is for.
   $csrf = csrf_field();
   $act = function ($action, $class, $icon, $label, $confirm = null) use ($userId, $csrf) {
-      return '<form method="post" action="' . base_url('admin/actions/user_action.php') . '"'
+      return '<form method="post" action="' . base_url('admin/user_action.php') . '"'
           . ($confirm !== null ? ' class="js-confirm" data-confirm="' . h($confirm) . '"' : '') . '>'
           . $csrf
           . '<input type="hidden" name="user_id" value="' . (int) $userId . '">'
@@ -234,9 +234,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 $isLandlord
                   ? 'What this landlord has on RoomEase, and where each listing stands.'
                   : 'The boarding houses this boarder has saved for later.',
-                '<span class="re-count-pill">' . ($isLandlord
-                  ? count($listings) . ' ' . plural(count($listings), 'listing')
-                  : count($saved) . ' saved') . '</span>'
+                '<span class="re-count-pill">' . ($isLandlord ? count($listings) : count($saved)) . ' '
+                  . ($isLandlord
+                      ? (count($listings) === 1 ? 'listing' : 'listings')
+                      : (count($saved) === 1 ? 'saved' : 'saved')) . '</span>'
               ); ?>
               <div class="card-body">
                 <?php if ($isLandlord): ?>

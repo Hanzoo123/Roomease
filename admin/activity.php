@@ -99,7 +99,7 @@ foreach (array_keys($tabs) as $key) {
 $pageUrl = function (array $overrides = []) use ($group, $kind, $personFilter, $q) {
   $query = array_filter(array_merge(['tab' => $group, 'kind' => $kind, 'who' => $personFilter ?: '', 'q' => $q], $overrides),
     function ($value) { return $value !== '' && $value !== null; });
-  return base_url('admin/audit_log.php' . ($query ? '?' . http_build_query($query) : ''));
+  return base_url('admin/activity.php' . ($query ? '?' . http_build_query($query) : ''));
 };
 
 $filtered = $kind !== '' || $personFilter || $q !== '';
@@ -117,7 +117,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <div class="content-wrapper">
   <?php panel_page_header('Audit Log', [
-    'subtitle' => $subtitles[$group] . ' ' . number_format($total) . ' ' . plural($total, 'entry', 'entries')
+    'subtitle' => $subtitles[$group] . ' ' . number_format($total) . ' ' . ($total === 1 ? 'entry' : 'entries')
       . ($filtered ? ' match.' : '.'),
   ]); ?>
 
@@ -127,7 +127,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
            are plain links rather than the header's in-page tabs. */ ?>
       <nav class="re-tabs audit-tabs no-print" aria-label="Audit log">
         <?php foreach ($tabs as $key => $tab): ?>
-          <a class="re-tab <?= $key === $group ? 'is-active' : '' ?>" href="<?= base_url('admin/audit_log.php?tab=' . $key) ?>"
+          <a class="re-tab <?= $key === $group ? 'is-active' : '' ?>" href="<?= base_url('admin/activity.php?tab=' . $key) ?>"
             <?= $key === $group ? 'aria-current="page"' : '' ?>>
             <?= h($tab['label']) ?>
             <span class="re-tab-count"><?= number_format($tabCounts[$key]) ?></span>
@@ -171,7 +171,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               placeholder="<?= h($tabs[$group]['search']) ?>">
             <button type="submit" class="btn btn-sm btn-primary">Filter</button>
             <?php if ($filtered): ?>
-              <a href="<?= base_url('admin/audit_log.php?tab=' . $group) ?>" class="btn btn-sm btn-link">Clear</a>
+              <a href="<?= base_url('admin/activity.php?tab=' . $group) ?>" class="btn btn-sm btn-link">Clear</a>
             <?php endif; ?>
           </form>
         </div>

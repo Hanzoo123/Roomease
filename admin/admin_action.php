@@ -12,7 +12,7 @@
  * removed or demoted administrator loses access on their next click, because
  * enforce_session_policy() re-reads the account on every request.
  */
-require __DIR__ . '/../../includes/init.php';
+require __DIR__ . '/../includes/init.php';
 
 require_super_admin();
 

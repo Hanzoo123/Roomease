@@ -164,17 +164,14 @@ roomease/
 ├── index.php                  Home page: search, newest listings
 ├── 404.php                    Shown for an address that matches nothing
 ├── legal/                     The standing pages every visitor can read:
-│                              about, contact, terms, privacy. A new folder
-│                              of pages must be named in app_root_path()
-│                              (includes/core/security.php), which finds
-│                              the app root by folder
+│                              about, contact, terms, privacy. A page added
+│                              here must also be named in base_url() and
+│                              app_cookie_path(), which find the app root
+│                              by folder
 ├── admin/                     Admin panel: dashboard, manage users, manage listings
-│   └── actions/                 Form handlers (POST only): users, administrators, listings
 ├── auth/                      Register, login, logout, profile, password reset by code
-├── landlord/                  Dashboard, add/edit listing, rooms
-│   └── actions/                 Form handlers: delete listing, photos, rooms
+├── landlord/                  Dashboard, add/edit/delete listing, photo actions
 ├── boarder/                   Browse/search listings, listing detail, saved listings
-│   └── actions/                 Form handler: save or unsave a listing
 ├── config/db.php              Database connection (PDO)
 ├── includes/                  Shared code; never served over HTTP
 │   ├── init.php                 Startup: every page requires this one file
@@ -186,8 +183,7 @@ roomease/
 │   │   ├── uploads.php            Listing photo uploads
 │   │   ├── avatars.php            Profile photos
 │   │   ├── lookups.php            Amenities, utilities, room types
-│   │   ├── listings.php           Loading a listing, availability, stay terms, moderation
-│   │   ├── browse.php             Browse filters and the search queries
+│   │   ├── listings.php           Listing queries, availability, browse filters, stay terms
 │   │   ├── rooms.php              Rooms inside a listing
 │   │   ├── audit.php              Audit log and landlord decision notices
 │   │   ├── password_reset.php     Reset by emailed code
@@ -225,9 +221,8 @@ configured per role in `includes/layouts/panel.php`. There is exactly one copy o
 
 Every page starts with the same one line, which connects the database, loads
 the helpers and starts the session, in the right order. Then copy the skeleton
-that matches the kind of page. A page in the project root uses
-`/includes/...` instead of `/../includes/...`, and a file in an `actions/`
-folder uses `/../../includes/...`.
+that matches the kind of page (a page in the project root uses
+`/includes/...` instead of `/../includes/...`).
 
 **Public page** (guests and boarders):
 
@@ -259,13 +254,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
 ```
 
-**Form handler** (a file that only receives a POST). Put it in the role's
-`actions/` folder, for example `landlord/actions/`. Every form that posts to
+**Form handler** (a page that only receives a POST). Every form that posts to
 it needs `<?= csrf_field() ?>` inside the `<form>`:
 
 ```php
 <?php
-require __DIR__ . '/../../includes/init.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -275,20 +269,7 @@ verify_csrf();
 ```
 
 New helper functions go in the `includes/core/` file that matches their topic
-(the list is at the top of `includes/init.php`), not in the page. Pages call
-those functions for their data, so SQL that more than one page needs belongs in
-a function, not copied into each page. Code is indented with 4 spaces
-(`.editorconfig`).
-
-### Names used in the code
-
-| Word | Means |
-|---|---|
-| listing, boarding house | One place for rent. The table is `boarding_houses`. Older code calls its id `$houseId` or `$boardingHouseId`; in new code use `$listingId`. |
-| room | A rentable room inside a listing (`rooms`). Rent, room type and slots belong to the room. |
-| live | On the public site: approved, switched on, not removed, its landlord active, and at least one room (`LIVE_LISTING_WHERE`). |
-| administrator, admin | The role stored in the database is `administrator`; the helpers say admin (`is_admin()`, `require_login('admin')`). |
-| landlord, boarder | The other two roles. A boarder is someone looking for a room. |
+(the list is at the top of `includes/init.php`), not in the page.
 
 ## What's implemented (from the project scope)
 

@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $added = attach_room_photos($houseId, $roomId, 'photos');
             if ($added > 0) {
                 audit_log('photos_add', $houseId, $houseName,
-                    $added . ' ' . plural($added, 'photo') . ' of ' . $form['name']);
+                    $added . ' ' . ($added === 1 ? 'photo' : 'photos') . ' of ' . $form['name']);
             }
         } catch (RuntimeException $e) {
             flash_set('Room saved, but the photos could not be uploaded: ' . $e->getMessage(), 'error');
@@ -294,7 +294,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       </div>
                       <div class="btn-group btn-group-sm d-flex mt-2" role="group">
                         <?php if (!$img['is_primary']): ?>
-                          <form method="post" action="<?= base_url('landlord/actions/photo_action.php') ?>" class="w-100">
+                          <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100">
                             <?= csrf_field() ?>
                             <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">
                             <input type="hidden" name="action" value="set_primary">
@@ -303,7 +303,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                             </button>
                           </form>
                         <?php endif; ?>
-                        <form method="post" action="<?= base_url('landlord/actions/photo_action.php') ?>" class="w-100"
+                        <form method="post" action="<?= base_url('landlord/photo_action.php') ?>" class="w-100"
                           class="js-confirm" data-confirm="Remove this photo? This cannot be undone.">
                           <?= csrf_field() ?>
                           <input type="hidden" name="image_id" value="<?= (int) $img['image_id'] ?>">

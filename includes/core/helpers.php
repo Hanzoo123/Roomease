@@ -22,7 +22,21 @@ function redirect($path)
 
 function base_url($path = '')
 {
-    return app_root_path() . '/' . ltrim($path, '/');
+    static $base = null;
+    if ($base === null) {
+        // Worked out from SCRIPT_NAME, the page being served, rather than from
+        // where this file sits: the app root is the folder above auth/,
+        // landlord/, boarder/, admin/ or legal/, or the page's own folder
+        // otherwise. A new folder of pages has to be named here and in
+        // app_cookie_path(), which scopes the session cookie the same way.
+        $script = $_SERVER['SCRIPT_NAME'] ?? '';
+        $appRoot = preg_replace('#/(auth|landlord|boarder|admin|legal)/[^/]*$#', '', $script);
+        if ($appRoot === $script) {
+            $appRoot = rtrim(dirname($script), '/');
+        }
+        $base = $appRoot;
+    }
+    return $base . '/' . ltrim($path, '/');
 }
 
 /** Flash message helpers (one-time messages shown after redirect). */
@@ -68,15 +82,6 @@ function peso_round($amount)
     $value = (float) $amount;
     $decimals = (abs($value - round($value)) < 0.005) ? 0 : 2;
     return '₱' . number_format($value, $decimals);
-}
-
-/**
- * The word for a count: "room" for 1, "rooms" for anything else. Give the
- * plural when adding an "s" is not enough: plural($n, 'entry', 'entries').
- */
-function plural($count, $singular, $plural = null)
-{
-    return (int) $count === 1 ? $singular : ($plural ?? $singular . 's');
 }
 
 /* ---------------------------------------------------------------------------

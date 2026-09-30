@@ -4,7 +4,47 @@ require_once __DIR__ . '/../includes/components/icons.php';
 
 $listingId = (int) ($_GET['id'] ?? 0);
 
-$listing = find_listing_for_viewer($listingId);
+$stmt = $pdo->prepare(
+  "SELECT bh.*,
+            u.first_name AS landlord_first_name,
+            u.last_name AS landlord_last_name,
+            CONCAT(u.first_name, ' ', u.last_name) AS landlord_name,
+            u.phone_number AS landlord_phone,
+            u.email AS landlord_email,
+            u.is_active AS landlord_active,
+            u.deleted_at AS landlord_deleted_at,
+            u.avatar_path AS landlord_avatar
+     FROM boarding_houses bh
+     JOIN users u ON u.user_id = bh.landlord_id
+     WHERE bh.boarding_house_id = ?"
+);
+$stmt->execute([$listingId]);
+$listing = $stmt->fetch();
+
+// A listing that has not been approved yet is visible only to the landlord who
+// owns it and to administrators, so they can preview it. To everyone else it
+// simply does not exist.
+$isOwner = $listing && is_logged_in() && current_role() === 'landlord'
+    && (int) $listing['landlord_id'] === (int) $_SESSION['user_id'];
+$canPreview = $isOwner || is_admin();
+
+if ($listing && $listing['moderation_status'] !== 'approved' && !$canPreview) {
+    $listing = false;
+}
+
+// A listing whose landlord has been deactivated or removed is off the site for
+// everyone except an administrator, who still needs to be able to review it.
+$landlordLive = $listing && $listing['landlord_deleted_at'] === null && (int) $listing['landlord_active'] === 1;
+if ($listing && !$landlordLive && !$isOwner && !is_admin()) {
+    $listing = false;
+}
+
+// A listing an administrator removed is archived. Only administrators can still
+// open it, to review it or restore it; for everyone else, its landlord included,
+// it is gone.
+if ($listing && $listing['deleted_at'] !== null && !is_admin()) {
+    $listing = false;
+}
 
 if (!$listing) {
   $pageTitle = 'Listing not found';
@@ -19,14 +59,17 @@ if (!$listing) {
   exit;
 }
 
-$canPreview = viewer_owns_listing($listing) || is_admin();
-
 // House photos first (cover, then the rest), then each room's photos. A row
 // whose file is gone is dropped here, so it is never drawn as a broken image
 // or opened in the viewer as a black screen.
+$photosStmt = $pdo->prepare(
+  'SELECT * FROM images WHERE boarding_house_id = ?
+    ORDER BY room_id IS NULL DESC, room_id, is_primary DESC, image_id ASC'
+);
+$photosStmt->execute([$listingId]);
 $housePhotos = [];
 $roomPhotos = [];
-foreach (listing_photos($listingId) as $p) {
+foreach ($photosStmt->fetchAll() as $p) {
   if (!photo_on_disk($p['image_path'])) {
     continue;
   }
@@ -40,7 +83,15 @@ foreach (listing_photos($listingId) as $p) {
 $photos = $housePhotos ?: array_merge([], ...array_values($roomPhotos));
 
 // Rooms: available first, then full, then closed; in the order added within each.
-$rooms = listing_rooms($listingId);
+$roomStmt = $pdo->prepare(
+  'SELECT r.*, rt.room_type_name
+     FROM rooms r
+     JOIN room_types rt ON rt.room_type_id = r.room_type_id
+    WHERE r.boarding_house_id = ?
+    ORDER BY r.room_id ASC'
+);
+$roomStmt->execute([$listingId]);
+$rooms = $roomStmt->fetchAll();
 usort($rooms, function ($a, $b) {
   return [room_state_rank($a), (int) $a['room_id']] <=> [room_state_rank($b), (int) $b['room_id']];
 });
@@ -55,9 +106,24 @@ $avail = listing_availability([
   'rent_from_all' => $rooms ? min(array_column($rooms, 'monthly_rent')) : null,
 ]);
 
-$amenities = listing_amenity_names($listingId);
+$amenStmt = $pdo->prepare(
+  'SELECT a.amenity_name
+     FROM boarding_house_amenities bha
+     JOIN amenities a ON bha.amenity_id = a.amenity_id
+     WHERE bha.boarding_house_id = ? AND bha.is_available = 1'
+);
+$amenStmt->execute([$listingId]);
+$amenities = $amenStmt->fetchAll(PDO::FETCH_COLUMN);
 
-$utilities = listing_utilities($listingId);
+$utilStmt = $pdo->prepare(
+  'SELECT ut.utility_name, bhu.billing_policy
+     FROM boarding_house_utilities bhu
+     JOIN utilities ut ON ut.utility_id = bhu.utility_id
+     WHERE bhu.boarding_house_id = ?
+     ORDER BY ut.utility_name'
+);
+$utilStmt->execute([$listingId]);
+$utilities = $utilStmt->fetchAll();
 
 $isSaved = can_save_listings()
   && isset(saved_listing_ids($_SESSION['user_id'])[$listingId]);
@@ -92,7 +158,7 @@ if (($listing['security_deposit'] ?? null) !== null) {
 }
 if (!empty($listing['minimum_stay_months'])) {
   $months = (int) $listing['minimum_stay_months'];
-  $terms[] = ['calendar', 'Minimum stay', $months . ' ' . plural($months, 'month')];
+  $terms[] = ['calendar', 'Minimum stay', $months . ' ' . ($months === 1 ? 'month' : 'months')];
 }
 $paymentLabel = payment_methods_label($listing['payment_methods'] ?? '');
 if ($paymentLabel !== '') {
@@ -287,7 +353,7 @@ require __DIR__ . '/../includes/layouts/header.php';
                 <li class="room-row room-row--<?= h($state['key']) ?>" data-room-type-name="<?= h($room['room_type_name']) ?>">
                   <div class="room-row-main">
                     <h3><?= h($room['name']) ?></h3>
-                    <p class="room-row-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= plural($capacity, 'person', 'people') ?></p>
+                    <p class="room-row-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></p>
                     <?php if (!empty($room['description'])): ?>
                       <p class="room-row-desc"><?= h($room['description']) ?></p>
                     <?php endif; ?>
@@ -323,7 +389,7 @@ require __DIR__ . '/../includes/layouts/header.php';
 
                 <div class="room-tile-body">
                   <h3><?= h($room['name']) ?></h3>
-                  <p class="room-tile-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= plural($capacity, 'person', 'people') ?></p>
+                  <p class="room-tile-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></p>
                   <p class="room-tile-rent"><?= peso_round($room['monthly_rent']) ?> <span>/ month</span></p>
                   <?php if (!empty($room['description'])): ?>
                     <p class="room-tile-desc"><?= h($room['description']) ?></p>
@@ -453,7 +519,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php endif; ?>
 
       <?php if (can_save_listings()): ?>
-        <form method="post" action="<?= base_url('boarder/actions/favorite_action.php') ?>" class="save-form">
+        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
           <?= csrf_field() ?>
           <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
           <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">
@@ -530,7 +596,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php endif; ?>
 
       <?php if (can_save_listings()): ?>
-        <form method="post" action="<?= base_url('boarder/actions/favorite_action.php') ?>" class="save-form">
+        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
           <?= csrf_field() ?>
           <input type="hidden" name="boarding_house_id" value="<?= (int) $listingId ?>">
           <input type="hidden" name="action" value="<?= $isSaved ? 'unsave' : 'save' ?>">

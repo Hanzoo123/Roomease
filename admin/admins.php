@@ -4,7 +4,7 @@
  *
  * A super admin can add an administrator (admin/add_admin.php) and, on anyone
  * but themselves, deactivate or reactivate them, remove or restore them, and
- * make them a super admin or take that away (admin/actions/admin_action.php). Every
+ * make them a super admin or take that away (admin/admin_action.php). Every
  * other administrator page is the same for every administrator; this one and
  * Appearance are what a super admin has on top.
  */
@@ -38,7 +38,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 /** One small form that posts an action for an administrator. */
 $actionButton = function ($adminId, $action, $class, $icon, $title, $confirm = '') {
-    return '<form method="post" action="' . h(base_url('admin/actions/admin_action.php')) . '" class="d-inline'
+    return '<form method="post" action="' . h(base_url('admin/admin_action.php')) . '" class="d-inline'
         . ($confirm !== '' ? ' js-confirm" data-confirm="' . h($confirm) : '') . '">'
         . csrf_field()
         . '<input type="hidden" name="user_id" value="' . (int) $adminId . '">'

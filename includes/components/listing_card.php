@@ -47,7 +47,7 @@ function render_listing_card(array $l, ?array $save = null)
     // listing's own summary, in the same words as its page.
     $slots = (int) ($l['slots_left'] ?? 0);
     $meta = $avail['key'] === 'available' && $slots > 0
-        ? $slots . ' ' . plural($slots, 'slot') . ' left'
+        ? $slots . ' ' . ($slots === 1 ? 'slot' : 'slots') . ' left'
         : $avail['summary'];
 
     $spoken = [];
@@ -72,7 +72,7 @@ function render_listing_card(array $l, ?array $save = null)
         <span class="pill pill--on-photo <?= h($avail['pill']) ?>" aria-hidden="true"><?= h($avail['label']) ?></span>
 
         <?php if ($save): ?>
-          <form method="post" action="<?= base_url('boarder/actions/favorite_action.php') ?>" class="save-form"
+          <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form"
             <?= !empty($save['drop']) ? 'data-drop-on-unsave="1"' : '' ?>>
             <?= csrf_field() ?>
             <input type="hidden" name="boarding_house_id" value="<?= $id ?>">
