@@ -1,7 +1,7 @@
 <?php
 /**
  * Who is signed in, and gating pages by role.
- * Also the return-to-page-after-login helpers.
+ * Also the return-to-page-after-login helpers and administrator usernames.
  */
 
 /** True if a user is currently logged in. */
@@ -70,6 +70,15 @@ function require_login($roles = null)
             redirect('index.php');
         }
     }
+
+    // A new administrator adds their name and email before anything else.
+    // Their own profile pages stay open, Change Password included, so the
+    // temporary password can be replaced too.
+    $profilePages = ['profile.php', 'edit_profile.php', 'change_password.php'];
+    if (profile_incomplete() && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), $profilePages, true)) {
+        flash_set('Welcome! Please add your name and email to finish setting up your account.', 'info');
+        redirect('auth/edit_profile.php');
+    }
 }
 
 /** The administrators' sign-in page, relative to the app root. */
@@ -105,6 +114,69 @@ function require_super_admin()
         flash_set('Only a super admin can open that page.', 'error');
         redirect('admin/dashboard.php');
     }
+}
+
+/* ---------------------------------------------------------------------------
+ * Administrator usernames
+ *
+ * An administrator can sign in with a username as well as an email. A super
+ * admin creates the account with only a username, a temporary password and a
+ * role (admin/add_user.php); the administrator then adds their own name and
+ * email, which they must do before using the panel (require_login()). Until
+ * then the username stands in wherever a name would be shown. Landlords and
+ * boarders have no username.
+ * ------------------------------------------------------------------------ */
+
+/** The shape of a username: 3 to 30 letters, digits, dots and underscores. */
+const USERNAME_PATTERN = '/^[A-Za-z0-9._]{3,30}$/';
+
+/**
+ * What is wrong with a username for a new administrator, or null. There is
+ * no @, so a username can never be mistaken for an email. The column ignores
+ * capitals, so "Juan" is taken when "juan" is.
+ */
+function username_problem($username)
+{
+    global $pdo;
+    $username = (string) $username;
+    if ($username === '') {
+        return 'Username is required.';
+    }
+    if (!preg_match(USERNAME_PATTERN, $username)) {
+        return 'Username must be 3 to 30 characters: letters, numbers, dots (.) and underscores (_), with no spaces.';
+    }
+    $taken = $pdo->prepare('SELECT 1 FROM users WHERE username = ?');
+    $taken->execute([$username]);
+    return $taken->fetchColumn() ? 'That username is already taken.' : null;
+}
+
+/** The name to show for an account: its full name, else its username, else its email. */
+function account_display_name(array $user)
+{
+    $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+    if ($name !== '') {
+        return $name;
+    }
+    return (string) (($user['username'] ?? '') !== '' ? $user['username'] : ($user['email'] ?? ''));
+}
+
+/**
+ * account_display_name() in SQL, for a users table joined as $alias: the full
+ * name, else the username, else the email.
+ */
+function account_name_sql($alias)
+{
+    return "COALESCE(NULLIF(TRIM(CONCAT({$alias}.first_name, ' ', {$alias}.last_name)), ''), {$alias}.username, {$alias}.email)";
+}
+
+/**
+ * True for an administrator who has not yet added their name and email. They
+ * are kept on Edit Profile (and Change Password, to replace the temporary
+ * one) until they do. Set per request by enforce_session_policy().
+ */
+function profile_incomplete()
+{
+    return !empty($_SESSION['profile_incomplete']);
 }
 
 /* ---------------------------------------------------------------------------

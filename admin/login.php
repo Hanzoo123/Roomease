@@ -4,9 +4,12 @@
  *
  * Only administrator accounts can sign in here, and the public login refuses
  * them, so each page only ever lets in the accounts it is for. A landlord or
- * boarder who tries this page gets the same "Invalid email or password" a
- * wrong password gets, so the page does not reveal which emails have which
- * role. No sign-up, Google, or "Remember me" here.
+ * boarder who tries this page gets the same "Invalid username, email or
+ * password" a wrong password gets, so the page does not reveal which emails
+ * have which role. No sign-up, Google, or "Remember me" here.
+ *
+ * An administrator signs in with their username or their email. A new one
+ * may have only a username until they add their email (admin/add_user.php).
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -26,29 +29,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $retryAfter = $loginId !== '' ? throttle_retry_after('login', $loginId) : 0;
 
     if ($loginId === '' || $password === '') {
-        $error = 'Please enter both email and password.';
+        $error = 'Please enter both your username or email and your password.';
     } elseif ($retryAfter > 0) {
         audit_log('signin_failed', null, audit_typed_login($loginId), 'Admin sign-in blocked: too many attempts', []);
         $error = 'Too many failed sign-in attempts. Please try again in ' . format_wait($retryAfter) . '.';
     } else {
         $stmt = $pdo->prepare(
             "SELECT * FROM users
-              WHERE email = ? AND deleted_at IS NULL AND role = 'administrator'
+              WHERE (email = ? OR username = ?) AND deleted_at IS NULL AND role = 'administrator'
               LIMIT 1"
         );
-        $stmt->execute([$loginId]);
+        $stmt->execute([$loginId, $loginId]);
         $user = $stmt->fetch();
+        // How the account is named in the log: its email, or its username
+        // while it has no email yet.
+        $accountLabel = $user ? (string) ($user['email'] ?: $user['username']) : '';
 
         if (!check_login_password($password, $user)) {
             record_failed_attempt('login', $loginId);
             // An address with no account behind it is logged with no actor, so
             // the log shows what was typed without inventing who typed it.
-            audit_log('signin_failed', $user ? $user['user_id'] : null, audit_typed_login($loginId),
+            audit_log('signin_failed', $user ? $user['user_id'] : null, $user ? $accountLabel : audit_typed_login($loginId),
                 'Admin sign-in: ' . ($user ? 'wrong password' : 'no such account'), $user ?: []);
-            $error = 'Invalid email or password.';
+            $error = 'Invalid username, email or password.';
         } elseif (empty($user['is_active'])) {
             record_failed_attempt('login', $loginId);
-            audit_log('signin_failed', $user['user_id'], $user['email'], 'Admin sign-in: account deactivated', $user);
+            audit_log('signin_failed', $user['user_id'], $accountLabel, 'Admin sign-in: account deactivated', $user);
             $error = 'Your account is deactivated. Please contact another administrator.';
         } else {
             clear_failed_attempts('login', $loginId);
@@ -56,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // upgrade may just have replaced; see start_user_session().
             $user['password_hash'] = upgrade_password_hash($user, $password);
             start_user_session($user);
-            audit_log('signin', $user['user_id'], $user['email'], 'Password');
-            flash_set('Welcome back, ' . $user['first_name'] . '!', 'success');
+            audit_log('signin', $user['user_id'], $accountLabel, 'Password');
+            flash_set('Welcome back, ' . account_display_name($user) . '!', 'success');
             redirect('admin/dashboard.php');
         }
     }
@@ -110,11 +116,11 @@ if ($flash = flash_get()) {
       <form action="" method="post">
         <?= csrf_field() ?>
         <div class="input-group mb-3">
-          <input type="email" name="login_id" class="form-control" placeholder="Email" aria-label="Email"
-                 value="<?= h($loginId) ?>" autocomplete="username" required autofocus>
+          <input type="text" name="login_id" class="form-control" placeholder="Username or Email" aria-label="Username or Email"
+                 value="<?= h($loginId) ?>" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
           <div class="input-group-append">
             <div class="input-group-text">
-              <span class="fas fa-envelope"></span>
+              <span class="fas fa-user"></span>
             </div>
           </div>
         </div>

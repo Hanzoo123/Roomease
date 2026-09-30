@@ -68,6 +68,7 @@ body,
   --re-marigold-hover: #E39A2A;
   --re-on-marigold: #2A1E08;
   --re-muted-bg: #EEEBE4;
+  --re-muted-bg-deep: #c6c5c1;
 
   /* Figures: accounts, residents, listings. */
   --re-teal: #1B6F87;
@@ -703,9 +704,10 @@ a:hover {
 }
 
 /* ---- Page frame ---- */
+/*Background for Dashboard */
 .content-wrapper,
 .main-footer {
-  background-color: var(--re-paper);
+  background-color: var(--re-panel);
 }
 
 .main-footer {
@@ -959,6 +961,46 @@ html[data-theme="dark"] .main-sidebar .brand-mark {
 }
 
 .main-sidebar .nav-sidebar > .nav-item > .nav-link.active .nav-icon {
+  color: var(--re-forest);
+}
+
+/* A group such as User Management: its heading is a quiet grey row while it
+   is open, never the forest one (only the page you are on is), and its pages
+   sit indented under it, styled like every other item. */
+.main-sidebar .nav-sidebar > .nav-item.menu-open > .nav-link.nav-group,
+.main-sidebar .nav-sidebar > .nav-item.menu-open > .nav-link.nav-group:hover {
+  color: var(--re-sidebar-bright);
+  background: var(--re-sidebar-hover);
+}
+
+.main-sidebar .nav-treeview > .nav-item > .nav-link {
+  padding: .45rem .8rem;
+  font-size: .85rem;
+  color: var(--re-sidebar-text);
+  border-radius: 8px;
+}
+
+.main-sidebar .nav-treeview > .nav-item > .nav-link .nav-icon {
+  font-size: .85rem;
+  color: var(--re-ink-faint);
+}
+
+.main-sidebar .nav-treeview > .nav-item > .nav-link:hover,
+.main-sidebar .nav-treeview > .nav-item > .nav-link:focus {
+  color: var(--re-sidebar-bright);
+  background: var(--re-sidebar-hover);
+}
+
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active,
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active:hover,
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active:focus {
+  font-weight: 600;
+  color: var(--re-forest);
+  background: var(--re-sidebar-active-bg);
+  box-shadow: none;
+}
+
+.main-sidebar .nav-treeview > .nav-item > .nav-link.active .nav-icon {
   color: var(--re-forest);
 }
 
@@ -2318,6 +2360,20 @@ html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav
 }
 
 html[data-theme="dark"] .dark-mode .main-sidebar .nav-sidebar > .nav-item > .nav-link.active .nav-icon {
+  background-color: transparent;
+}
+
+/* The same for a page inside a group such as User Management, which AdminLTE
+   would otherwise paint in its own light grey. */
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active,
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active:hover,
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active:focus,
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active .nav-icon {
+  color: var(--re-sidebar-bright);
+  background-color: var(--re-sidebar-active-bg);
+}
+
+html[data-theme="dark"] .dark-mode .main-sidebar .nav-treeview > .nav-item > .nav-link.active .nav-icon {
   background-color: transparent;
 }
 

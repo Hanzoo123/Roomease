@@ -177,7 +177,7 @@ roomease/
 │   ├── init.php                 Startup: every page requires this one file
 │   ├── core/                    Logic loaded by init.php, no HTML
 │   │   ├── helpers.php            Escaping, redirects, URLs, flash messages, dates, money
-│   │   ├── auth.php               Who is signed in, role checks, return-after-login
+│   │   ├── auth.php               Who is signed in, role checks, return-after-login, admin usernames
 │   │   ├── csrf.php               Form tokens
 │   │   ├── validation.php         Checks for typed values
 │   │   ├── uploads.php            Listing photo uploads

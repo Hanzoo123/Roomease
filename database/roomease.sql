@@ -69,7 +69,12 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ---------------------------------------------------------
 CREATE TABLE users (
     user_id         INT AUTO_INCREMENT PRIMARY KEY,
-    email           VARCHAR(150) NOT NULL,
+    -- Required for landlords and boarders. An administrator added by a super
+    -- admin starts without one and adds it on first sign-in.
+    email           VARCHAR(150) NULL,
+    -- Administrators only: what they can sign in with instead of the email.
+    -- 3 to 30 letters, digits, dots and underscores; NULL for everyone else.
+    username        VARCHAR(30) NULL DEFAULT NULL,
     google_id       VARCHAR(64) DEFAULT NULL,
     password_hash   VARCHAR(255) NOT NULL,
     first_name      VARCHAR(100) NOT NULL,
@@ -93,6 +98,7 @@ CREATE TABLE users (
     updated_by      INT NULL,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY email (email),
+    UNIQUE KEY uq_users_username (username),
     UNIQUE KEY uq_users_google_id (google_id),
     -- Every account listing filters on these three columns together.
     KEY idx_users_live (deleted_at, is_active, role),
@@ -509,14 +515,15 @@ CREATE TABLE audit_logs (
 --
 -- password_hash holds a bcrypt hash of the current administrator password.
 -- The password itself is not stored and cannot be read back out of here.
--- Sign in at /admin/login.php with the email below and that password.
+-- Sign in at /admin/login.php with the email below, or the username
+-- "admin", and that password.
 --
 -- To set a different password after importing:
 --   php database/set_admin_password.php "YourNewPassword" admin@roomease.com
 INSERT INTO users
-    (user_id, email, password_hash, first_name, last_name, phone_number, role, is_super_admin, is_active)
+    (user_id, email, username, password_hash, first_name, last_name, phone_number, role, is_super_admin, is_active)
 VALUES
-    (1, 'admin@roomease.com', '$2y$10$ASqK/NDvxXriS5IfnBqLfuLZNdx2/d8zssHfHm3D6Q.fhB8.cG.ki',
+    (1, 'admin@roomease.com', 'admin', '$2y$10$ASqK/NDvxXriS5IfnBqLfuLZNdx2/d8zssHfHm3D6Q.fhB8.cG.ki',
      'System', 'Administrator', '09000000000', 'administrator', 1, 1);
 
 -- 2. Room types. rooms.room_type_id points here, so no room can be added

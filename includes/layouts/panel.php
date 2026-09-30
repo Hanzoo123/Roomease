@@ -23,15 +23,21 @@ require_once __DIR__ . '/../components/panel_page_header.php';
 function panel_config()
 {
     if (is_admin()) {
-        // A super admin sees two more items: the administrators, and the
-        // site's Appearance. Those pages also check for themselves
-        // (require_super_admin()), so hiding the links is not the only lock.
+        // A super admin sees more: All Users, Administrators and Add User
+        // under User Management, the Audit Log, and the site's Appearance. Those pages also
+        // check for themselves (require_super_admin()), so hiding the links is
+        // not the only lock. A regular administrator's User Management holds
+        // Manage Users only: landlords and boarders.
         $super = is_super_admin();
-        $superMenu = $super ? [
-            ['url' => 'admin/admins.php',     'icon' => 'fa-user-shield', 'label' => 'Administrators',
-             'also' => ['add_admin.php']],
-            ['url' => 'admin/appearance.php', 'icon' => 'fa-paint-brush', 'label' => 'Appearance'],
-        ] : [];
+        $userPages = array_merge(
+            $super ? [['url' => 'admin/all_users.php', 'icon' => 'fa-address-book', 'label' => 'All Users']] : [],
+            [['url' => 'admin/manage_users.php', 'icon' => 'fa-users', 'label' => 'Manage Users', 'also' => ['user.php']]],
+            $super ? [
+                ['url' => 'admin/admins.php',   'icon' => 'fa-user-shield', 'label' => 'Administrators',
+                 'also' => ['reset_admin_password.php']],
+                ['url' => 'admin/add_user.php', 'icon' => 'fa-user-plus',   'label' => 'Add User'],
+            ] : []
+        );
 
         return [
             'name'  => 'Admin',
@@ -39,18 +45,23 @@ function panel_config()
             'home'   => 'admin/dashboard.php',
             'menu'  => array_merge([
                 ['url' => 'admin/dashboard.php',       'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
+                // 'children' makes a group that opens to show its pages, and
+                // stays open while one of them is the current page.
+                ['icon' => 'fa-users-cog', 'label' => 'User Management', 'children' => $userPages],
                 // A listing's review page and an account's page stay under their list.
-                ['url' => 'admin/manage_users.php',    'icon' => 'fa-users',          'label' => 'Manage Users',
-                 'also' => ['user.php']],
                 ['url' => 'admin/manage_listings.php', 'icon' => 'fa-home',           'label' => 'Manage Listings',
                  'also' => ['listing.php']],
                 // 'count' puts a number beside the item, shown only when it is above zero.
                 ['url' => 'admin/manage_listings.php?status=pending', 'icon' => 'fa-clipboard-check', 'label' => 'Pending Approvals',
                  'count' => pending_listing_count()],
                 ['url' => 'admin/reports.php',         'icon' => 'fa-chart-bar',      'label' => 'Reports'],
-                ['url' => 'admin/activity.php',        'icon' => 'fa-history',        'label' => 'Audit Log'],
                 ['url' => 'admin/extras.php',          'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
-            ], $superMenu),
+            ], $super ? [
+                // The audit log shows what every administrator did, so it is
+                // for super admins only (admin/activity.php checks as well).
+                ['url' => 'admin/activity.php',   'icon' => 'fa-history',     'label' => 'Audit Log'],
+                ['url' => 'admin/appearance.php', 'icon' => 'fa-paint-brush', 'label' => 'Appearance'],
+            ] : []),
         ];
     }
 

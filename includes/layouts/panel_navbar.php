@@ -17,7 +17,8 @@ require_once __DIR__ . '/panel.php';
 $panel = $panel ?? panel_config();
 
 $navUser    = $_SESSION['full_name'] ?? $panel['badge']['label'];
-$navEmail   = $_SESSION['email'] ?? '';
+// A new administrator with no email yet is shown by their username.
+$navEmail   = ($_SESSION['email'] ?? '') ?: (!empty($_SESSION['username']) ? '@' . $_SESSION['username'] : '');
 $navAccount = ['full_name' => $navUser, 'avatar_path' => $_SESSION['avatar_path'] ?? null];
 ?>
 <!-- Navbar -->

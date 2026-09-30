@@ -10,13 +10,15 @@
  *   Sign-ins        every sign-in, failed sign-in, sign-out, new account and
  *                   password change, with the IP address and browser
  *
+ * Super admins only: the log shows what every administrator did.
+ *
  * The log only grows, so it is filtered and paged in the database rather than
  * in the browser. Opening the page also clears out sign-in records older than
  * AUDIT_SIGNIN_DAYS, as the Privacy Policy promises.
  */
 require __DIR__ . '/../includes/init.php';
 
-require_login('admin');
+require_super_admin();
 
 audit_purge_old_signins();
 
@@ -66,7 +68,7 @@ $pages = max(1, (int) ceil($total / $perPage));
 $page = min($pages, max(1, (int) ($_GET['page'] ?? 1)));
 
 $stmt = $pdo->prepare(
-  "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+  "SELECT a.*, " . account_name_sql('u') . " AS admin_name, u.avatar_path
      FROM audit_logs a
      LEFT JOIN users u ON u.user_id = a.actor_id
      $whereSql
@@ -78,7 +80,7 @@ $entries = $stmt->fetchAll();
 
 // Everyone who appears on this tab, for the "who" filter.
 $people = $pdo->prepare(
-  "SELECT DISTINCT u.user_id, CONCAT(u.first_name, ' ', u.last_name) AS name
+  "SELECT DISTINCT u.user_id, " . account_name_sql('u') . " AS name
      FROM audit_logs a JOIN users u ON u.user_id = a.actor_id
     WHERE a.action IN (" . sql_placeholders(count($groupActions)) . ")
     ORDER BY name"

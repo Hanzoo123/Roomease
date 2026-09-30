@@ -47,6 +47,7 @@ function audit_action_types()
         'admin_restore'    => ['label' => 'Restored administrator',    'badge' => 'badge-info',    'target' => 'administrator', 'group' => 'admin'],
         'admin_promote'    => ['label' => 'Made super admin',          'badge' => 'badge-primary', 'target' => 'administrator', 'group' => 'admin'],
         'admin_demote'     => ['label' => 'Removed super admin',       'badge' => 'badge-warning', 'target' => 'administrator', 'group' => 'admin'],
+        'admin_password'   => ['label' => 'Reset administrator password', 'badge' => 'badge-warning', 'target' => 'administrator', 'group' => 'admin'],
 
         // What landlords change.
         'listing_create'  => ['label' => 'Created listing',     'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
@@ -242,7 +243,7 @@ function audit_entries_for($targetType, $targetId, $limit = 20, $group = null)
     }
     try {
         $stmt = $pdo->prepare(
-            "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) AS admin_name, u.avatar_path
+            "SELECT a.*, " . account_name_sql('u') . " AS admin_name, u.avatar_path
                FROM audit_logs a
                LEFT JOIN users u ON u.user_id = a.actor_id
               WHERE a.target_type = ? AND a.target_id = ?$groupSql

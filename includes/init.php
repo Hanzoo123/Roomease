@@ -11,7 +11,7 @@
  *
  * Where things live (includes/core/):
  *   helpers.php         escaping, redirects, URLs, flash messages, dates, money
- *   auth.php            who is signed in, role checks, return-after-login
+ *   auth.php            who is signed in, role checks, return-after-login, administrator usernames
  *   csrf.php            form tokens
  *   validation.php      checks for typed values
  *   uploads.php         listing photo uploads
