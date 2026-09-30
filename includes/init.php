@@ -17,7 +17,8 @@
  *   uploads.php         listing photo uploads
  *   avatars.php         profile photos
  *   lookups.php         amenities, utilities, room types
- *   listings.php        listing queries, availability, browse filters, stay terms
+ *   listings.php        loading a listing, availability, stay terms, moderation
+ *   browse.php          browse filters and the search queries
  *   rooms.php           rooms inside a listing
  *   audit.php           the audit log and landlord decision notices
  *   password_reset.php  reset by emailed code
@@ -50,6 +51,7 @@ require_once __DIR__ . '/core/uploads.php';
 require_once __DIR__ . '/core/avatars.php';
 require_once __DIR__ . '/core/lookups.php';
 require_once __DIR__ . '/core/listings.php';
+require_once __DIR__ . '/core/browse.php';
 require_once __DIR__ . '/core/rooms.php';
 require_once __DIR__ . '/core/audit.php';
 require_once __DIR__ . '/core/password_reset.php';

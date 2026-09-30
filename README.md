@@ -186,7 +186,8 @@ roomease/
 │   │   ├── uploads.php            Listing photo uploads
 │   │   ├── avatars.php            Profile photos
 │   │   ├── lookups.php            Amenities, utilities, room types
-│   │   ├── listings.php           Listing queries, availability, browse filters, stay terms
+│   │   ├── listings.php           Loading a listing, availability, stay terms, moderation
+│   │   ├── browse.php             Browse filters and the search queries
 │   │   ├── rooms.php              Rooms inside a listing
 │   │   ├── audit.php              Audit log and landlord decision notices
 │   │   ├── password_reset.php     Reset by emailed code
