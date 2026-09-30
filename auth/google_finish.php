@@ -9,8 +9,7 @@
  * auth/google_callback.php leaves the confirmed Google profile in
  * $_SESSION['google_signup']. It lasts GOOGLE_SIGNUP_TTL and is used once.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 if (is_logged_in()) {

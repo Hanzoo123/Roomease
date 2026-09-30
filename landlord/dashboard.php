@@ -3,8 +3,7 @@
  * RoomEase Landlord Dashboard (AdminLTE Panel)
  * Shares the panel chrome with the admin area; see includes/layouts/panel.php.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 $landlordId = $_SESSION['user_id'];

@@ -9,8 +9,7 @@
  * switch, short description, and photos. Room photos live in the listing's
  * upload folder, tagged with the room's id.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 $landlordId = (int) $_SESSION['user_id'];

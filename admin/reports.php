@@ -8,8 +8,7 @@
  * are plain CSS bars: no chart library, nothing loaded from outside, and they
  * print.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

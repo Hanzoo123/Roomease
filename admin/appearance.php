@@ -5,8 +5,7 @@
  *
  * Super admins only: it changes what everyone sees on signing in.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_super_admin();
 

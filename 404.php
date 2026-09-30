@@ -15,8 +15,7 @@
  * one message and two ways out, nothing else to read. Styles are the
  * .notfound section of style.css.
  */
-require __DIR__ . '/config/db.php';
-require __DIR__ . '/includes/core/functions.php';
+require __DIR__ . '/includes/init.php';
 
 http_response_code(404);
 

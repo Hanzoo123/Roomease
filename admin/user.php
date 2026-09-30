@@ -7,8 +7,7 @@
  * account, with the same actions as Manage Users. Administrator accounts are
  * not managed here, exactly as in Manage Users.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

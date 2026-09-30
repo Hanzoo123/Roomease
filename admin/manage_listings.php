@@ -5,8 +5,7 @@
  * Every listing by approval status, plus a Removed tab for the listings an
  * administrator archived, where they can be restored.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

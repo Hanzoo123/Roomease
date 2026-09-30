@@ -2,7 +2,7 @@
 /**
  * Transport- and session-level hardening for RoomEase.
  *
- * This file is required from the very top of includes/core/functions.php, BEFORE
+ * This file is required from the top of includes/init.php, BEFORE
  * session_start(), because cookie flags can only be chosen while there is no
  * session yet. Everything here applies itself: no page has to remember to call
  * it, so a new page cannot accidentally opt out of it.
@@ -198,8 +198,8 @@ function enforce_session_policy()
         $_SESSION['session_started_at'] = $now;
     }
 
-    // Pages that never touch the database (logout, the router) have no $pdo;
-    // the ageing checks above still apply to them.
+    // Every web page gets $pdo from includes/init.php. Without one (a script run
+    // outside the site) only the ageing checks above apply.
     if (!isset($pdo) || !($pdo instanceof PDO)) {
         return;
     }

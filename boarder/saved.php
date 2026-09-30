@@ -2,8 +2,7 @@
 /**
  * The boarder's shortlist of saved listings.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/components/listing_card.php';
 require_login('boarder');
 

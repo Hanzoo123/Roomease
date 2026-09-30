@@ -11,8 +11,7 @@
  * Every action is written to the audit log, and the landlord hears about it
  * by email and on their dashboard.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

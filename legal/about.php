@@ -6,8 +6,7 @@
  * had searched for a rental in Baybay City). The live figures come from the
  * same query the home page quotes, so the two pages can never disagree.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $pageTitle = 'About';
 $metaDescription = 'RoomEase is a boarding house listing site for Baybay City, Leyte, '

@@ -14,8 +14,7 @@
  * in the browser. Opening the page also clears out sign-in records older than
  * AUDIT_SIGNIN_DAYS, as the Privacy Policy promises.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

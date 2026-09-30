@@ -1,8 +1,15 @@
 <?php
 /**
- * Startup file. Every page requires this one line and gets the whole toolkit.
+ * Startup file. Every web page begins with this one line and gets the whole
+ * toolkit, in the right order:
  *
- * Where things live (all in includes/core/):
+ *     require __DIR__ . '/../includes/init.php';   // pages in a subfolder
+ *     require __DIR__ . '/includes/init.php';      // index.php and 404.php
+ *
+ * The order is fixed here so no page has to remember it. The database comes
+ * first because the sign-in check at the bottom reads $pdo.
+ *
+ * Where things live (includes/core/):
  *   helpers.php         escaping, redirects, URLs, flash messages, dates, money
  *   auth.php            who is signed in, role checks, return-after-login
  *   csrf.php            form tokens
@@ -21,33 +28,36 @@
  * Add new helpers to the file whose topic they belong to, not here.
  */
 
+// The database connection ($pdo). It also loads the project's .env.
+require_once __DIR__ . '/../config/db.php';
+
 // Settings read from .env or the environment.
-require_once __DIR__ . "/env.php";
+require_once __DIR__ . '/core/env.php';
 
 // Session cookie flags can only be chosen before the session exists, so the
 // hardening file is loaded and applied first. It also sends the response
 // security headers, and defines the login/reset throttle helpers.
-require_once __DIR__ . "/security.php";
+require_once __DIR__ . '/core/security.php';
 
 // Outgoing email through Gmail, used for password reset codes.
-require_once __DIR__ . "/mailer.php";
+require_once __DIR__ . '/core/mailer.php';
 
-require_once __DIR__ . "/helpers.php";
-require_once __DIR__ . "/auth.php";
-require_once __DIR__ . "/csrf.php";
-require_once __DIR__ . "/validation.php";
-require_once __DIR__ . "/uploads.php";
-require_once __DIR__ . "/avatars.php";
-require_once __DIR__ . "/lookups.php";
-require_once __DIR__ . "/listings.php";
-require_once __DIR__ . "/rooms.php";
-require_once __DIR__ . "/audit.php";
-require_once __DIR__ . "/password_reset.php";
-require_once __DIR__ . "/site_settings.php";
+require_once __DIR__ . '/core/helpers.php';
+require_once __DIR__ . '/core/auth.php';
+require_once __DIR__ . '/core/csrf.php';
+require_once __DIR__ . '/core/validation.php';
+require_once __DIR__ . '/core/uploads.php';
+require_once __DIR__ . '/core/avatars.php';
+require_once __DIR__ . '/core/lookups.php';
+require_once __DIR__ . '/core/listings.php';
+require_once __DIR__ . '/core/rooms.php';
+require_once __DIR__ . '/core/audit.php';
+require_once __DIR__ . '/core/password_reset.php';
+require_once __DIR__ . '/core/site_settings.php';
 
 // Profile photos are drawn on nearly every page of both the panel and the
 // public site, so the one renderer is loaded here rather than page by page.
-require_once __DIR__ . "/../components/avatar.php";
+require_once __DIR__ . '/components/avatar.php';
 
 configure_session_security();
 

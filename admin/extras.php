@@ -8,8 +8,7 @@
  * copy with the same name as a shared item is merged into it, and the
  * listings that used the copy keep it.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require_login('admin');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

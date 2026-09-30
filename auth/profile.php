@@ -6,8 +6,7 @@
  * photo and details, and Change Password (auth/change_password.php) the
  * password, each on its own page, and both come back here once saved.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 require_login();

@@ -174,8 +174,8 @@ roomease/
 ├── boarder/                   Browse/search listings, listing detail, saved listings
 ├── config/db.php              Database connection (PDO)
 ├── includes/                  Shared code; never served over HTTP
-│   ├── core/                    Logic loaded by pages, no HTML
-│   │   ├── functions.php          Startup: loads everything below, starts the session
+│   ├── init.php                 Startup: every page requires this one file
+│   ├── core/                    Logic loaded by init.php, no HTML
 │   │   ├── helpers.php            Escaping, redirects, URLs, flash messages, dates, money
 │   │   ├── auth.php               Who is signed in, role checks, return-after-login
 │   │   ├── csrf.php               Form tokens
@@ -217,6 +217,60 @@ roomease/
 Both role panels render from the same `includes/layouts/panel*.php` shell,
 configured per role in `includes/layouts/panel.php`. There is exactly one copy of that shell.
 
+## Adding a page
+
+Every page starts with the same one line, which connects the database, loads
+the helpers and starts the session, in the right order. Then copy the skeleton
+that matches the kind of page (a page in the project root uses
+`/includes/...` instead of `/../includes/...`).
+
+**Public page** (guests and boarders):
+
+```php
+<?php
+require __DIR__ . '/../includes/init.php';
+
+$pageTitle = 'My Page';
+require __DIR__ . '/../includes/layouts/header.php';
+?>
+  ...your HTML...
+<?php require __DIR__ . '/../includes/layouts/footer.php'; ?>
+```
+
+**Panel page** (admin or landlord). Add its link to the menu in
+`includes/layouts/panel.php`:
+
+```php
+<?php
+require __DIR__ . '/../includes/init.php';
+require_login('landlord');          // or 'admin'
+
+$pageTitle = 'My Page';
+require __DIR__ . '/../includes/layouts/panel_head.php';
+require __DIR__ . '/../includes/layouts/panel_navbar.php';
+require __DIR__ . '/../includes/layouts/panel_sidebar.php';
+?>
+  ...your HTML...
+<?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
+```
+
+**Form handler** (a page that only receives a POST). Every form that posts to
+it needs `<?= csrf_field() ?>` inside the `<form>`:
+
+```php
+<?php
+require __DIR__ . '/../includes/init.php';
+require_login('landlord');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect('landlord/dashboard.php');
+}
+verify_csrf();
+```
+
+New helper functions go in the `includes/core/` file that matches their topic
+(the list is at the top of `includes/init.php`), not in the page.
+
 ## What's implemented (from the project scope)
 
 - Three roles with session-based auth and role-gated pages: Admin,
@@ -256,7 +310,7 @@ token on every form, `h()` escaping on output, and ownership checks written
 into the `WHERE` clause so a landlord can only touch their own listings.
 
 On top of that, `includes/core/security.php` is required from the top of
-`includes/core/functions.php`, so every page gets the following without having to
+`includes/init.php`, so every page gets the following without having to
 ask for it:
 
 **Sessions**

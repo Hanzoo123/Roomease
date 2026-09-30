@@ -5,8 +5,7 @@
  * here. More rooms, photos, and slot counts can be changed later from the
  * listing's Rooms card.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 /** Rooms accepted in one submission; a larger house adds the rest afterwards. */

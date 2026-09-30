@@ -6,8 +6,7 @@
  * first), how the last 30 days went, and what administrators have done
  * lately. Removed accounts and removed listings are not counted.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

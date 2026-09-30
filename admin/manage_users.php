@@ -2,8 +2,7 @@
 /**
  * RoomEase Admin - Manage Users (AdminLTE Theme)
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

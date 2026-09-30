@@ -8,8 +8,7 @@
  * other administrator page is the same for every administrator; this one and
  * Appearance are what a super admin has on top.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_super_admin();
 

@@ -7,8 +7,7 @@
  * and changes it in My Profile, Change Password. The account is created
  * active, and as a super admin only when that box is ticked.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_super_admin();
 

@@ -3,7 +3,7 @@
  * RoomEase Admin Index Entry: the dashboard for a signed-in administrator,
  * otherwise the administrators' own sign-in page.
  */
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 if (is_logged_in() && is_admin()) {
     redirect('admin/dashboard.php');

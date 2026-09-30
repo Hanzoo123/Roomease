@@ -8,8 +8,7 @@
  * before. Approve, reject, remove and restore all work from here and come
  * back here.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
 

@@ -2,8 +2,7 @@
 /**
  * RoomEase login — one sign-in for every role, on the standalone sign-in layout.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 // An administrator can open ?preview=1 from Appearance to see this page with

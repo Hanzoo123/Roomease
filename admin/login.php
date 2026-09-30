@@ -8,8 +8,7 @@
  * wrong password gets, so the page does not reveal which emails have which
  * role. No sign-up, Google, or "Remember me" here.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 if (is_logged_in()) {
     redirect(is_admin() ? 'admin/dashboard.php' : 'index.php');

@@ -11,8 +11,7 @@
  * counted in the session as well as against the code, so a made-up address
  * runs out of tries exactly like a real one.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $state = $_SESSION['password_reset'] ?? null;
 

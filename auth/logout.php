@@ -8,8 +8,7 @@
  * An administrator lands back on the administrators' sign-in page; everyone
  * else goes to the home page.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $wasAdmin = is_admin();
 if (is_logged_in()) {

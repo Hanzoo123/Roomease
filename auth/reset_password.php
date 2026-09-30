@@ -8,8 +8,7 @@
  * reset cannot be replayed by holding the page open. Using it marks it used,
  * and every other outstanding reset for that account is discarded.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $errors = [];
 $done = false;

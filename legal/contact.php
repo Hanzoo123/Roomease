@@ -14,8 +14,7 @@
  * Reply-To header, because a header built from a form field is how mail
  * injection gets in.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $contactEmail = trim(env_value('ROOMEASE_CONTACT_EMAIL'));
 $canSend = $contactEmail !== '' && mail_enabled();

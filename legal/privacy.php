@@ -7,8 +7,7 @@
  * database/roomease.sql) and how long it keeps it. If that changes, change
  * this page and the date below with it.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $pageTitle = 'Privacy Policy';
 $metaDescription = 'What RoomEase keeps about boarders and landlords, why it keeps it, who can see it, '

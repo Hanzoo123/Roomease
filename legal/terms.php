@@ -6,8 +6,7 @@
  * A draft written to match what RoomEase actually does. Review it, and change
  * the date below whenever the wording changes.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $pageTitle = 'Terms & Conditions';
 $metaDescription = 'The rules for using RoomEase: what the site does, what it does not do, '

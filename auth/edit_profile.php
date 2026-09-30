@@ -6,8 +6,7 @@
  * phone number can never trip over a browser's autofilled password, and a
  * password change is never buried under a form of unrelated fields.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 require_login();

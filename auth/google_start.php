@@ -6,8 +6,7 @@
  * ?remember=1             keep this device signed in afterwards
  * ?from=register          return to the sign-up page, not login, on failure
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 if (is_logged_in()) {

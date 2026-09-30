@@ -3,8 +3,7 @@
  * My Boarding Houses: every listing this landlord owns, with its rooms,
  * approval, and actions. The same table sits under the dashboard's figures.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 $listings = landlord_listings($_SESSION['user_id']);

@@ -6,8 +6,7 @@
  * room's photos. Kept out of the edit pages so the controls do not have to
  * sit inside those pages' main forms.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

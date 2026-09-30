@@ -7,8 +7,7 @@
  * see on their listing form: add, rename, or delete. Deleting one also takes
  * it off any of their listings that used it.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
 $landlordId = (int) $_SESSION['user_id'];

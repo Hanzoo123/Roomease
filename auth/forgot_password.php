@@ -10,8 +10,7 @@
  * sends a code to an administrator account, and the admin page only ever
  * sends one to an administrator account.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 
 $resetScope = ($resetScope ?? 'public') === 'admin' ? 'admin' : 'public';
 $loginPath = $resetScope === 'admin' ? ADMIN_LOGIN_PATH : 'auth/login.php';

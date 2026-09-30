@@ -10,8 +10,7 @@
  * auth/google_finish.php. Deactivated and removed accounts are refused exactly
  * as the password login refuses them.
  */
-require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../includes/core/functions.php';
+require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 // The attempt is single use: taken out of the session before anything else.
