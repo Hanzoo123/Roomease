@@ -2,7 +2,7 @@
 /**
  * Administrators: every administrator account, for super admins only.
  *
- * A super admin can add an administrator (admin/add_admin.php) and, on anyone
+ * A super admin can add an administrator (admin/add_user.php) and, on anyone
  * but themselves, deactivate or reactivate them, remove or restore them, and
  * make them a super admin or take that away (admin/admin_action.php). Every
  * other administrator page is the same for every administrator; this one and
@@ -54,8 +54,8 @@ $actionButton = function ($adminId, $action, $class, $icon, $title, $confirm = '
 
   <?php panel_page_header('Administrators', [
     'subtitle' => 'Everyone who can sign in to this panel. Only a super admin sees this page.',
-    'actions' => '<a href="' . base_url('admin/add_admin.php') . '" class="btn btn-sm btn-primary">'
-      . '<i class="fas fa-user-plus mr-1"></i> Add administrator</a>',
+    'actions' => '<a href="' . base_url('admin/add_user.php') . '" class="btn btn-sm btn-primary">'
+      . '<i class="fas fa-user-plus mr-1"></i> Add User</a>',
   ]); ?>
 
   <!-- Main content -->

@@ -19,9 +19,22 @@ $panelAccount = ['full_name' => $panelUser, 'avatar_path' => $_SESSION['avatar_p
 // specific match wins: an item whose query parameters all match the current
 // request beats the same page listed without them. An item's 'also' pages,
 // such as a listing's edit page, highlight it too.
+//
+// A group's pages are checked like any other item, keyed "group-page" (such
+// as "1-0"), so the group can be drawn open around its highlighted page.
+$links = [];
+foreach ($panel['menu'] as $idx => $item) {
+    if (!empty($item['children'])) {
+        foreach ($item['children'] as $childIdx => $child) {
+            $links[$idx . '-' . $childIdx] = $child;
+        }
+    } else {
+        $links[(string) $idx] = $item;
+    }
+}
 $activeItem = null;
 $bestScore  = -1;
-foreach ($panel['menu'] as $idx => $item) {
+foreach ($links as $idx => $item) {
     if (basename(parse_url($item['url'], PHP_URL_PATH)) !== $currentPage) {
         if ($activeItem === null && in_array($currentPage, $item['also'] ?? [], true)) {
             $activeItem = $idx;
@@ -46,6 +59,8 @@ foreach ($panel['menu'] as $idx => $item) {
         $activeItem = $idx;
     }
 }
+// PHP turns a key such as "3" into the number 3; compare as text throughout.
+$activeItem = $activeItem === null ? null : (string) $activeItem;
 ?>
 <!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-light-primary">
@@ -77,18 +92,45 @@ foreach ($panel['menu'] as $idx => $item) {
         data-accordion="false">
 
         <?php foreach ($panel['menu'] as $idx => $item): ?>
-          <li class="nav-item">
-            <a href="<?= base_url($item['url']) ?>"
-              class="nav-link <?= $activeItem === $idx ? 'active' : '' ?>">
-              <i class="nav-icon fas <?= h($item['icon']) ?>"></i>
-              <p>
-                <?= h($item['label']) ?>
-                <?php if (!empty($item['count'])): ?>
-                  <span class="right nav-count"><?= (int) $item['count'] ?></span>
-                <?php endif; ?>
-              </p>
-            </a>
-          </li>
+          <?php if (!empty($item['children'])): ?>
+            <?php $groupOpen = $activeItem !== null && strpos($activeItem, $idx . '-') === 0; ?>
+            <?php /* AdminLTE's treeview: the heading opens and closes the pages
+                     under it, and starts open on one of those pages. */ ?>
+            <li class="nav-item has-treeview<?= $groupOpen ? ' menu-open' : '' ?>">
+              <a href="#" class="nav-link nav-group<?= $groupOpen ? ' is-open' : '' ?>" role="button"
+                aria-expanded="<?= $groupOpen ? 'true' : 'false' ?>">
+                <i class="nav-icon fas <?= h($item['icon']) ?>"></i>
+                <p>
+                  <?= h($item['label']) ?>
+                  <i class="right fas fa-angle-left"></i>
+                </p>
+              </a>
+              <ul class="nav nav-treeview">
+                <?php foreach ($item['children'] as $childIdx => $child): ?>
+                  <li class="nav-item">
+                    <a href="<?= base_url($child['url']) ?>"
+                      class="nav-link <?= $activeItem === $idx . '-' . $childIdx ? 'active' : '' ?>">
+                      <i class="nav-icon fas <?= h($child['icon']) ?>"></i>
+                      <p><?= h($child['label']) ?></p>
+                    </a>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            </li>
+          <?php else: ?>
+            <li class="nav-item">
+              <a href="<?= base_url($item['url']) ?>"
+                class="nav-link <?= $activeItem === (string) $idx ? 'active' : '' ?>">
+                <i class="nav-icon fas <?= h($item['icon']) ?>"></i>
+                <p>
+                  <?= h($item['label']) ?>
+                  <?php if (!empty($item['count'])): ?>
+                    <span class="right nav-count"><?= (int) $item['count'] ?></span>
+                  <?php endif; ?>
+                </p>
+              </a>
+            </li>
+          <?php endif; ?>
         <?php endforeach; ?>
 
         <li class="nav-divider" role="separator"></li>
@@ -113,6 +155,16 @@ foreach ($panel['menu'] as $idx => $item) {
       </ul>
     </nav>
     <!-- /.sidebar-menu -->
+    <script>
+      // AdminLTE opens and closes a group by its menu-open class; keep what a
+      // screen reader is told ("expanded" or "collapsed") in step with it.
+      document.querySelectorAll('.nav-sidebar .has-treeview').forEach(function (group) {
+        var heading = group.querySelector('.nav-group');
+        new MutationObserver(function () {
+          heading.setAttribute('aria-expanded', group.classList.contains('menu-open') ? 'true' : 'false');
+        }).observe(group, { attributes: true, attributeFilter: ['class'] });
+      });
+    </script>
   </div>
   <!-- /.sidebar -->
 </aside>

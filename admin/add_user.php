@@ -1,11 +1,13 @@
 <?php
 /**
- * Add an administrator. Super admins only.
+ * Add User: a new administrator account. Super admins only.
  *
- * The super admin types a temporary password and gives it to the new
+ * Landlords and boarders sign up for themselves, so the only accounts made
+ * here are administrators: a Role of Administrator or Super admin. The
+ * super admin types a temporary password and gives it to the new
  * administrator privately; the new administrator signs in at the admin login
  * and changes it in My Profile, Change Password. The account is created
- * active, and as a super admin only when that box is ticked.
+ * active.
  */
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/functions.php';
@@ -13,7 +15,7 @@ require __DIR__ . '/../includes/core/functions.php';
 require_super_admin();
 
 $errors = [];
-$form = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'is_super_admin' => false];
+$form = ['first_name' => '', 'last_name' => '', 'email' => '', 'phone_number' => '', 'role' => 'administrator'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
@@ -26,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'last_name' => $text('last_name'),
         'email' => $text('email'),
         'phone_number' => $text('phone_number'),
-        'is_super_admin' => ($_POST['is_super_admin'] ?? '') === '1',
+        'role' => $text('role'),
     ];
     $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
     $confirm = is_string($_POST['confirm_password'] ?? null) ? $_POST['confirm_password'] : '';
@@ -50,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($password !== $confirm) {
         $errors[] = 'The two passwords do not match.';
     }
+    if (!in_array($form['role'], ['administrator', 'super_admin'], true)) {
+        $errors[] = 'Choose a role from the list.';
+        $form['role'] = 'administrator';
+    }
+    $isSuper = $form['role'] === 'super_admin';
 
     // Any account, removed ones included, keeps its email: the column is unique.
     if (!$errors) {
@@ -68,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 is_active, created_by, updated_by)
              VALUES ('administrator', ?, ?, ?, ?, ?, ?, 1, ?, ?)"
         )->execute([
-            $form['is_super_admin'] ? 1 : 0,
+            $isSuper ? 1 : 0,
             $form['first_name'],
             $form['last_name'],
             $form['email'],
@@ -80,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newId = (int) $pdo->lastInsertId();
         $name = trim($form['first_name'] . ' ' . $form['last_name']);
 
-        audit_log('admin_add', $newId, $name, 'As ' . ($form['is_super_admin'] ? 'a super admin' : 'an administrator')
+        audit_log('admin_add', $newId, $name, 'As ' . ($isSuper ? 'a super admin' : 'an administrator')
             . ' (' . $form['email'] . ')');
         flash_set($name . ' was added. Give them the temporary password privately, and ask them to change it in '
             . 'My Profile, Change Password, after they sign in.', 'success');
@@ -88,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Add Administrator';
+$pageTitle = 'Add User';
 require __DIR__ . '/../includes/layouts/panel_head.php';
 require __DIR__ . '/../includes/layouts/panel_navbar.php';
 require __DIR__ . '/../includes/layouts/panel_sidebar.php';
@@ -97,8 +104,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
 
-  <?php panel_page_header('Add Administrator', [
-    'subtitle' => 'A new account that can sign in to this panel.',
+  <?php panel_page_header('Add User', [
+    'subtitle' => 'A new administrator who can sign in to this panel. Landlords and boarders sign up for themselves.',
     'back' => 'admin/admins.php',
     'backLabel' => 'Back to administrators',
   ]); ?>
@@ -112,7 +119,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <div class="card card-primary card-outline shadow-sm">
             <div class="card-header">
               <h3 class="card-title font-weight-bold">
-                <i class="fas fa-user-plus mr-1"></i> Administrator details
+                <i class="fas fa-user-plus mr-1"></i> User details
               </h3>
               <span class="card-subtitle">They sign in at the admin login with this email and the temporary password.</span>
             </div>
@@ -175,15 +182,19 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   </div>
                 </div>
 
-                <div class="form-group mb-0">
-                  <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="is_super_admin" name="is_super_admin" value="1"
-                      <?= $form['is_super_admin'] ? 'checked' : '' ?>>
-                    <label class="custom-control-label" for="is_super_admin">Make this a super admin</label>
+                <div class="form-row">
+                  <div class="col-md-6 form-group mb-0">
+                    <label for="role">Role</label>
+                    <select class="form-control" id="role" name="role" required>
+                      <option value="administrator" <?= $form['role'] === 'administrator' ? 'selected' : '' ?>>Administrator</option>
+                      <option value="super_admin" <?= $form['role'] === 'super_admin' ? 'selected' : '' ?>>Super admin</option>
+                    </select>
                   </div>
-                  <small class="form-text text-muted">
-                    A super admin can also add and manage administrators, and change the site's Appearance.
-                  </small>
+                  <div class="col-md-6 form-group mb-0 d-flex align-items-end">
+                    <small class="form-text text-muted">
+                      A super admin can also add and manage administrators, and change the site's Appearance.
+                    </small>
+                  </div>
                 </div>
               </div>
               <div class="card-footer d-flex flex-wrap justify-content-between" style="gap: 8px;">
@@ -191,7 +202,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <i class="fas fa-arrow-left mr-1"></i> Back to administrators
                 </a>
                 <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-user-plus mr-1"></i> Add administrator
+                  <i class="fas fa-user-plus mr-1"></i> Add user
                 </button>
               </div>
             </form>
