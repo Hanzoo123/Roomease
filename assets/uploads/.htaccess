@@ -1,12 +1,9 @@
-# Uploaded files are visitor-supplied content. Serve them, never run them.
-#
-# The upload code already forces the extension from the detected MIME type, so
-# a .php file should never land here in the first place. This is the second
-# lock: even if one somehow did, Apache will refuse to execute or serve it.
+# Uploaded files: serve them, never run them. The upload code already
+# blocks .php files; this is a second lock in case one gets through.
 
 Options -Indexes -ExecCGI
 
-# Take PHP off this folder entirely, whichever module is loaded.
+# Turn PHP off in this folder.
 <IfModule mod_php.c>
   php_flag engine off
 </IfModule>
@@ -17,8 +14,7 @@ Options -Indexes -ExecCGI
   php_flag engine off
 </IfModule>
 
-# And for FPM/CGI setups, where the directives above do not apply, refuse to
-# hand the file to any handler at all.
+# For PHP-FPM/CGI servers, where the lines above don't apply.
 RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .pht .phar
 RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .pht .phar
 
@@ -32,7 +28,7 @@ RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .pht .phar
   </IfModule>
 </FilesMatch>
 
-# Uploaded images are never markup; do not let a browser decide otherwise.
+# Never let a browser treat an upload as a web page.
 <IfModule mod_headers.c>
   Header setifempty X-Content-Type-Options "nosniff"
   Header set Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"

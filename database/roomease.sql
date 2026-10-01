@@ -2,36 +2,22 @@
 -- RoomEase: A Web-Based Boarding House Information and
 -- Listing System — Full database export
 -- =========================================================
--- File:     database/roomease.sql
--- Target:   MySQL 8.0+ / MariaDB 10.4+
--- Database: roomease
+-- Target: MySQL 8.0+ / MariaDB 10.4+
 --
--- Every table the running application uses, and nothing else. There are no
--- landlords, no boarders, no listings, no rooms, no photos and no logs in
--- here: the only row in `users` is the administrator, so importing this file
--- gives a working but empty system, ready to be filled from the site itself.
+-- Creates every table, with only the admin account and the lists the forms
+-- need (room types, amenities, utilities). No landlords, boarders or listings.
 --
--- The only other seeded data is the controlled vocabulary the forms need in
--- order to work at all — room types, and the administrator-owned amenities
--- and utilities every landlord can pick from — plus the two appearance
--- settings the sign-in pages read.
+-- Import: mysql -u root < database/roomease.sql  (or phpMyAdmin > Import).
+-- It creates the `roomease` database if needed.
 --
--- Importing:
---   mysql -u root < database/roomease.sql
--- or in phpMyAdmin, open the Import tab and choose this file. It creates the
--- `roomease` database if it is missing and selects it, so nothing has to be
--- selected first. `roomease` is the name config/db.php connects to.
---
--- WARNING: this file drops every table listed below before recreating them.
--- Importing it over a database with real data destroys that data.
+-- WARNING: drops and recreates every table. Existing data is lost.
 -- =========================================================
 
 CREATE DATABASE IF NOT EXISTS roomease
     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE roomease;
 
--- The tables reference each other, so the old copies come out with the
--- constraint checks switched off rather than in a carefully chosen order.
+-- Foreign key checks off, so the tables can be dropped in any order.
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS account_notes;
@@ -61,42 +47,31 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------
 -- 1. users
--- Everyone who can sign in: administrators, landlords and boarders.
--- google_id is set for accounts that sign in with Google and NULL otherwise.
--- deleted_at is set when an administrator archives an account; archiving
--- rather than deleting keeps the cascades below from destroying the
--- listings, photos and saved copies attached to it.
+-- Admins, landlords and boarders. Removing an account sets deleted_at
+-- instead of deleting the row, so its listings and photos are kept.
 -- ---------------------------------------------------------
 CREATE TABLE users (
     user_id         INT AUTO_INCREMENT PRIMARY KEY,
-    -- Required for landlords and boarders. An administrator added by a super
-    -- admin starts without one and adds it on first sign-in.
+    -- Empty only for a new admin, until their first sign-in.
     email           VARCHAR(150) NULL,
-    -- Administrators only: what they can sign in with instead of the email.
-    -- 3 to 30 letters, digits, dots and underscores; NULL for everyone else.
+    -- Admins only: sign in with this or the email.
     username        VARCHAR(30) NULL DEFAULT NULL,
     google_id       VARCHAR(64) DEFAULT NULL,
     password_hash   VARCHAR(255) NOT NULL,
     first_name      VARCHAR(100) NOT NULL,
     last_name       VARCHAR(100) NOT NULL,
     phone_number    VARCHAR(30) DEFAULT NULL,
-    -- Profile photo, as a path under assets/uploads/avatars/. NULL means the
-    -- account is drawn as its initials instead.
+    -- Profile photo path. NULL shows initials instead.
     avatar_path     VARCHAR(255) NULL DEFAULT NULL,
     role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
-    -- 1 for a super admin: an administrator who can also add and manage the
-    -- other administrators (admin/admins.php) and the site's Appearance.
-    -- Always 0 for landlords and boarders.
+    -- 1 = super admin: can also manage other admins and Appearance.
     is_super_admin  TINYINT(1) NOT NULL DEFAULT 0,
-    -- 1 while the password is a temporary one a super admin chose (adding the
-    -- administrator, or resetting their password). require_login() keeps them
-    -- on Change Password until they choose their own.
+    -- 1 = temporary password set by a super admin; must be changed.
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     deleted_at      DATETIME NULL DEFAULT NULL,
     deleted_by      INT NULL,
-    -- Who created the account (themselves, on sign-up) and who last changed
-    -- it (themselves, or an administrator). NULL: created by the system.
+    -- Who created / last changed it. NULL = the system.
     created_by      INT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_by      INT NULL,
@@ -104,7 +79,7 @@ CREATE TABLE users (
     UNIQUE KEY email (email),
     UNIQUE KEY uq_users_username (username),
     UNIQUE KEY uq_users_google_id (google_id),
-    -- Every account listing filters on these three columns together.
+    -- Account lists filter on these three together.
     KEY idx_users_live (deleted_at, is_active, role),
     CONSTRAINT fk_users_created_by FOREIGN KEY (created_by)
         REFERENCES users(user_id) ON DELETE SET NULL,
@@ -121,13 +96,8 @@ CREATE TABLE users (
 
 -- ---------------------------------------------------------
 -- 2. boarding_houses
--- A property listing, owned by one landlord. Rent, room type and capacity
--- belong to each room, not to the house (see `rooms`).
---
--- moderation_status is the administrator's decision: only an 'approved'
--- listing appears publicly, and moderated_by records who made the latest
--- decision. deleted_at is set when an administrator removes
--- a listing — it is archived rather than destroyed, and can be restored.
+-- A listing, owned by one landlord. Rent, type and capacity are per room.
+-- Only 'approved' listings are public. Removing sets deleted_at (restorable).
 -- ---------------------------------------------------------
 CREATE TABLE boarding_houses (
     boarding_house_id   INT AUTO_INCREMENT PRIMARY KEY,
@@ -141,8 +111,7 @@ CREATE TABLE boarding_houses (
     description         TEXT DEFAULT NULL,
     contact_number      VARCHAR(50) DEFAULT NULL,
     house_rules         TEXT DEFAULT NULL,
-    -- Stay terms and map pin. NULL means the landlord has not stated it, and
-    -- the listing page leaves the line out rather than guessing.
+    -- Stay terms and map pin. NULL = not stated.
     curfew              VARCHAR(60) DEFAULT NULL,
     minimum_stay_months TINYINT UNSIGNED DEFAULT NULL,
     payment_methods     VARCHAR(100) DEFAULT NULL,
@@ -152,18 +121,15 @@ CREATE TABLE boarding_houses (
     cooking_allowed     TINYINT(1) DEFAULT NULL,
     latitude            DECIMAL(9, 6) DEFAULT NULL,
     longitude           DECIMAL(9, 6) DEFAULT NULL,
-    -- The landlord who created it, and whoever last changed it: the landlord,
-    -- or an administrator deciding on it.
+    -- Who created / last changed it.
     created_by          INT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_by          INT NULL,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at          DATETIME NULL DEFAULT NULL,
-    -- Who archived it: an administrator removing it, or its landlord deleting
-    -- it. Restoring clears this and deleted_at together.
+    -- Who removed it (an admin, or the landlord).
     deleted_by          INT NULL,
-    -- The status column leads because every browse query fixes it, and the
-    -- ordering column comes last so one index supplies the sort as well.
+    -- For browse: filter by status, sort by date.
     KEY idx_bh_public_recent   (moderation_status, created_at),
     KEY idx_bh_created         (created_at),
     KEY idx_bh_landlord_recent (landlord_id, created_at),
@@ -182,8 +148,7 @@ CREATE TABLE boarding_houses (
 
 -- ---------------------------------------------------------
 -- 3. room_types
--- Controlled vocabulary for rooms.room_type_id, so the room form and the
--- browse filter always offer exactly the same values.
+-- The room types the room form and browse filter offer.
 -- ---------------------------------------------------------
 CREATE TABLE room_types (
     room_type_id    INT AUTO_INCREMENT PRIMARY KEY,
@@ -201,9 +166,8 @@ CREATE TABLE room_types (
 
 -- ---------------------------------------------------------
 -- 4. amenities
--- Amenities a listing can offer. landlord_id is NULL for an item the
--- administrator made, which every landlord can use, and set for an item a
--- landlord made, which only that landlord sees. Names are unique per owner.
+-- landlord_id NULL = made by the admin, usable by all landlords.
+-- Otherwise only that landlord can use it.
 -- ---------------------------------------------------------
 CREATE TABLE amenities (
     amenity_id      INT AUTO_INCREMENT PRIMARY KEY,
@@ -224,7 +188,7 @@ CREATE TABLE amenities (
 
 -- ---------------------------------------------------------
 -- 5. utilities
--- Utilities a listing can bill for. Owned exactly the same way as amenities.
+-- Same ownership rule as amenities.
 -- ---------------------------------------------------------
 CREATE TABLE utilities (
     utility_id      INT AUTO_INCREMENT PRIMARY KEY,
@@ -276,12 +240,8 @@ CREATE TABLE boarding_house_utilities (
 
 -- ---------------------------------------------------------
 -- 8. rooms
--- The rooms inside a boarding house. Availability is never stored: a room is
--- "Available" while open with slots left, "Full" when every slot is taken,
--- and "Not available" when the landlord has closed it.
---
--- RESTRICT on the room type, not CASCADE: deleting a room type that rooms
--- are still using should be refused, never silently delete those rooms.
+-- Availability is not stored: it comes from is_open, capacity and slots_taken.
+-- RESTRICT: a room type in use can't be deleted.
 -- ---------------------------------------------------------
 CREATE TABLE rooms (
     room_id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -313,11 +273,8 @@ CREATE TABLE rooms (
 
 -- ---------------------------------------------------------
 -- 9. images
--- Photos uploaded by landlords. room_id is NULL for a photo of the house and
--- set for a photo of one room. is_primary marks the house's cover among the
--- house photos, and a room's main photo among that room's photos.
---
--- Only the path is stored here; the file itself lives under storage/.
+-- room_id NULL = a house photo. is_primary = the cover (or a room's main
+-- photo). The files are in assets/uploads/; only the path is stored.
 -- ---------------------------------------------------------
 CREATE TABLE images (
     image_id            INT AUTO_INCREMENT PRIMARY KEY,
@@ -329,7 +286,7 @@ CREATE TABLE images (
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_by          INT NULL,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    -- Serves the per-listing cover photo lookup in browse and both dashboards.
+    -- For finding each listing's cover photo.
     KEY idx_images_cover (boarding_house_id, is_primary, image_id),
     KEY idx_images_room  (room_id, is_primary, image_id),
     CONSTRAINT fk_images_bh FOREIGN KEY (boarding_house_id)
@@ -344,8 +301,7 @@ CREATE TABLE images (
 
 -- ---------------------------------------------------------
 -- 10. favorites
--- Listings a prospective boarder has saved for later. The unique key makes
--- saving idempotent, so a double submit cannot duplicate a row.
+-- Listings a boarder saved. The unique key stops duplicates.
 -- ---------------------------------------------------------
 CREATE TABLE favorites (
     favorite_id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -353,7 +309,7 @@ CREATE TABLE favorites (
     boarding_house_id   INT NOT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_favorite (user_id, boarding_house_id),
-    -- The saved list is read by user, newest first.
+    -- A user's saved list, newest first.
     KEY idx_fav_user_recent (user_id, created_at),
     CONSTRAINT fk_fav_user FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE,
@@ -368,22 +324,13 @@ CREATE TABLE favorites (
 
 -- ---------------------------------------------------------
 -- 11. password_resets
--- One row per "forgot password" request. The emailed 6-digit code is stored
--- only as a password_hash() (code_hash) and dies after five wrong guesses
--- (attempts). The right code is exchanged for a token kept in the visitor's
--- session, of which only a SHA-256 hash is stored, so a leaked database still
--- cannot be used to reset anyone's password. Rows are single use (used_at)
--- and short lived (expires_at).
+-- One row per reset request. Only hashes of the code and token are stored.
+-- The code dies after 5 wrong tries; each row is single use and expires.
 -- ---------------------------------------------------------
 CREATE TABLE password_resets (
     reset_id    INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT NOT NULL,
-    -- Never NULL. Until the emailed code is proven this holds the hash of
-    -- random bytes nobody keeps, which no token can ever match; verifying the
-    -- code overwrites it with the hash of the real token. A worktree
-    -- experiment once relaxed this column to NULL, which is why a database
-    -- built before this file may disagree; main has always required a value
-    -- (see create_password_reset_code() in includes/core/functions.php).
+    -- A random placeholder until the code is entered correctly.
     token_hash  CHAR(64) NOT NULL,
     code_hash   VARCHAR(255) DEFAULT NULL,
     attempts    TINYINT UNSIGNED NOT NULL DEFAULT 0,
@@ -399,9 +346,8 @@ CREATE TABLE password_resets (
 
 -- ---------------------------------------------------------
 -- 12. remember_tokens
--- "Remember me" devices. The cookie holds selector:validator and only a
--- SHA-256 hash of the validator is stored. Each row is single use: signing in
--- from the cookie replaces it.
+-- "Remember me" devices. Only a hash of the cookie's validator is stored.
+-- Each token is used once, then replaced.
 -- ---------------------------------------------------------
 CREATE TABLE remember_tokens (
     token_id        INT AUTO_INCREMENT PRIMARY KEY,
@@ -419,20 +365,18 @@ CREATE TABLE remember_tokens (
 
 -- ---------------------------------------------------------
 -- 13. login_attempts
--- Failed sign-ins and password-reset requests, so both can be rate limited.
--- Without this table the application still runs, but throttling is off and it
--- says so in the PHP error log. One index per thing that gets counted: the
--- account being targeted, and the source doing the targeting.
+-- Failed logins and reset requests, counted per account and per IP
+-- to limit guessing.
 -- ---------------------------------------------------------
 CREATE TABLE login_attempts (
     attempt_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
-    -- 'login' for a failed sign-in, 'reset' for a password-reset request.
+    -- 'login', 'reset' or 'contact'.
     kind         VARCHAR(20) NOT NULL,
-    -- The email address the attempt was aimed at, lowercased.
+    -- The email (or username) typed, lowercased.
     identifier   VARCHAR(190) NOT NULL,
-    -- The account that email belongs to, or NULL when no account has it.
+    -- Its account, or NULL if none.
     user_id      INT NULL,
-    -- The address the request came from. IPv6 needs up to 45 characters.
+    -- 45 characters fits IPv6.
     ip_address   VARCHAR(45) NOT NULL,
     attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_kind_identifier_time (kind, identifier, attempted_at),
@@ -449,15 +393,13 @@ CREATE TABLE login_attempts (
 
 -- ---------------------------------------------------------
 -- 14. site_settings
--- Settings an administrator changes from the panel, such as the sign-in
--- pages' background (admin/appearance.php). A key/value table rather than
--- columns, because the panel gains settings faster than a schema should
--- change for them.
+-- Settings an admin changes, e.g. the sign-in background. Key/value, so a
+-- new setting needs no new column.
 -- ---------------------------------------------------------
 CREATE TABLE site_settings (
     setting_key     VARCHAR(64) NOT NULL PRIMARY KEY,
     setting_value   TEXT DEFAULT NULL,
-    -- The administrator who first saved the setting, and who last changed it.
+    -- Who created / last changed it.
     created_by      INT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_by      INT NULL,
@@ -470,14 +412,9 @@ CREATE TABLE site_settings (
 
 -- ---------------------------------------------------------
 -- 15. audit_logs
--- The audit log (admin/activity.php): who did what, and when. It records
--- what administrators decide about listings and accounts and what they
--- export, what landlords change in their listings and rooms, and every
--- sign-in, sign-out and password change. actor_role is kept as it was at the
--- time; target_label keeps the listing or account name as it read then, so
--- an entry still makes sense after a rename or removal. ip_address and
--- user_agent are filled in for sign-in events only, which are deleted after
--- 90 days (audit_purge_old_signins()).
+-- Who did what, and when (admin/activity.php). target_label keeps the name
+-- as it was, so entries still make sense after a rename. IP and browser are
+-- kept for sign-ins only, and deleted after 90 days.
 -- ---------------------------------------------------------
 CREATE TABLE audit_logs (
     log_id        INT AUTO_INCREMENT PRIMARY KEY,
@@ -502,31 +439,19 @@ CREATE TABLE audit_logs (
 
 
 -- =========================================================
--- SEED DATA
---
--- Only what the application needs in order to work: the administrator
--- account, the lists the listing and room forms offer, and the sign-in
--- page's appearance. No landlords, boarders, listings, rooms or photos.
+-- SEED DATA: only what the site needs to work.
 -- =========================================================
 
--- 1. The administrator account — the only account in this file. It is the
---    super admin, so it can add the other administrators from the panel.
---
--- password_hash holds a bcrypt hash of the current administrator password.
--- The password itself is not stored and cannot be read back out of here.
--- Sign in at /admin/login.php with the email below, or the username
--- "admin", and that password.
---
--- To set a different password after importing:
---   php database/set_admin_password.php "YourNewPassword" admin@roomease.com
+-- 1. The super admin. Sign in at /admin/login.php as "admin".
+--    Only a bcrypt hash of the password is stored. To change it:
+--    php database/set_admin_password.php "YourNewPassword" admin@roomease.com
 INSERT INTO users
     (user_id, email, username, password_hash, first_name, last_name, phone_number, role, is_super_admin, is_active)
 VALUES
     (1, 'admin@roomease.com', 'admin', '$2y$10$ASqK/NDvxXriS5IfnBqLfuLZNdx2/d8zssHfHm3D6Q.fhB8.cG.ki',
      'System', 'Administrator', '09000000000', 'administrator', 1, 1);
 
--- 2. Room types. rooms.room_type_id points here, so no room can be added
---    until these exist.
+-- 2. Room types (needed before any room can be added).
 INSERT INTO room_types (room_type_id, room_type_name) VALUES
     (1, 'Single Room'),
     (2, 'Double Sharing'),
@@ -534,8 +459,7 @@ INSERT INTO room_types (room_type_id, room_type_name) VALUES
     (4, 'Dormitory'),
     (5, 'Private Room');
 
--- 3. Administrator-owned amenities (landlord_id NULL), offered to every
---    landlord on the listing form. Landlords add their own alongside these.
+-- 3. The admin's amenities, offered to every landlord.
 INSERT INTO amenities (amenity_id, landlord_id, amenity_name) VALUES
     (1, NULL, 'Wi-Fi'),
     (2, NULL, 'Air Conditioning'),
@@ -547,7 +471,7 @@ INSERT INTO amenities (amenity_id, landlord_id, amenity_name) VALUES
     (8, NULL, 'Refrigerator Access'),
     (9, NULL, 'Gated Compound');
 
--- 4. Administrator-owned utilities, owned the same way.
+-- 4. The admin's utilities.
 INSERT INTO utilities (utility_id, landlord_id, utility_name) VALUES
     (1, NULL, 'Water'),
     (2, NULL, 'Electricity'),
@@ -555,11 +479,10 @@ INSERT INTO utilities (utility_id, landlord_id, utility_name) VALUES
     (4, NULL, 'Internet / Wi-Fi'),
     (5, NULL, 'Cooking Gas');
 
--- 5. Appearance of the sign-in pages, as the panel currently has it.
+-- 5. Sign-in page background.
 INSERT INTO site_settings (setting_key, setting_value) VALUES
     ('auth_background_type', 'colour'),
     ('auth_background_colour', '#E6EFEA');
 
--- The next account the site creates is user_id 2. Every other table starts
--- empty, counting from 1.
+-- New accounts start at user_id 2.
 ALTER TABLE users AUTO_INCREMENT = 2;

@@ -1,8 +1,5 @@
-# RoomEase — webroot rules.
-#
-# Everything the browser legitimately needs is a page under /, /auth, /admin,
-# /landlord, /boarder or an asset under /assets. The folders denied below hold
-# code, credentials and schema dumps that are only ever read by PHP itself.
+# RoomEase web server rules. Browsers only need the pages and /assets;
+# everything else here is read by PHP only.
 
 Options -Indexes
 
@@ -10,40 +7,23 @@ Options -Indexes
 <IfModule mod_alias.c>
   RedirectMatch 404 (?i)^/(?:.*/)?(config|database|includes|storage)/
   RedirectMatch 404 (?i)^/(?:.*/)?\.git(/|$)
-  # A second, complete copy of the app checked out inside the webroot would be
-  # servable at its own URL, and would carry none of these fixes.
+  # Block copies of the app inside this folder (old code, same database).
   RedirectMatch 404 (?i)^/(?:.*/)?roomease/roomease/
-  # Same for .claude/worktrees/, where Claude Code keeps full copies of the
-  # app on other branches: each would run older code against the live database.
+  # Same for .claude/ (Claude Code's working copies).
   RedirectMatch 404 (?i)^/(?:.*/)?\.claude(/|$)
 </IfModule>
 
-# Composer's vendor/ at the app root is library code, never a page. A rewrite
-# rule matches it relative to this folder, so assets/vendor/ (Leaflet) is
-# unaffected.
+# Block Composer's vendor/ (assets/vendor/ is not affected).
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^vendor(/|$) - [NC,R=404,L]
 
-  # The standing pages moved into legal/. A link to an old address, in a chat
-  # or a bookmark, is sent to the new one rather than to the 404 page.
-  #
-  # The target is taken from REQUEST_URI rather than written relative: a
-  # relative target with R=301 is turned into a URL by prefixing the directory
-  # on disk, which sends the visitor to http://host/C:/wamp64/www/... The
-  # captured %1 is the folder RoomEase is served from, so this stays right in
-  # a subfolder and at a domain root alike.
+  # Old links to about/contact/terms/privacy go to their new place in legal/.
+  # %1 is the app's folder, so this works in a subfolder too.
   RewriteCond %{REQUEST_URI} ^(.*/)?(about|contact|terms|privacy)\.php$
   RewriteRule ^(about|contact|terms|privacy)\.php$ %1legal/$1.php [R=301,L]
 
-  # An address that matches no file and no folder is answered by the site's own
-  # 404 page instead of Apache's grey default. The target is written without a
-  # leading slash on purpose: a relative rewrite resolves against this folder,
-  # so it keeps working whether RoomEase sits at a domain root or in
-  # http://localhost/roomease/, which ErrorDocument cannot do.
-  #
-  # Missing images and stylesheets are left alone: a broken <img> should cost a
-  # short 404, not a rendered page.
+  # Unknown pages show our own 404.php (missing assets keep Apache's short 404).
   RewriteCond %{REQUEST_URI} !(^|/)assets/
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
@@ -51,8 +31,7 @@ Options -Indexes
 </IfModule>
 
 # --- File types that are never meant to be downloaded ---------------------
-# Office files are documents about the project (a plan, the defense slides)
-# that end up in this folder; the site itself never serves one.
+# Office files here are project documents, not part of the site.
 <FilesMatch "(?i)\.(sql|log|md|ini|json|lock|bak|old|sample|dist|yml|yaml|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp)$">
   <IfModule mod_authz_core.c>
     Require all denied
@@ -74,10 +53,8 @@ Options -Indexes
 </FilesMatch>
 
 # --- Headers, as a backstop for anything Apache serves without PHP --------
-# Every PHP page already sets the full set itself, so these use setifempty and
-# deliberately omit "always": on the normal response table mod_headers can see
-# what PHP already sent and leaves it alone, which is what keeps these from
-# arriving twice. Static files, which no PHP touches, get them from here.
+# PHP pages set these themselves; this covers static files. setifempty
+# avoids sending them twice.
 <IfModule mod_headers.c>
   Header setifempty X-Content-Type-Options "nosniff"
   Header setifempty X-Frame-Options "SAMEORIGIN"
