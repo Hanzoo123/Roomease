@@ -1,11 +1,7 @@
 <?php
 /**
- * Shared boarding house form fields, styled for the AdminLTE panel.
- * Included by landlord/add_listing.php and landlord/edit_listing.php.
- *
- * Rent, room type and capacity belong to each room. A new listing's rooms are
- * added in this form (includes/components/room_rows_form.php, when $formRooms is set);
- * an existing listing's rooms are managed on its Rooms card instead.
+ * Listing form fields, used by Add Listing and Edit Listing. New listings also
+ * get room rows (room_rows_form.php, when $formRooms is set).
  *
  * Expects:
  *   $listing         - assoc array of existing values, or [] for new listing
@@ -199,10 +195,7 @@ $policyPresets = [
 <hr>
 
 <?php
-/* Stay terms. Every field is optional: anything left blank or "Not stated"
-   is simply left off the listing page rather than shown as a guess. The
-   yes/no rules come back from the database as '1'/'0'/NULL and from a failed
-   submit as 1/0/NULL, so they are compared as strings. */
+/* Stay terms, all optional. Yes/no values are compared as strings ('1'/'0'). */
 $selectedPayments = explode(',', (string) ($listing['payment_methods'] ?? ''));
 $houseRuleFlags = [
   'visitors_allowed' => 'Visitors',

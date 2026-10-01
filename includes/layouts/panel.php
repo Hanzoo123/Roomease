@@ -1,33 +1,19 @@
 <?php
 /**
- * Shell configuration for the AdminLTE management panel.
- *
- * Both the administrator and the landlord areas render the same chrome
- * (panel_head / panel_navbar / panel_sidebar / panel_footer). Everything that
- * differs between the two roles is described here, in one place, so the two
- * panels cannot drift apart.
+ * Panel settings. Admins and landlords share the same layout files; what
+ * differs between the two roles (title, menu) is set here.
  */
 
 // The page header, card header and field helpers every panel page uses. Loaded
 // with the shell rather than page by page, so a new page gets them for free.
 require_once __DIR__ . '/../components/panel_page_header.php';
 
-/**
- * Panel settings for the currently logged-in user.
- * Returns the title suffix, the role label shown in the navbar and sidebar,
- * the panel's home page, and the sidebar menu.
- *
- * My Profile is not in either menu: it lives in the navbar account menu, which
- * is on every page of the panel.
- */
+/** Panel settings for the logged-in user: title, role label, home page and menu. */
 function panel_config()
 {
     if (is_admin()) {
-        // A super admin sees more: All Users, Administrators and Add User
-        // under User Management, the Audit Log, and the site's Appearance. Those pages also
-        // check for themselves (require_super_admin()), so hiding the links is
-        // not the only lock. A regular administrator's User Management holds
-        // Manage Users only: landlords and boarders.
+        // Super admins get extra menu items. Hiding links isn't the security:
+        // those pages check require_super_admin() themselves.
         $super = is_super_admin();
         $userPages = array_merge(
             $super ? [['url' => 'admin/all_users.php', 'icon' => 'fa-address-book', 'label' => 'All Users']] : [],

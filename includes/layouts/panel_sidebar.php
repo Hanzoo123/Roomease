@@ -1,27 +1,17 @@
 <?php
-/**
- * AdminLTE sidebar for the RoomEase management panel.
- * The menu items come from panel_config(), so each role gets its own.
- */
+/** Panel sidebar. Menu items come from panel_config(). */
 require_once __DIR__ . '/panel.php';
 $panel = $panel ?? panel_config();
 
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 $panelUser   = $_SESSION['full_name'] ?? $panel['badge']['label'];
 
-// The signed-in account as the avatar renderer wants it. The photo comes from
-// the session, which security.php refreshes from the database on every
-// request, so changing it shows here on the very next page.
+// The signed-in user, for their avatar.
 $panelAccount = ['full_name' => $panelUser, 'avatar_path' => $_SESSION['avatar_path'] ?? null];
 
-// Work out the highlighted item once. Two entries can share a page and differ
-// only by a query string (Manage Listings vs Pending Approvals), so the most
-// specific match wins: an item whose query parameters all match the current
-// request beats the same page listed without them. An item's 'also' pages,
-// such as a listing's edit page, highlight it too.
-//
-// A group's pages are checked like any other item, keyed "group-page" (such
-// as "1-0"), so the group can be drawn open around its highlighted page.
+// Find the menu item to highlight. If two items share a page (e.g. Manage
+// Listings vs Pending Approvals), the one whose query string matches wins.
+// 'also' lists other pages that highlight the item.
 $links = [];
 foreach ($panel['menu'] as $idx => $item) {
     if (!empty($item['children'])) {

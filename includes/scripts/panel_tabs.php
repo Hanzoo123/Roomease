@@ -1,15 +1,7 @@
 <?php
 /**
- * Drives the record tabs printed by panel_page_header()'s 'tabs' option, and
- * the shared "are you sure?" confirmation on destructive forms.
- *
- * Included from panel_footer.php, so every panel page gets both and no page
- * has to carry its own copy. It does nothing on a page with neither.
- *
- * The tabs are progressive: the markup renders every panel, and only this
- * script hides the ones that are not current. A browser with JavaScript off
- * shows the whole record, which is the right fallback for a page whose job is
- * to show everything about one thing.
+ * Panel tabs (from panel_page_header()) and "Are you sure?" on delete forms.
+ * Without JavaScript, every tab's content simply shows.
  */
 ?>
 <script>
@@ -76,9 +68,7 @@
     });
 
     /* ---- Destructive forms ask first ---- */
-    // The question is text in an attribute rather than script, so a name
-    // carrying a quote, a backslash or a line break cannot break the handler
-    // and quietly let the form through unconfirmed.
+    // The question is read from data-confirm, so quotes in a name can't break it.
     document.querySelectorAll('form.js-confirm').forEach(function (form) {
       form.addEventListener('submit', function (event) {
         if (!window.confirm(form.getAttribute('data-confirm'))) event.preventDefault();

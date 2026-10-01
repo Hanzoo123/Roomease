@@ -1,15 +1,7 @@
 <?php
 /**
- * "Show 6 more" on browse, without a page reload.
- *
- * The link is a real URL (?page=N+1#chunk-N+1) that renders every board up to
- * N+1, so with JavaScript off it reloads and jumps to the new board. Here the
- * same page is fetched in the background, only the new board and the updated
- * "Show more" block are lifted out of it, and the address bar is updated so a
- * refresh or a shared link shows the same rooms.
- *
- * The heart forms inside the new board need no wiring: favorite_toggle.php
- * listens for submits on the whole document.
+ * "Show 6 more" on browse without reloading: fetches the next page and adds
+ * the new cards. Without JavaScript the link just loads that page.
  */
 ?>
 <script>

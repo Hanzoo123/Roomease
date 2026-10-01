@@ -1,9 +1,5 @@
 <?php
-/**
- * Makes the Rooms card's buttons (slots − / +, Close / Reopen, delete) save
- * without a page reload. Included after panel_footer.php, so toastr is there.
- * Every button is a real form, so all of this is optional.
- */
+/** Rooms card buttons (− / +, close, delete) without reloading. Include after panel_footer.php. */
 ?>
 <script>
   (function () {

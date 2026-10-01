@@ -1,8 +1,5 @@
 <?php
-/**
- * AdminLTE head for the RoomEase management panel (admin and landlord).
- * Role-specific wording comes from panel_config().
- */
+/** <head> for the admin and landlord panel. */
 require_once __DIR__ . '/panel.php';
 $panel = $panel ?? panel_config();
 $pageTitle = $pageTitle ?? $panel['name'] . ' Dashboard';
@@ -15,10 +12,8 @@ $pageTitle = $pageTitle ?? $panel['name'] . ' Dashboard';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= h($pageTitle) ?> | RoomEase <?= h($panel['name']) ?></title>
   <?php
-  /* Light or dark, decided before the first paint so a dark panel never
-      flashes white on the way in. A choice made with the navbar's switch is
-      remembered in this browser; until then the panel follows the device.
-      panel_navbar.php holds the switch. */ ?>
+  /* Set light/dark mode before the page draws, so it doesn't flash white.
+     Uses the saved choice (navbar switch), else the device setting. */ ?>
   <script>
     (function () {
       var theme = null;

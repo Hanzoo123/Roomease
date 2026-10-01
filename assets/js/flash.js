@@ -1,11 +1,6 @@
 /**
- * Success messages ("You have been logged out.") fade out and fold away after
- * a few seconds. Errors are not marked [data-autohide], so they stay until the
- * page changes: they explain why something did not work.
- *
- * Resting the pointer on a message holds it; the countdown restarts when the
- * pointer leaves. A page opened in a background tab starts counting only once
- * it is actually shown. The fold itself is CSS (.is-leaving in style.css).
+ * Success messages fade out after a few seconds (errors stay). Hovering pauses
+ * the countdown. The animation is CSS (.is-leaving in style.css).
  */
 (function () {
   var DELAY = 3000;

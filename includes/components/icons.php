@@ -1,12 +1,7 @@
 <?php
 /**
- * Inline SVG icons for the public theme.
- *
- * The public theme loads no icon font, and the site has to render offline, so
- * the handful of icons it uses live here as stroke paths (after Feather and
- * Lucide, both permissively licensed). They inherit colour from the text
- * around them and are hidden from screen readers: every icon sits beside a
- * word that already says what it means.
+ * SVG icons for the public site (based on Feather/Lucide, open licence). They
+ * take the text colour and are hidden from screen readers.
  */
 function icon($name, $size = 18)
 {
@@ -49,10 +44,7 @@ function icon($name, $size = 18)
         . ' aria-hidden="true" focusable="false">' . ($paths[$name] ?? $paths['info']) . '</svg>';
 }
 
-/**
- * Icon and colour family for a utility tile, picked from the utility's name so
- * a landlord-added utility still gets a sensible tile.
- */
+/** Icon and colour for a utility, guessed from its name. */
 function utility_style($utilityName)
 {
     $n = strtolower((string) $utilityName);

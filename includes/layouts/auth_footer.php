@@ -1,11 +1,5 @@
 <?php
-/**
- * Closes the standalone sign-in layout opened by auth_header.php.
- *
- * Set before including:
- *   $authSwitch  optional ['text' => ..., 'href' => ..., 'label' => ...], the
- *                line under the card that moves between log in and sign up
- */
+/** Closes auth_header.php. Optional $authSwitch: the "log in / sign up" link under the card. */
 $authSwitch = $authSwitch ?? null;
 ?>
     </div><!-- /.auth-card -->

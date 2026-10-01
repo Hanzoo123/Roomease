@@ -1,24 +1,15 @@
 <?php
 /**
- * One listing as a photo card, shared by the home, browse, and saved pages so
- * the three cannot drift apart.
+ * A listing card, used by the home, browse and saved pages.
  *
- * $l needs the boarding_houses columns, cover_photo (COVER_PHOTO_SELECT), and
- * the room figures from ROOM_SUMMARY_COLUMNS / room_summary_join(). Browse
- * adds match_rent, match_count and match_type when a room filter is on, so the
- * card quotes the room that matched rather than the cheapest room of any kind.
+ * $l: listing row with cover_photo and room totals (plus match_* from browse).
+ * $save: null if the user can't save, else:
+ *   'saved'  already saved?
+ *   'return' where to go back to without JavaScript
+ *   'fields' extra hidden fields (browse filters)
+ *   'drop'   remove the card when unsaved (saved page)
  *
- * $save is null when the viewer cannot save listings; otherwise:
- *
- *   'saved'   bool    whether this listing is already saved
- *   'return'  string  where favorite_action.php sends a no-JavaScript submit
- *   'fields'  array   extra hidden fields, e.g. the browse filters
- *   'drop'    bool    remove the card when it is unsaved (the saved page)
- *
- * The title link is stretched over the whole card, so the card is one link to
- * a screen reader and one big target to a thumb. Its accessible name carries
- * the price and what is free, because the picture, the pill and "View details"
- * are all hidden from screen readers; the heart sits above the link.
+ * The whole card is one link, whose label includes the price for screen readers.
  */
 require_once __DIR__ . '/icons.php';
 

@@ -1,16 +1,8 @@
 <?php
 /**
- * Standalone layout for the sign-in pages: log in, sign up, forgot password,
- * and reset password. No site header, band, or footer: the brand, a heading,
- * and one card on the background an administrator picks in Appearance.
- *
- * Set before including:
- *   $pageTitle    browser tab title
- *   $authHeading  the page's <h1>, shown under the brand
- *   $authWide     optional; true for the wider sign-up card
- *   $authPreview  optional; true when an administrator is previewing the page
- *   $authAdmin    optional; true on the administrators' sign-in pages, which
- *                 keep a fixed dark background and stay out of search results
+ * Layout for sign-in pages: a card on the background chosen in Appearance.
+ * Set: $pageTitle, $authHeading. Optional: $authWide (wider card),
+ * $authPreview (admin preview), $authAdmin (admin pages: dark, not indexed).
  */
 $pageTitle = $pageTitle ?? 'Sign in';
 $authHeading = $authHeading ?? 'Sign in to your account';

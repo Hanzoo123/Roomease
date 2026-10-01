@@ -1,21 +1,10 @@
 <?php
 /**
- * Shared page header for the public theme.
- *
- * Every page opens on the forest band, and the first thing in the page body
- * sits across the band's lower seam. Set these before including this file:
- *
- *   $pageTitle  string, optional.
- *   $band       array, optional. Leave unset for a short band with no heading
- *               (the auth forms). Keys, all optional:
- *                 'title', 'lede'  heading and one line under it
- *                 'back'           ['href' => ..., 'label' => ...]
- *                 'pill'           ['class' => 'pill--available', 'label' => ...]
- *                 'notice'         ['type' => 'error'|'success', 'strong' => ..., 'text' => ...]
- *   $bleed      bool, optional. True when the page draws its own bands and
- *               containers, as the home page does.
- *   $bodyClass  string, optional. "page-white" gives the page a plain white
- *               ground with no forest strip behind the header (the legal pages).
+ * Header for public pages. All optional:
+ *   $pageTitle
+ *   $band       green top band: 'title', 'lede', 'back', 'pill', 'notice'
+ *   $bleed      true if the page draws its own sections (home page)
+ *   $bodyClass  'page-white' for a plain white page (legal pages)
  */
 require_once __DIR__ . '/../components/icons.php';
 

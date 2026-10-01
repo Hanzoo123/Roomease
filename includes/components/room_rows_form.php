@@ -1,16 +1,8 @@
 <?php
 /**
- * The Rooms section of the Add Listing form: one card per room, with its own
- * photos, plus "Add another room". Included by includes/components/listing_form.php when
- * $formRooms is set, which only landlord/add_listing.php does; an existing
- * listing's rooms are managed on its Rooms card instead.
- *
- * Expects:
- *   $formRooms        index => room fields (blank_room() / room_from_input()).
- *                     Indexes need not be contiguous: they only pair each
- *                     room's fields with its photo input, room_photos_<index>.
- *   $formRoomsPosted  true when the form is being shown again after a failed
- *                     submit, so file inputs (which browsers empty) need a note
+ * Room cards on the Add Listing form, plus "Add another room".
+ *   $formRooms        index => room fields (index pairs with room_photos_<index>)
+ *   $formRoomsPosted  true after a failed submit (photo inputs need re-choosing)
  */
 $formRoomTypes = room_type_options();
 $formRoomsPosted = $formRoomsPosted ?? false;

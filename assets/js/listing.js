@@ -1,9 +1,6 @@
 /**
- * Listing detail page: photo gallery, full-screen viewer, room filter, map.
- *
- * Everything here is an enhancement. Without JavaScript the main photo and the
- * thumbnails are plain links to the image files, every room stays listed, and
- * the map section shows its "Open in OpenStreetMap" link.
+ * Listing page: photo gallery, full-screen viewer, room filter, map.
+ * Without JavaScript the page still works (photos are plain links).
  */
 (function () {
   'use strict';
@@ -18,9 +15,7 @@
   }
 
   /* ---------------------------------------------------------------------
-   * Full-screen viewer, shared by the house gallery and every room.
-   * open(photos, index, opener, onChange) shows a set; onChange(index) lets
-   * the house gallery keep its own stage in step with the viewer.
+   * Full-screen photo viewer, used by the house gallery and the rooms.
    * ------------------------------------------------------------------- */
   var viewer = (function () {
     var box = document.querySelector('.lightbox');

@@ -1,16 +1,8 @@
 <?php
 /**
- * The search form that sits on the band's seam, shared by the home page and
- * browse so both submit exactly the same filters.
- *
- *   'action'     where the form submits; '' submits to the current page
- *   'anchor'     where on the results page to land, e.g. 'results'
- *   'id'         optional id, used by browse as the #listings anchor
- *   'room_types' room_type_id => name, from room_type_options()
- *   'q', 'room_type', 'max_rent'  current values, to keep them filled in
- *   'vacant'     true when "Has a free slot" is ticked
- *   'amenities'  the ticked amenity ids
- *   'amenity_options'  from filter_amenity_options(); looked up when left out
+ * Search form, shared by the home page and browse. Options: 'action', 'anchor',
+ * 'id', 'room_types', current values ('q', 'room_type', 'max_rent', 'vacant',
+ * 'amenities'), and 'amenity_options'.
  */
 function render_search_bar(array $opts)
 {
@@ -21,9 +13,7 @@ function render_search_bar(array $opts)
     $ticked = array_flip($opts['amenities'] ?? []);
     $action = ($opts['action'] ?? '') . (!empty($opts['anchor']) ? '#' . $opts['anchor'] : '');
 
-    // On a phone the room filters fold under "More filters". A search that
-    // used them comes back with them open, so the boarder can see why the
-    // results are what they are.
+    // On phones, open "More filters" if any of them are in use.
     $moreSet = ($roomType !== '' ? 1 : 0) + ($maxRent !== '' ? 1 : 0) + ($vacant ? 1 : 0) + count($ticked);
 
     // Landlords' own amenities wait behind "+ N more", unless one of them is

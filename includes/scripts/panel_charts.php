@@ -1,10 +1,7 @@
 <?php
 /**
- * ApexCharts and the panel's chart setup, for a page that has .re-chart
- * elements (admin/dashboard.php, admin/reports.php). Included after the
- * charts' markup, so the script finds them. Only these pages load the
- * library, which is self-hosted: the CSP allows no script from elsewhere,
- * and the panel has to work with no connection.
+ * Loads ApexCharts (self-hosted) for pages with .re-chart elements.
+ * Include after the charts' markup.
  */
 $chartAsset = function ($path) {
     return base_url($path) . '?v=' . (@filemtime(__DIR__ . '/../../' . $path) ?: 0);

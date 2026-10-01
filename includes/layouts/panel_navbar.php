@@ -1,18 +1,5 @@
 <?php
-/**
- * AdminLTE top navbar for the RoomEase management panel.
- *
- * The account menu lives here and nowhere else: it is where a signed-in person
- * finds their own profile and the way out. It is in the navbar rather than the
- * sidebar so it stays reachable when the sidebar is collapsed to icons or
- * hidden on a phone.
- *
- * There is no bell. One was tried here, carrying the approval queue's count
- * and linking straight to it, but a bell that navigates rather than opening
- * anything is a worse version of the sidebar item it duplicated. What is
- * waiting is still on the Pending Approvals item in the sidebar and on the
- * dashboard's own queue card.
- */
+/** Panel top bar, with the account menu (profile, logout) and the dark mode switch. */
 require_once __DIR__ . '/panel.php';
 $panel = $panel ?? panel_config();
 

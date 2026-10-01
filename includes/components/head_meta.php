@@ -1,30 +1,17 @@
 <?php
 /**
- * The icons every page carries, plus the description and link-preview tags
- * for pages a visitor might share. Included from inside <head> by all three
- * layouts, so a new page gets the icons without asking for them.
+ * <head> tags for every page: icons, description, and link previews (how a
+ * link looks when shared on Messenger or Facebook).
  *
- * Without these tags a link pasted into Messenger or Facebook shows a bare
- * address; with them it shows the page's name, a sentence, and a picture.
- *
- * Expects (all optional):
- *   $pageTitle        already set by the layout
- *   $metaDescription  one sentence, for search results and link previews
- *   $ogImage          absolute URL of the preview picture; the RoomEase card
- *                     is used when the page has no picture of its own
- *   $ogType           'website' (default) or 'article'
- *   $metaSocial       false on pages nobody shares (the panel, sign-in), where
- *                     a preview would be pointless
+ * Optional: $metaDescription, $ogImage (preview picture), $ogType,
+ * $metaSocial (false = no preview tags, e.g. for the panel).
  */
 $metaDescription = $metaDescription ?? '';
 $metaSocial = $metaSocial ?? true;
 $ogType = $ogType ?? 'website';
 $ogImage = $ogImage ?? absolute_url('assets/img/og-default.png');
 ?>
-<?php /* Cut from the RoomEase logo (assets/img/logo-full.png): the house and
-     leaves only, since the lettering blurs at 32px. The ?v stamp makes a
-     browser fetch a new icon when the file changes, which it otherwise
-     keeps for days. */ ?>
+<?php /* ?v= makes browsers fetch the icon again when the file changes. */ ?>
 <link rel="icon" href="<?= base_url('assets/img/favicon-32.png') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/img/favicon-32.png') ?: 0 ?>" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="<?= base_url('assets/img/apple-touch-icon.png') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/img/apple-touch-icon.png') ?: 0 ?>">
 <?php if ($metaDescription !== ''): ?>

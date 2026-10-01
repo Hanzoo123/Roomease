@@ -1,17 +1,7 @@
 /**
- * The public header stays at the top of the screen. It slides out of the way
- * while the page scrolls down, and back in as soon as it scrolls up, so the
- * navigation is one flick away without covering what is being read.
- *
- * The movement itself is CSS (.site-header.is-hidden in style.css); this only
- * decides when. It also publishes --header-offset, the height the header is
- * covering right now, for things that stick below it (Quick Info on a listing).
- * Without JavaScript the header simply stays put.
- *
- * On a narrow screen the links leave the tab and become a sheet hanging under
- * it, opened by the button beside the wordmark. That is the second half of
- * this file. The stylesheet only draws the collapsed navigation under
- * html.js, so with JavaScript off the links stay where they always were.
+ * Public header: hides when scrolling down, shows when scrolling up (the
+ * animation is CSS). Sets --header-offset for things that stick below it.
+ * On phones, also opens and closes the menu.
  */
 (function () {
   var header = document.querySelector('[data-site-header]');

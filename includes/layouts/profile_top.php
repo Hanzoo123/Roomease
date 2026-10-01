@@ -1,18 +1,10 @@
 <?php
 /**
- * The frame around the three account pages: My Profile, Edit Profile and
- * Change Password. Close it with profile_bottom.php.
+ * Layout for My Profile, Edit Profile and Change Password (close with
+ * profile_bottom.php). Admins and landlords see it in the panel, boarders on
+ * the public site; $cls holds the CSS class names for each.
  *
- * Admins and landlords work inside the management panel, so their account
- * pages render there. Boarders only ever see the public site, so theirs sit
- * on the band like every other public page. The pages themselves are written
- * once; $cls maps each shared role onto the class names of the theme in use.
- *
- * Set these before including this file:
- *
- *   $pageTitle        the tab title, and the page heading
- *   $profileSubtitle  one line under the heading
- *   $profileBack      optional ['href' => path, 'label' => ...]
+ * Set first: $pageTitle, $profileSubtitle, optional $profileBack.
  */
 $usePanel = is_admin() || current_role() === 'landlord';
 $profileBack = $profileBack ?? null;

@@ -1,11 +1,7 @@
 <?php
 /**
- * The "My Boarding Houses" card: a landlord's listings with their rooms,
- * photos, approval, and actions. Shown on landlord/dashboard.php and
- * landlord/listings.php.
- *
- * Expects:
- *   $listings  rows from landlord_listings(), or [] when there are none
+ * "My Boarding Houses" table (dashboard and listings page).
+ * Expects $listings from landlord_listings().
  */
 $listings = $listings ?? [];
 ?>

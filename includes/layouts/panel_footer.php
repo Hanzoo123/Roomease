@@ -1,8 +1,5 @@
 <?php
-/**
- * AdminLTE footer and scripts for the RoomEase management panel.
- * Also turns a pending flash message into a Toastr notification.
- */
+/** Panel footer and scripts. Shows flash messages as toastr pop-ups. */
 require_once __DIR__ . '/panel.php';
 $panel = $panel ?? panel_config();
 $flash = flash_get();
@@ -42,9 +39,7 @@ $flash = flash_get();
         "progressBar": true,
         "positionClass": "toast-top-right",
         "timeOut": "5000",
-        // Flash text can contain data a landlord typed, such as a listing
-        // name. Toastr renders its message as HTML by default, so this must
-        // stay on or that text becomes script in an administrator browser.
+        // Must stay on: messages can include text a landlord typed (XSS).
         "escapeHtml": true
       };
       <?php if ($flash['type'] === 'error'): ?>

@@ -1,19 +1,10 @@
 /**
- * Interactive charts for the management panel (Dashboard and Reports).
+ * Panel charts (ApexCharts). PHP writes the data into
+ * <div class="re-chart" data-chart='{...}'>; the CSS bars inside stay as the
+ * fallback without JavaScript.
  *
- * A page marks a chart with <div class="re-chart" data-chart='{...}'>, the
- * JSON written by PHP from figures it has already queried. Whatever the div
- * holds (the old CSS bars) stays as the fallback: it shows with JavaScript
- * off, and is replaced here once ApexCharts has drawn the chart.
- *
- * A spec is { kind, height, categories, series, ... }:
- *   kind 'mixed'  columns and a line over the same categories; a series with
- *                 axis: 1 is measured on its own axis on the right
- *   kind 'donut'  labels + one value each, total in the middle
- *   kind 'hbar'   one horizontal bar per category
- *   kind 'column' one upright bar per category
- * Colours are named after the panel's tokens (teal, terracotta, green, ...)
- * and read from panel.css, so the charts follow the light and dark themes.
+ * kind: 'mixed' (columns + line), 'donut', 'hbar' or 'column'.
+ * Colours come from panel.css, so charts follow light and dark mode.
  */
 (function () {
   'use strict';

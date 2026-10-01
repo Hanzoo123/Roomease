@@ -1,31 +1,15 @@
 <?php
 /**
- * The block at the top of every panel page: an optional way back, the title, a
- * line saying what the page is for, and the actions.
+ * The header at the top of every panel page.
  *
- * Every admin and landlord page used to hand-roll this out of AdminLTE's
- * content-header, a row, two columns and a breadcrumb. Nineteen copies drifted
- * from one another — some had a subtitle, some a coloured icon, some put their
- * buttons in the card below instead. One function ends that, and gives the
- * panel a single place to look for "what can I do on this screen".
- *
- *   $title     the page's name, plain text
+ *   $title     page name
  *   $options:
- *     'subtitle' string  one line under the title, saying what the page is for
- *     'back'     string  app-relative URL for the way back, e.g. the list this
- *                        record came from. Omit on a top-level page.
- *     'backLabel'string  what the way back is for, read out to a screen reader
- *     'actions'  string  ready-made HTML for the buttons on the right
- *     'lead'     string  ready-made HTML placed before the title, such as an
- *                        avatar or a listing's cover photo
- *     'tabs'     array   the sections of this record, for a page that shows one
- *                        thing from several angles. Each entry:
- *                          'id'    the id of the matching .re-tabpanel
- *                          'label' what the tab says
- *                          'count' optional number drawn beside the label
- *                        The first is the one shown, and every panel is
- *                        rendered whether or not its tab is current, so the
- *                        page still works with no JavaScript.
+ *     'subtitle'  one line under the title
+ *     'back'      URL of the "back" link (omit on top-level pages)
+ *     'backLabel' label of the back link, for screen readers
+ *     'actions'   HTML for the buttons on the right
+ *     'lead'      HTML before the title (e.g. an avatar)
+ *     'tabs'      [['id' => tabpanel id, 'label' => ..., 'count' => optional], ...]
  */
 
 /** Print the page header. See the notes above for $options. */
@@ -80,11 +64,7 @@ function panel_page_header($title, array $options = [])
     <?php
 }
 
-/**
- * A card header with a title, the line of grey under it, and whatever tools
- * belong on the right. $tools is ready-made HTML, because what sits there
- * ranges from a single link to a whole filter form.
- */
+/** A card header: title, grey subtitle, and $tools (HTML) on the right. */
 function panel_card_header($title, $subtitle = '', $tools = '')
 {
     ?>
@@ -102,20 +82,14 @@ function panel_card_header($title, $subtitle = '', $tools = '')
     <?php
 }
 
-/**
- * A label above its value, the pair the panel repeats everywhere. $value is
- * escaped unless $raw is true, which is how a badge or a link gets in.
- */
+/** A label above a value. $value is escaped unless $raw is true. */
 function re_field($label, $value, $raw = false)
 {
     return '<div><span class="re-field-label">' . h($label) . '</span>'
         . '<span class="re-field-value">' . ($raw ? $value : h($value)) . '</span></div>';
 }
 
-/**
- * What a card says when it has nothing to show: an icon, a sentence, and
- * where there is one, the thing to do about it. $action is ready-made HTML.
- */
+/** Empty state for a card: an icon, a sentence, and an optional $action (HTML). */
 function re_empty($title, $text = '', $icon = 'fa-inbox', $action = '')
 {
     $html = '<div class="re-empty">'

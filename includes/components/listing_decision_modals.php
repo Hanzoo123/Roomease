@@ -1,21 +1,11 @@
 <?php
 /**
- * The Reject and Remove dialogs for listings, shared by Manage Listings and a
- * listing's review page. One of each serves every row: a button with the
- * class js-reject or js-remove, carrying data-id and data-name, fills it in
- * and opens it.
+ * Reject and Remove dialogs for listings. A button with class js-reject or
+ * js-remove (and data-id, data-name) opens them.
  *
- * Set before including:
- *   $returnStatus    optional; the approval tab to come back to
- *   $returnTo        optional; 'review' to come back to the listing's review
- *                    page, or 'next' to go on to the next listing waiting
- *   $rejectReturnTo  optional; where rejecting goes when that differs from
- *                    where removing goes. The review page sends a rejection on
- *                    to the next listing in the queue but keeps a removal in
- *                    place, because a removal is worth seeing land.
- *
- * Include it before panel_footer.php. Its script waits for DOMContentLoaded,
- * by which time the footer has loaded jQuery and Bootstrap.
+ * Optional: $returnStatus (tab to return to), $returnTo ('review' or 'next'),
+ * $rejectReturnTo (if rejecting should go somewhere else than removing).
+ * Include before panel_footer.php.
  */
 $returnStatus = $returnStatus ?? '';
 $returnTo = $returnTo ?? '';

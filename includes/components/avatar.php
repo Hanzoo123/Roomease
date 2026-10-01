@@ -1,18 +1,8 @@
 <?php
 /**
- * One account's avatar: their profile photo, or their initials when they have
- * none. Every place that draws a face — the panel sidebar and navbar, the
- * admin tables, the activity log, the public listing page — goes through here,
- * so a photo and a fallback can never be styled two different ways.
- *
- * $user needs a name and, if it has one, avatar_path. Both the panel and the
- * public site pass whatever row they already have, so the accepted key names
- * are deliberately loose: full_name, landlord_name, name, or first_name plus
- * last_name.
- *
- * $size is the diameter in pixels. $class is added to the element, which is how
- * a caller reaches for the public site's own .avatar styling instead of the
- * panel's .re-avatar.
+ * A user's avatar: their photo, or their initials. Used everywhere a face is shown.
+ * $user needs a name (full_name, landlord_name, name, or first/last name) and
+ * avatar_path if any. $size is in pixels; $class picks the CSS style.
  */
 
 /** The name to take initials from, whichever shape the row is in. */
@@ -26,12 +16,7 @@ function avatar_name(array $user)
     return trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
 }
 
-/**
- * The avatar as HTML. A photo is decorative here — the name is always beside
- * it in the markup that calls this — so the img carries an empty alt and the
- * initials are hidden from screen readers, which keeps the name from being
- * read out twice.
- */
+/** The avatar HTML. Hidden from screen readers, since the name is always shown beside it. */
 function avatar_html(array $user, $size = 32, $class = 're-avatar')
 {
     $name = avatar_name($user);

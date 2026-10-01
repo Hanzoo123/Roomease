@@ -1,12 +1,5 @@
 <?php
-/**
- * Show/hide toggle for every password field on the page.
- *
- * Included from both footers, so it applies to the public theme and the
- * management panel alike and does nothing on pages without a password field.
- * The icons are inline SVG rather than Font Awesome, because the public theme
- * does not load an icon font.
- */
+/** Show/hide button on every password field (public site and panel). */
 ?>
 <style>
   .pw-wrap {
@@ -116,9 +109,7 @@
         return;
       }
 
-      // Everything else: overlay the button on the right edge of the field.
-      // The input's bottom margin moves to the wrapper so the wrapper is
-      // exactly as tall as the input and the button centres correctly.
+      // Otherwise: put the button inside the field, on the right.
       var wrap = document.createElement('span');
       wrap.className = 'pw-wrap';
       var style = window.getComputedStyle(input);

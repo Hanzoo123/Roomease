@@ -1,15 +1,7 @@
 <?php
 /**
- * Instant heart toggle for the save-a-listing forms.
- *
- * Without this the heart is a plain form post that redirects, so every tap
- * reloads the page and throws away the boarder's scroll position. Here the
- * click is sent with fetch() and the button is repainted in place instead.
- *
- * The forms still work untouched with JavaScript off: this only takes over
- * once it has loaded, and it falls back to a real submit if the request
- * fails. Included from the public footer, and does nothing on pages that
- * have no .save-form on them.
+ * Save/unsave hearts without reloading the page (fetch). If the request
+ * fails, or JavaScript is off, the form submits normally.
  */
 ?>
 <script>
@@ -49,9 +41,7 @@
 
       btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
 
-      // The detail page carries a worded label beside the heart, which is its
-      // name; an aria-label would only contradict it. A bare heart is named
-      // after its listing, so a list of them is not a list of "Save".
+      // A heart with a text label needs no aria-label; a bare heart gets one.
       var text = btn.querySelector('.save-btn-text');
       if (text) {
         text.textContent = saved ? 'Saved' : 'Save this listing';
@@ -69,12 +59,7 @@
       btn.classList.add('save-btn-pop');
     }
 
-    /**
-     * The listing page carries two hearts for the same listing: one in Quick
-     * Info and one in the call bar that follows a phone down the page. Both
-     * are repainted, or tapping one would leave the other showing the state
-     * the listing was in before.
-     */
+    /** Update every heart for this listing (the listing page has two). */
     function paintAll(form, saved) {
       var idField = form.querySelector('input[name="boarding_house_id"]');
       var id = idField ? idField.value : null;
@@ -91,11 +76,7 @@
       });
     }
 
-    /**
-     * On the saved page an unsaved card no longer belongs in the list, so it
-     * fades out and the counter follows it down. Emptying the list reloads
-     * once, which is the cheapest way to get the proper empty state back.
-     */
+    /** Saved page: fade out an unsaved card; reload when the list is empty. */
     function dropCard(form) {
       var card = form.closest('.room-card');
       if (!card) {
@@ -129,9 +110,7 @@
       e.preventDefault();
       btn.disabled = true;
 
-      // getAttribute, not form.action: the form has a field named "action",
-      // and form.action returns that field instead of the URL, which sent
-      // every tap to a missing page and fell back to a full reload.
+      // Not form.action: the form has a field named "action", which hides it.
       fetch(form.getAttribute('action'), {
         method: 'POST',
         body: new FormData(form),
