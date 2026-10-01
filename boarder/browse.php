@@ -17,19 +17,9 @@ $searchFilters = array_diff_key($filters, ['page' => 1]);
 $filtered = (bool) $searchFilters;
 
 /**
- * The WHERE clause and its parameters for a set of filters. Browse, and each
- * of the "try instead" suggestions under an empty result, count with this, so
- * a suggestion's number is exactly what following it shows.
- *
- * Room type, budget and "has a free slot" match a room inside the listing, not
- * the listing as a whole: a listing appears when at least one of its open rooms
- * fits all of them at once. Without "has a free slot", full rooms still count,
- * so a fully occupied listing that fits is still found; it is simply sorted
- * after listings with space.
- *
- * Amenities belong to the listing, and it must offer every one ticked. Each is
- * matched by name, so a choice that stands for the same name added by two
- * landlords finds both (filter_amenity_options()).
+ * WHERE clause + parameters for a set of filters (also used to count the
+ * "try instead" suggestions). Room type, budget and free slot must all match
+ * the same open room. The listing must have every amenity ticked.
  */
 $whereFor = function (array $f) use ($amenityOptions) {
   // LIVE_LISTING_WHERE also requires at least one room.
@@ -67,9 +57,7 @@ $whereFor = function (array $f) use ($amenityOptions) {
   return [implode(' AND ', $where), $params];
 };
 
-// LIVE_LANDLORD_JOIN keeps listings out of browse when their landlord has been
-// deactivated or removed. Browse used to look only at the listing, so a
-// deactivated landlord's rooms stayed advertised.
+// LIVE_LANDLORD_JOIN hides listings of deactivated or removed landlords.
 $countFor = function (array $f) use ($pdo, $whereFor) {
   [$where, $params] = $whereFor($f);
   $stmt = $pdo->prepare('SELECT COUNT(*) FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' WHERE ' . $where);
@@ -79,17 +67,13 @@ $countFor = function (array $f) use ($pdo, $whereFor) {
 
 $totalCount = $countFor($searchFilters);
 
-// Rooms come in groups of $perPage. ?page=N shows every group up to N, so the
-// "Show more" link works with JavaScript off, and a saved heart that reloads
-// the page brings back everything the boarder had already opened.
+// "Show more": ?page=N shows all results up to page N (works without JavaScript).
 $perPage = 6;
 $totalPages = max(1, (int) ceil($totalCount / $perPage));
 $page = max(1, min($filters['page'] ?? 1, $totalPages));
 
-// With a room filter on, each listing also carries the rent of the room that
-// matched, so the card quotes the Double Sharing room the boarder asked for
-// rather than the listing's cheapest room of any kind. A room with a slot free
-// is quoted before a full one.
+// With a room filter, the card shows the rent of the matching room, not the
+// listing's cheapest room. Rooms with a free slot come first.
 $matchJoin = '';
 $matchSelect = '';
 $matchParams = [];
@@ -146,10 +130,9 @@ $nextCount = min($perPage, $totalCount - $shown);
 $moreUrl = base_url(browse_path($searchFilters + ['page' => $page + 1], 'chunk-' . ($page + 1)));
 
 /* ---------------------------------------------------------------------------
- * The search in words, each part removable, and what to try when nothing
- * matched. The suggestions only ever quote real counts and real rents.
+ * Filter chips (each removable), and suggestions when nothing matched.
  * ------------------------------------------------------------------------ */
-// The search without one of its parts, for a chip's link and the suggestions.
+// The filters without one of them.
 $without = function ($key, $amenityId = null) use ($searchFilters) {
   if ($amenityId === null) {
     return array_diff_key($searchFilters, [$key => 1]);
@@ -280,9 +263,7 @@ $band = [
 ];
 require __DIR__ . '/../includes/layouts/header.php';
 
-// The filter bar carries the #listings anchor, so links from the home page
-// land with the search form and the first rooms in view. A search submitted
-// from it lands on #results, the first thing that changed.
+// #listings anchor for links from the home page; searches land on #results.
 render_search_bar([
   'id' => 'listings',
   'anchor' => 'results',

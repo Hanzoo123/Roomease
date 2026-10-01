@@ -90,9 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stayAssignments = implode(', ', array_map(function ($column) {
             return $column . '=?';
         }, STAY_TERM_COLUMNS));
-        // The house and its amenities and utilities are saved together, as on
-        // Add Listing: the amenities are replaced (deleted, then inserted
-        // again), so a failure part way would otherwise leave none ticked.
+        // One transaction, so a failure can't leave the amenities half-saved.
         $pdo->beginTransaction();
         try {
             $stmt = $pdo->prepare(
@@ -180,9 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $photoError = $e->getMessage();
         }
 
-        // An approved listing whose text or photos changed goes back to an
-        // administrator before boarders see it again: otherwise a listing
-        // could be approved and then turned into something else entirely.
+        // Approved listing with changed text or new photos: back to pending,
+        // so it can't be approved and then changed into something else.
         if ($paths) {
             $reviewedChanges[] = 'photos';
         }

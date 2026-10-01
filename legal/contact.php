@@ -1,18 +1,8 @@
 <?php
 /**
- * Contact RoomEase: the ways to reach the team, a form that sends to the
- * team's address, and answers to the questions people ask most.
- *
- * The address comes from ROOMEASE_CONTACT_EMAIL in .env. Without it the page
- * still explains how to reach the team, but the form is not offered: a form
- * that silently goes nowhere is worse than no form. The Facebook and
- * Messenger rows likewise appear only when ROOMEASE_FACEBOOK_URL and
- * ROOMEASE_MESSENGER_URL are set.
- *
- * Messages are sent through the same Gmail account as the password reset
- * codes. The sender's own address is written into the body rather than into a
- * Reply-To header, because a header built from a form field is how mail
- * injection gets in.
+ * Contact page and form. The form only shows when ROOMEASE_CONTACT_EMAIL is
+ * set in .env. The sender's email goes in the message body, not a header,
+ * to prevent email header injection.
  */
 require __DIR__ . '/../includes/init.php';
 

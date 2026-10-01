@@ -1,11 +1,5 @@
 <?php
-/**
- * Terms & Conditions, in plain language. Linked from the sign-in and sign-up
- * pages ("By continuing, you agree to...") and from the site footer.
- *
- * A draft written to match what RoomEase actually does. Review it, and change
- * the date below whenever the wording changes.
- */
+/** Terms & Conditions. Update the date below when the wording changes. */
 require __DIR__ . '/../includes/init.php';
 
 $pageTitle = 'Terms & Conditions';

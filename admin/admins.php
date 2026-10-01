@@ -1,13 +1,7 @@
 <?php
 /**
- * Administrators: every administrator account, for super admins only.
- *
- * A super admin can add an administrator (admin/add_user.php) and, on anyone
- * but themselves, deactivate or reactivate them, remove or restore them,
- * make them a super admin or take that away (admin/admin_action.php), and
- * set a new temporary password (admin/reset_admin_password.php). Every
- * other administrator page is the same for every administrator; this one and
- * Appearance are what a super admin has on top.
+ * Administrators list (super admins only). Add, deactivate, remove, promote
+ * or reset the password of any admin except yourself.
  */
 require __DIR__ . '/../includes/init.php';
 

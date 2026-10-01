@@ -1,13 +1,8 @@
 <?php
 /**
- * Step 3 of "Continue with Google", only for someone new who started on the
- * sign-in page. Google has confirmed who they are, but not whether they are
- * looking for a room or renting rooms out, so the account is created once they
- * say. The sign-up page asks for the role before going to Google, so its
- * visitors never see this page.
- *
- * auth/google_callback.php leaves the confirmed Google profile in
- * $_SESSION['google_signup']. It lasts GOOGLE_SIGNUP_TTL and is used once.
+ * Google sign-in step 3, for new users who started from the login page: ask
+ * boarder or landlord, then create the account. The Google details wait in
+ * $_SESSION['google_signup'] for GOOGLE_SIGNUP_TTL.
  */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';

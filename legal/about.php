@@ -1,10 +1,7 @@
 <?php
 /**
- * About RoomEase: why it exists, what it stands for, and who built it.
- *
- * The survey figures are the ones in the capstone paper (19 respondents who
- * had searched for a rental in Baybay City). The live figures come from the
- * same query the home page quotes, so the two pages can never disagree.
+ * About RoomEase. Survey figures are from the capstone paper (19 respondents);
+ * live figures use the same query as the home page.
  */
 require __DIR__ . '/../includes/init.php';
 

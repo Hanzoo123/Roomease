@@ -1,11 +1,7 @@
 <?php
 /**
- * Change Password, on its own page.
- *
- * An account with a password changes it by typing the current one. An account
- * made with Google has a password nobody knows, so it gets the same emailed
- * code as "Forgot password" instead, sent to the account's own address: that
- * code is the proof, exactly as it is for a reset.
+ * Change Password. Needs the current password. Google accounts (whose
+ * password nobody knows) get an emailed code instead.
  */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
@@ -39,9 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
   }
   record_failed_attempt('reset', $user['email']);
 
-  // If sending fails, a developer who turned on ROOMEASE_SHOW_RESET_CODES
-  // still gets the code on the next page, as on "Forgot password"; anyone
-  // else is told it failed.
+  // If the email fails, say so (unless the dev setting shows the code on screen).
   if (issue_password_reset_code($user['email'], 'profile') === false && !show_reset_codes_on_screen()) {
     unset($_SESSION['password_reset']);
     flash_set('The email could not be sent. Please try again later.', 'error');
@@ -81,15 +75,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$googleLinked) {
     $_SESSION['must_change_password'] = false;
     audit_log('password_change', $userId, $user['email'], 'Other devices signed out');
 
-    // A password change invalidates every other copy of this session, so
-    // anyone who had already got hold of the old session id loses it. This
-    // is the whole point of changing the password after a scare.
+    // New session id, so a stolen old one stops working.
     session_regenerate_id(true);
 
-    // Every other session of the account, in any browser, is signed out
-    // on its next page, because the password it was signed in under is
-    // gone (see enforce_session_policy()). This one records the new
-    // password, so it is the one that stays signed in.
+    // Other sessions are signed out on their next page; this one stays signed in.
     $_SESSION['password_fingerprint'] = password_fingerprint($newHash);
 
     // Same for "Remember me": every remembered device is forgotten. This

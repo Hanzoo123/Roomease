@@ -1,7 +1,5 @@
 <?php
-/**
- * The boarder's shortlist of saved listings.
- */
+/** The boarder's saved listings. */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/components/listing_card.php';
 require_login('boarder');

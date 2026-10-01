@@ -1,10 +1,5 @@
 <?php
-/**
- * Appearance: the background behind the sign-in pages (log in, sign up,
- * forgot password, reset password), a solid colour or an uploaded photo.
- *
- * Super admins only: it changes what everyone sees on signing in.
- */
+/** Appearance (super admins only): the sign-in pages' background, a colour or a photo. */
 require __DIR__ . '/../includes/init.php';
 
 require_super_admin();

@@ -68,11 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newUserId = (int) $pdo->lastInsertId();
     mark_self_created($newUserId);
 
-    // Signed in straight away, exactly as auth/login.php does it: nobody
-    // should have to type the password they chose a second ago. A guest who
-    // tapped Save before signing up gets that listing saved and is taken
-    // back to it; anyone else lands on the home page, which sends a new
-    // landlord on to their dashboard.
+    // Sign in straight away. If they tapped Save before signing up, save it
+    // and go back to that listing.
     $newUser = $pdo->prepare('SELECT * FROM users WHERE user_id = ?');
     $newUser->execute([$newUserId]);
     $user = $newUser->fetch();

@@ -1,12 +1,5 @@
 <?php
-/**
- * Privacy Policy, in plain language. Linked from the sign-in and sign-up
- * pages ("By continuing, you agree to...") and from the site footer.
- *
- * A draft written to match what RoomEase actually stores (see
- * database/roomease.sql) and how long it keeps it. If that changes, change
- * this page and the date below with it.
- */
+/** Privacy Policy. Keep it matching what the database stores, and update the date when it changes. */
 require __DIR__ . '/../includes/init.php';
 
 $pageTitle = 'Privacy Policy';

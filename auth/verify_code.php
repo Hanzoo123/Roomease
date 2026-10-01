@@ -1,15 +1,8 @@
 <?php
 /**
- * Step 2 of the password reset: enter the 6-digit code from the email.
- *
- * The attempt this page works on lives in $_SESSION['password_reset'], set by
- * the page that sent the code: "Forgot password" (public or admin) or the
- * profile page. A right code is exchanged for a token kept in the session, and
- * the visitor moves on to choose the new password.
- *
- * Nothing here says whether the address has an account. Wrong guesses are
- * counted in the session as well as against the code, so a made-up address
- * runs out of tries exactly like a real one.
+ * Password reset step 2: enter the 6-digit code. A right code gives the
+ * session a token for step 3. Wrong tries are counted the same way for real
+ * and made-up emails, so nothing reveals whether an account exists.
  */
 require __DIR__ . '/../includes/init.php';
 

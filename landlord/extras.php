@@ -1,11 +1,7 @@
 <?php
 /**
- * A landlord's own utilities and amenities.
- *
- * The administrator's items are listed read-only, because every landlord
- * shares them. Below them are the items this landlord added, which only they
- * see on their listing form: add, rename, or delete. Deleting one also takes
- * it off any of their listings that used it.
+ * A landlord's own amenities and utilities: add, rename or delete (deleting
+ * removes it from their listings). The admin's shared items are read-only.
  */
 require __DIR__ . '/../includes/init.php';
 require_login('landlord');

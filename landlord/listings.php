@@ -1,8 +1,5 @@
 <?php
-/**
- * My Boarding Houses: every listing this landlord owns, with its rooms,
- * approval, and actions. The same table sits under the dashboard's figures.
- */
+/** My Boarding Houses: this landlord's listings (same table as on the dashboard). */
 require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 

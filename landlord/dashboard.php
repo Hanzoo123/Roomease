@@ -1,8 +1,5 @@
 <?php
-/**
- * RoomEase Landlord Dashboard (AdminLTE Panel)
- * Shares the panel chrome with the admin area; see includes/layouts/panel.php.
- */
+/** Landlord dashboard. Uses the same panel layout as admin (includes/layouts/panel.php). */
 require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 
@@ -51,10 +48,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   <section class="content">
     <div class="container-fluid">
 
-      <?php /* The same tiles as the administrator's dashboard. This used to be
-           AdminLTE's own small-box, which was the clearest sign that the two
-           panels had been built at different times: same job, two components,
-           two sets of spacing. */ ?>
+      <?php /* Same stat tiles as the admin dashboard. */ ?>
       <div class="stat-row">
         <a class="stat stat--filled stat--teal" href="<?= base_url('landlord/listings.php') ?>">
           <i class="fas fa-home stat-icon" aria-hidden="true"></i>

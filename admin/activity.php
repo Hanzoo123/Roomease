@@ -1,20 +1,8 @@
 <?php
 /**
- * RoomEase Admin - Audit Log
- *
- * Who did what, from audit_logs (database/roomease.sql), on three tabs:
- *
- *   Administrators  every approval, rejection, removal and restore of a
- *                   listing, every change to an account, and every export
- *   Landlords       what landlords changed in their listings and rooms
- *   Sign-ins        every sign-in, failed sign-in, sign-out, new account and
- *                   password change, with the IP address and browser
- *
- * Super admins only: the log shows what every administrator did.
- *
- * The log only grows, so it is filtered and paged in the database rather than
- * in the browser. Opening the page also clears out sign-in records older than
- * AUDIT_SIGNIN_DAYS, as the Privacy Policy promises.
+ * Audit Log (super admins only): who did what, on three tabs
+ * (Administrators, Landlords, Sign-ins). Filtered and paged in SQL.
+ * Opening it also deletes sign-in records older than AUDIT_SIGNIN_DAYS.
  */
 require __DIR__ . '/../includes/init.php';
 

@@ -1,10 +1,7 @@
 <?php
 /**
- * RoomEase Admin Dashboard
- *
- * What needs the administrator now (listings waiting for a decision, oldest
- * first), how the last 30 days went, and what administrators have done
- * lately. Removed accounts and removed listings are not counted.
+ * Admin dashboard: pending listings (oldest first), the last 30 days, and
+ * recent admin activity. Removed accounts and listings aren't counted.
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -63,10 +60,7 @@ $decided = $pdo->prepare(
 $decided->execute([$since]);
 $decided = $decided->fetch();
 
-// Only what administrators did: the audit log also holds landlords' edits and
-// every sign-in, which have their own tabs on the Audit Log page. Only a super
-// admin sees the audit log, so for anyone else this stays null and the card is
-// left out.
+// Recent admin actions. Super admins only (others get null, and no card).
 $recentActivity = null;
 if (is_super_admin()) {
   $adminActions = audit_actions_in_group('admin');

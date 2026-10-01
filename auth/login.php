@@ -1,13 +1,10 @@
 <?php
-/**
- * RoomEase login — one sign-in for every role, on the standalone sign-in layout.
- */
+/** Login for landlords and boarders (admins use admin/login.php). */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
-// An administrator can open ?preview=1 from Appearance to see this page with
-// the chosen background. Anyone else who is logged in goes to their own
-// landing page; index.php routes each role, so that rule lives in one place.
+// ?preview=1 lets an admin preview the background from Appearance.
+// Anyone else already logged in goes to index.php.
 $preview = is_logged_in() && is_admin() && isset($_GET['preview']);
 if (is_logged_in() && !$preview) {
     redirect('index.php');
@@ -30,9 +27,7 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $remember = ($_POST['remember'] ?? '') === '1';
 
-    // Counted per account and per source address, so neither guessing one
-    // account's password nor spraying one common password across many
-    // accounts is free to an attacker.
+    // Limit failed logins per account and per IP.
     $retryAfter = $loginId !== '' ? throttle_retry_after('login', $loginId) : 0;
 
     if (empty($loginId) || empty($password)) {
@@ -42,9 +37,7 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Too many failed sign-in attempts. Please try again in "
             . format_wait($retryAfter) . ".";
     } else {
-        // Administrators sign in at admin/login.php. Their accounts are left
-        // out here, so this page answers an admin email exactly as it answers
-        // an unknown one and never reveals that an admin account exists.
+        // Admin accounts are excluded, so an admin email looks like an unknown one.
         $stmt = $pdo->prepare(
             "SELECT * FROM users
               WHERE email = :login_id AND deleted_at IS NULL AND role <> 'administrator'

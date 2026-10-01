@@ -1,12 +1,7 @@
 <?php
 /**
- * RoomEase Admin - Reports
- *
- * Where RoomEase stands (accounts, what boarders can see, rents, occupancy)
- * and how it has moved month by month (new accounts, new listings, approval
- * decisions), with the users and listings CSV exports alongside. The charts
- * are plain CSS bars: no chart library, nothing loaded from outside, and they
- * print.
+ * Reports: current totals (accounts, listings, rents, occupancy), monthly
+ * trends, and the CSV exports. Charts are plain CSS bars.
  */
 require __DIR__ . '/../includes/init.php';
 

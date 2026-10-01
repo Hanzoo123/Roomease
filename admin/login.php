@@ -1,15 +1,8 @@
 <?php
 /**
- * The administrators' own sign-in page.
- *
- * Only administrator accounts can sign in here, and the public login refuses
- * them, so each page only ever lets in the accounts it is for. A landlord or
- * boarder who tries this page gets the same "Invalid username, email or
- * password" a wrong password gets, so the page does not reveal which emails
- * have which role. No sign-up, Google, or "Remember me" here.
- *
- * An administrator signs in with their username or their email. A new one
- * may have only a username until they add their email (admin/add_user.php).
+ * Admin login (username or email). Only admins can sign in here, and the
+ * public login refuses admins. Other accounts get the same "invalid" message
+ * as a wrong password, so roles aren't revealed. No Google or "Remember me".
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -69,13 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// The page is AdminLTE's own login page, as the panel behind it is AdminLTE:
-// its grey background, text logo, card and olive button, with every message
-// shown as a toastr pop-up at the top. It stands alone rather than using the
-// public sign-in layout (includes/layouts/auth_header.php).
-//
-// A message to show: this page's own error, or one carried over from another
-// page, such as "You have been logged out" or a finished password reset.
+// AdminLTE's login layout. Messages (this page's error, or a flash from
+// another page) show as toastr pop-ups.
 $toasts = [];
 if ($error !== '') {
     $toasts[] = ['type' => 'error', 'message' => $error];

@@ -1,14 +1,8 @@
 <?php
 /**
- * Step 1 of the password reset: ask for an email address and send a code.
- *
- * The next page says the same thing whether or not the address belongs to an
- * account, so this page cannot be used to find out who is registered.
- *
- * Administrators and everyone else reset separately: admin/forgot_password.php
- * sets $resetScope = 'admin' and includes this file. The public page never
- * sends a code to an administrator account, and the admin page only ever
- * sends one to an administrator account.
+ * Password reset step 1: ask for an email and send a code. The next page
+ * looks the same whether or not the email exists.
+ * admin/forgot_password.php reuses this file with $resetScope = 'admin'.
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -26,9 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $email = trim($_POST['email'] ?? '');
 
-    // Issuing a code sends mail and writes to the database, so it is throttled
-    // the same way login is. The limit is counted before the account is looked
-    // up, so a locked-out requester learns nothing about who is registered.
+    // Limited like login, checked before looking up the account.
     $retryAfter = $email !== '' ? throttle_retry_after('reset', $email) : 0;
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {

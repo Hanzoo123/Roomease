@@ -1,14 +1,8 @@
 <?php
 /**
- * Add User: a new administrator account. Super admins only.
- *
- * Landlords and boarders sign up for themselves, so the only accounts made
- * here are administrators, with a Role of Administrator or Super admin. The
- * super admin gives only a username, a temporary password and the role. The
- * new administrator signs in with the username and adds their own name and
- * email before anything else (require_login() keeps them on Edit Profile
- * until they do), then replaces the temporary password with their own, which
- * require_login() also insists on (users.must_change_password).
+ * Add an administrator (super admins only): username, temporary password and
+ * role. On first sign-in they must add their name and email and choose their
+ * own password. Landlords and boarders sign up themselves.
  */
 require __DIR__ . '/../includes/init.php';
 

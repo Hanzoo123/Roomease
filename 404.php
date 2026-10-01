@@ -1,22 +1,11 @@
 <?php
 /**
- * The page a wrong address lands on, in RoomEase's own theme.
- *
- * Apache serves this through ErrorDocument in .htaccess, which means it also
- * answers the folders that .htaccess hides (config/, database/, includes/,
- * storage/ and .claude/), so a poke at those looks like an address that was
- * never there rather than a door with a lock on it.
- *
- * The status code has to be set by hand: Apache runs this page as a normal
- * request, and without this it would answer 200 and tell a search engine the
- * missing page exists.
- *
- * It stands alone, without the site header and footer: a lost visitor gets
- * one message and two ways out, nothing else to read. Styles are the
- * .notfound section of style.css.
+ * "Page not found". Shown for unknown addresses (see .htaccess).
+ * Styles: .notfound in style.css.
  */
 require __DIR__ . '/includes/init.php';
 
+// Must be set by hand, or Apache would answer 200.
 http_response_code(404);
 
 $pageTitle = 'Page not found';

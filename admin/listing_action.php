@@ -1,15 +1,8 @@
 <?php
 /**
- * Administrator actions on a listing: approve it, reject it with a reason,
- * remove it, or restore it.
- *
- * Removing archives the listing rather than deleting it. It used to run
- * DELETE, which erased the listing, its rooms, every boarder's saved copy,
- * and its photos from disk, with no way back. An archived listing is off the
- * site for everyone but administrators and comes back whole when restored.
- *
- * Every action is written to the audit log, and the landlord hears about it
- * by email and on their dashboard.
+ * Admin actions on a listing: approve, reject (with a reason), remove or
+ * restore. Remove hides it (deleted_at) instead of deleting, so it can be
+ * restored. Each action is logged and the landlord is emailed.
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -23,12 +16,8 @@ verify_csrf();
 $boardingHouseId = (int) ($_POST['boarding_house_id'] ?? 0);
 $action = $_POST['action'] ?? '';
 
-// Send the admin back to where they were working: on to the next listing in
-// the approval queue, the listing's own review page, the Removed tab, or the
-// approval tab they had open.
-//
-// 'next' is worked out after the action below rather than here, because what
-// comes next depends on what this action just did.
+// Where to go afterwards: back where the admin was. 'next' is worked out
+// at the end, after this action.
 $returnStatus = $_POST['return_status'] ?? '';
 $goToNext = ($_POST['return_to'] ?? '') === 'next';
 if ($goToNext || (($_POST['return_to'] ?? '') === 'review' && $boardingHouseId > 0)) {
@@ -93,9 +82,7 @@ if ($action === 'approve') {
         redirect($returnTo);
     }
 
-    // Approving would change nothing a boarder sees while the landlord's
-    // account is off, and would quietly publish the listing the moment the
-    // account came back, so it waits until the account is restored.
+    // Not while the landlord's account is off: it would go public when restored.
     if ($listing['landlord_deleted_at'] !== null || (int) $listing['landlord_active'] !== 1) {
         flash_set('"' . $name . '" cannot be approved while its landlord\'s account is removed or deactivated. Restore the account first.', 'error');
         redirect($returnTo);
@@ -153,9 +140,7 @@ if ($action === 'approve') {
         redirect($returnTo);
     }
 
-    // An approved listing its own landlord deleted comes back pending.
-    // Restoring is for a deletion made by mistake, but the rooms may no longer
-    // be for rent, so it is checked again before boarders see it.
+    // If the landlord deleted it, restore as pending: the rooms may no longer be for rent.
     $deletedByLandlord = $listing['deleted_by'] !== null
         && (int) $listing['deleted_by'] === (int) $listing['landlord_id'];
     $backToPending = $deletedByLandlord && $listing['moderation_status'] === 'approved';
@@ -187,9 +172,7 @@ if ($action === 'approve') {
     $goToNext = false;
 }
 
-// Working the queue: go on to whatever has waited longest now that this one is
-// decided, carrying the flash about this decision with it. When the queue is
-// empty the pending tab says so, which is the right place to end up.
+// "Approve & next": go to the oldest pending listing, or the empty Pending tab.
 if ($goToNext) {
     $next = pending_queue_after($boardingHouseId)['next'];
     $returnTo = $next === null

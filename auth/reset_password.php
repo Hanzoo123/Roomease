@@ -1,12 +1,8 @@
 <?php
 /**
- * Step 3 of the password reset: set a new password.
- *
- * auth/verify_code.php puts a token in the session once the emailed code is
- * right; the token never appears in a URL or a form. It is validated on both
- * the GET (showing the form) and the POST (saving), so an expired or used
- * reset cannot be replayed by holding the page open. Using it marks it used,
- * and every other outstanding reset for that account is discarded.
+ * Password reset step 3: choose a new password. Uses the token that
+ * verify_code.php put in the session (never in the URL). The token is checked
+ * on show and on save, and works once.
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -23,9 +19,7 @@ if (is_array($state) && empty($state['token'])) {
 $scope = is_array($state) ? $state['scope'] : 'public';
 $reset = is_array($state) ? find_valid_reset($state['token'] ?? '') : null;
 
-// Someone signed in can reset their own account: it is how an account made
-// with Google sets its first password, from the profile page. Anyone signed
-// in with another account's reset goes home.
+// Signed in: only your own account (how Google accounts set a first password).
 $signedIn = is_logged_in();
 if ($signedIn && $reset && (int) $reset['user_id'] !== (int) $_SESSION['user_id']) {
     redirect('index.php');
@@ -62,17 +56,11 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ->execute([$reset['user_id'], $reset['reset_id']]);
         unset($_SESSION['password_reset']);
 
-        // A new password signs the account out of every remembered device, so
-        // whoever prompted the reset loses any "Remember me" cookie they held.
-        // Every session still open for the account ends on its next page too
-        // (see enforce_session_policy()).
+        // Sign out all remembered devices; open sessions end on their next page.
         $rememberedHere = $signedIn && isset($_COOKIE[REMEMBER_COOKIE]);
         forget_all_remembered_logins($reset['user_id']);
 
-        // Signed in, it counts as a password change: a new session id, this
-        // session records the new password so it is the one that stays
-        // signed in, and this device stays remembered if it was (as on the
-        // profile page).
+        // If signed in: new session id, and this device stays signed in.
         if ($signedIn) {
             session_regenerate_id(true);
             $_SESSION['password_fingerprint'] = password_fingerprint($newHash);

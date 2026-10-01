@@ -1,13 +1,8 @@
 <?php
 /**
- * RoomEase entry point.
- *
- * Admins go to the admin panel and landlords to their listings. Guests and
- * boarders get the home page: the search form on the band's seam, the newest
- * rooms, the room-type index, how RoomEase works, and a word for landlords.
- *
- * require_login() also lands here on a role mismatch, so this doubles as
- * the "you don't belong on that page" fallback.
+ * Home page. Admins go to the admin panel, landlords to their dashboard;
+ * guests and boarders see the home page. Also where require_login() sends
+ * someone with the wrong role.
  */
 require __DIR__ . '/includes/init.php';
 require __DIR__ . '/includes/components/listing_card.php';

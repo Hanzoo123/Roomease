@@ -1,11 +1,5 @@
 <?php
-/**
- * Per-photo actions for a landlord's own listing: remove a photo, or make one
- * the cover. Works for house photos (room_id NULL) and room photos alike: the
- * cover is chosen among the house photos, and a room's main photo among that
- * room's photos. Kept out of the edit pages so the controls do not have to
- * sit inside those pages' main forms.
- */
+/** Delete a photo, or make it the cover (house photos) or main photo (room photos). */
 require __DIR__ . '/../includes/init.php';
 require_login('landlord');
 

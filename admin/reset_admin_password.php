@@ -1,15 +1,8 @@
 <?php
 /**
- * Set a new temporary password for another administrator. Super admins only.
- *
- * For an administrator who has forgotten their password and cannot use "I
- * forgot my password", such as one who has not added an email yet. The super
- * admin gives them the new password privately, and the administrator must
- * replace it with their own when they next sign in (users.must_change_password,
- * enforced by require_login()). Saving it signs the
- * administrator out everywhere: every session checks the password it was
- * signed in under (enforce_session_policy()), and remembered devices are
- * forgotten here.
+ * Give another admin a temporary password (super admins only), e.g. when they
+ * have no email for "Forgot password". They are signed out everywhere and
+ * must choose their own password at next sign-in.
  */
 require __DIR__ . '/../includes/init.php';
 

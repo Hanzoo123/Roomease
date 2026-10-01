@@ -1,13 +1,8 @@
 <?php
 /**
- * Add or edit one room in a landlord's boarding house.
- *
+ * Add or edit a room.
  *   ?house=ID   add a room to that listing
  *   ?id=ROOM    edit that room
- *
- * A room has its own name, type, rent, capacity, slots taken, open/closed
- * switch, short description, and photos. Room photos live in the listing's
- * upload folder, tagged with the room's id.
  */
 require __DIR__ . '/../includes/init.php';
 require_login('landlord');
@@ -73,10 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     verify_csrf();
 
-    // The + and - buttons on the Rooms card change slots taken without this
-    // form. When the number was left as the form showed it, the room's current
-    // count is saved rather than the one the form was opened with, so a tenant
-    // counted in another tab meanwhile is not undone by saving a new rent.
+    // If slots taken wasn't touched, keep the current value: the +/- buttons
+    // may have changed it since this form was opened.
     $input = $_POST;
     $slotsKept = null;
     $shownSlots = $_POST['slots_taken_shown'] ?? null;

@@ -1,12 +1,7 @@
 <?php
 /**
- * Utilities and amenities for every landlord.
- *
- * Items made here are available to all landlords. An item cannot be deleted
- * while a listing uses it. Items landlords made for themselves are listed
- * underneath, and any of them can be made available to everyone: a landlord
- * copy with the same name as a shared item is merged into it, and the
- * listings that used the copy keep it.
+ * Amenities and utilities for all landlords. Items in use can't be deleted.
+ * Landlords' own items are listed below and can be shared with everyone.
  */
 require __DIR__ . '/../includes/init.php';
 require_login('admin');

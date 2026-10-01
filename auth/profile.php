@@ -1,11 +1,5 @@
 <?php
-/**
- * My Profile: the account as it stands, with the way to change it.
- *
- * Nothing is edited here. Edit Profile (auth/edit_profile.php) changes the
- * photo and details, and Change Password (auth/change_password.php) the
- * password, each on its own page, and both come back here once saved.
- */
+/** My Profile (view only). Changes are made on Edit Profile and Change Password. */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 

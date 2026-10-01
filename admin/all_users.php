@@ -1,12 +1,7 @@
 <?php
 /**
- * All Users: one directory of everyone who can sign in (administrators,
- * landlords and boarders), for super admins only.
- *
- * Super admins are never listed, and neither are removed accounts, which stay
- * in the Removed views of Manage Users and Administrators where they can be
- * restored. It is a directory to look at: selecting a name opens the page
- * where that account is managed.
+ * All Users (super admins only): every active account in one list, read-only.
+ * Click a name to manage it. Super admins and removed accounts aren't listed.
  */
 require __DIR__ . '/../includes/init.php';
 

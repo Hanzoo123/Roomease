@@ -1,12 +1,7 @@
 <?php
 /**
- * RoomEase logout, for every role.
- *
- * The database is needed only to forget this device's "Remember me" token;
- * without that, the cookie would sign the visitor straight back in.
- *
- * An administrator lands back on the administrators' sign-in page; everyone
- * else goes to the home page.
+ * Logout for every role. Also forgets "Remember me", or the cookie would sign
+ * them straight back in. Admins go to the admin login, others to the home page.
  */
 require __DIR__ . '/../includes/init.php';
 

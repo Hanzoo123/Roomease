@@ -1,11 +1,5 @@
 <?php
-/**
- * Edit Profile: the photo, the name, the email address and the phone number.
- *
- * The password has its own page (auth/change_password.php), so saving a new
- * phone number can never trip over a browser's autofilled password, and a
- * password change is never buried under a form of unrelated fields.
- */
+/** Edit Profile: photo, name, email and phone. The password has its own page. */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
@@ -31,9 +25,7 @@ $old = [
 
 $googleLinked = !empty($user['google_id']);
 
-// A photo can be larger than post_max_size, which makes PHP throw away $_POST
-// and $_FILES entirely. Without this the page would report a CSRF failure
-// rather than the real problem, exactly as admin/appearance.php guards against.
+// Photo too big for the server: say so, instead of a confusing CSRF error.
 if (post_too_large()) {
   flash_set('That photo is larger than this server accepts in one upload (about '
     . format_bytes(ini_bytes(ini_get('post_max_size'))) . ').', 'error');
@@ -77,11 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['phone_number'] !== '' ? phone_problem($old['phone_number']) : null,
   ]));
 
-  // The email is where password reset codes go, so changing it takes the
-  // current password, as changing the password does. Otherwise anyone at an
-  // unattended, signed-in browser could move the email to their own and then
-  // reset the password from "Forgot password". Adding a first email (a new
-  // administrator) needs nothing: there is no address to take over yet.
+  // Changing the email needs the current password: otherwise someone at an
+  // unattended computer could change it and take over the account through
+  // "Forgot password". Adding a first email (new admin) doesn't need it.
   $currentEmail = (string) ($user['email'] ?? '');
   $emailChanging = !$googleLinked && $currentEmail !== ''
     && mb_strtolower($old['email']) !== mb_strtolower($currentEmail);

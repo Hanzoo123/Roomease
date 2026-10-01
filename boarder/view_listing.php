@@ -21,9 +21,7 @@ $stmt = $pdo->prepare(
 $stmt->execute([$listingId]);
 $listing = $stmt->fetch();
 
-// A listing that has not been approved yet is visible only to the landlord who
-// owns it and to administrators, so they can preview it. To everyone else it
-// simply does not exist.
+// Not approved yet: only its landlord and admins can see it.
 $isOwner = $listing && is_logged_in() && current_role() === 'landlord'
     && (int) $listing['landlord_id'] === (int) $_SESSION['user_id'];
 $canPreview = $isOwner || is_admin();
@@ -39,9 +37,7 @@ if ($listing && !$landlordLive && !$isOwner && !is_admin()) {
     $listing = false;
 }
 
-// A listing an administrator removed is archived. Only administrators can still
-// open it, to review it or restore it; for everyone else, its landlord included,
-// it is gone.
+// Removed: only admins can see it.
 if ($listing && $listing['deleted_at'] !== null && !is_admin()) {
     $listing = false;
 }
@@ -59,9 +55,7 @@ if (!$listing) {
   exit;
 }
 
-// House photos first (cover, then the rest), then each room's photos. A row
-// whose file is gone is dropped here, so it is never drawn as a broken image
-// or opened in the viewer as a black screen.
+// House photos first, then room photos. Missing files are skipped.
 $photosStmt = $pdo->prepare(
   'SELECT * FROM images WHERE boarding_house_id = ?
     ORDER BY room_id IS NULL DESC, room_id, is_primary DESC, image_id ASC'
@@ -129,10 +123,7 @@ $isSaved = can_save_listings()
   && isset(saved_listing_ids($_SESSION['user_id'])[$listingId]);
 
 /* ---------------------------------------------------------------------------
- * Stay terms. Each is shown only when the landlord has stated it: NULL means
- * "not stated", and the page says nothing rather than guessing. `?? null`
- * keeps the page working on an older database imported before listings
- * carried stay terms.
+ * Stay terms: only the ones the landlord filled in (NULL = not stated).
  * ------------------------------------------------------------------------ */
 $genderLabel = gender_policy_options()[$listing['gender_policy'] ?? ''] ?? null;
 
@@ -224,9 +215,7 @@ if ($listing['deleted_at'] !== null) {
 
 $pageTitle = $listing['name'];
 
-// What a shared link shows: the landlord's own description where there is one,
-// otherwise the facts. The first photo stands in for the picture, so a listing
-// posted in a group chat arrives looking like the room it is.
+// Link preview (e.g. in Messenger): description, or the facts, plus the first photo.
 $metaDescription = trim((string) $listing['description']) !== ''
   ? mb_substr(trim(preg_replace('/\s+/', ' ', $listing['description'])), 0, 155)
   : $listing['name'] . ' in ' . $listing['address'] . '. '
@@ -327,10 +316,7 @@ require __DIR__ . '/../includes/layouts/header.php';
             </div>
           <?php endif; ?>
 
-          <?php /* With room photos, rooms are photo tiles. Without any, which is most
-                   listings today, an empty picture box per room only made the
-                   section taller, so each room is a compact row instead: the same
-                   facts, rent and state on the right. */ ?>
+          <?php /* Photo tiles if rooms have photos, otherwise compact rows. */ ?>
           <ul class="<?= $roomPhotos ? 'room-grid' : 'room-list' ?>">
             <?php foreach ($rooms as $room): ?>
               <?php
@@ -569,11 +555,7 @@ require __DIR__ . '/../includes/layouts/header.php';
 </div>
 
 <?php if ($shownPhone !== ''): ?>
-  <?php /* Phones only (.call-bar is display:none above 720px). Quick Info is
-           hoisted above the long read on a narrow screen, so without this the
-           number is left far behind by the time anyone has read the listing.
-           The heart repeats the one in Quick Info; favorite_toggle.js repaints
-           every heart for the listing, so the two never disagree. */ ?>
+  <?php /* Phones only: a bar at the bottom with the price, call button and heart. */ ?>
   <div class="call-bar">
     <div class="call-bar-inner">
       <?php if ($avail['rent_from'] !== null): ?>

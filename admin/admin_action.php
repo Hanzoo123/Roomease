@@ -1,16 +1,8 @@
 <?php
 /**
- * A super admin's actions on another administrator, from admin/admins.php:
- *
- *   activate / deactivate   let them sign in, or stop them
- *   remove / restore        archive the account, or bring it back
- *   promote / demote        make them a super admin, or take it away
- *
- * Two rules hold whatever the page shows. Nobody acts on their own account
- * here. And there is always at least one active super admin, so the panel can
- * never be left with nobody able to manage the administrators. A deactivated,
- * removed or demoted administrator loses access on their next click, because
- * enforce_session_policy() re-reads the account on every request.
+ * Super admin actions on another admin: activate/deactivate, remove/restore,
+ * promote/demote. You can't act on yourself, and there is always at least one
+ * active super admin. Changes apply on the admin's next click.
  */
 require __DIR__ . '/../includes/init.php';
 

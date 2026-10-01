@@ -1,14 +1,8 @@
 <?php
 /**
- * Step 2 of "Continue with Google": Google sends the visitor back here.
- *
- * The account is matched by Google account id first, then by the email Google
- * has verified; a matching RoomEase account is linked to the Google account.
- * With no match, someone who came from the sign-up page gets an account in the
- * role they picked there. Someone who came from the sign-in page has not said
- * whether they are a boarder or a landlord yet, so they are asked first, on
- * auth/google_finish.php. Deactivated and removed accounts are refused exactly
- * as the password login refuses them.
+ * Google sign-in step 2: Google sends the visitor back here. Finds (or links)
+ * their account. New users from sign-up get an account in the role they
+ * picked; new users from login are asked their role on google_finish.php.
  */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';

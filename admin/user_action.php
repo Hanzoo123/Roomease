@@ -1,8 +1,5 @@
 <?php
-/**
- * Administrator actions on an account: activate or deactivate it, remove it
- * (archive), or restore it. Each is written to the audit log.
- */
+/** Admin actions on a landlord or boarder: activate/deactivate, remove or restore. Logged. */
 require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
@@ -51,15 +48,8 @@ if ($action === 'toggle_status') {
     redirect($back('admin/manage_users.php'));
 
 } elseif ($action === 'delete') {
-    // Archive, do not destroy.
-    //
-    // This used to run DELETE FROM users, and because every foreign key in
-    // the schema cascades, that one statement also erased the landlord's
-    // listings, every photo row attached to them, and every boarder's saved
-    // copy of those listings — after deleting the photo files from disk, so
-    // there was nothing to restore from either. Setting deleted_at hides the
-    // account and its listings everywhere the public site looks, and can be
-    // undone.
+    // Hide, don't delete: deleting would also erase their listings and
+    // photos (foreign key cascade). Setting deleted_at can be undone.
     if ($target['deleted_at'] !== null) {
         flash_set('That account is already removed.', 'error');
         redirect($back('admin/manage_users.php?view=archived'));

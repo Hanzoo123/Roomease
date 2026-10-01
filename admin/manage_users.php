@@ -1,7 +1,5 @@
 <?php
-/**
- * RoomEase Admin - Manage Users (AdminLTE Theme)
- */
+/** Manage Users: landlords and boarders, plus a Removed view. */
 require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
@@ -19,9 +17,7 @@ if (in_array($roleFilter, ['landlord', 'boarder'], true)) {
   $params[] = $roleFilter;
 }
 
-// Counts for the filter pills, taken from the view being shown: live accounts
-// normally, removed ones in the Removed view. The archived total also labels
-// the Removed button.
+// Counts for the filter buttons, for the view being shown.
 $counts = $pdo->query(
   "SELECT SUM(deleted_at IS NULL) AS live_total,
           SUM(deleted_at IS NOT NULL) AS archived_total,

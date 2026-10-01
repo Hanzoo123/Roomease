@@ -1,10 +1,9 @@
 <?php
 /**
- * Step 1 of "Continue with Google": send the visitor to Google.
- *
- * ?role=landlord|boarder  role for an account Google sign-in creates (sign-up page)
- * ?remember=1             keep this device signed in afterwards
- * ?from=register          return to the sign-up page, not login, on failure
+ * Google sign-in step 1: send the visitor to Google.
+ *   ?role=landlord|boarder  role for a new account
+ *   ?remember=1             stay signed in
+ *   ?from=register          on failure, go back to sign-up instead of login
  */
 require __DIR__ . '/../includes/init.php';
 require __DIR__ . '/../includes/core/google_auth.php';

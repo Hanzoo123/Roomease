@@ -1,17 +1,10 @@
 <?php
 /**
- * RoomEase Admin - CSV export of users or listings
+ * CSV export: ?type=users or ?type=listings, with the same filters as the
+ * Manage pages. Logged in the audit log.
  *
- *   admin/export.php?type=users     with Manage Users' filters: role, view=archived
- *   admin/export.php?type=listings  with Manage Listings' filters: status, view=removed
- *
- * The file opens in Excel or Google Sheets. It starts with a byte-order mark so
- * Excel reads it as UTF-8 (the peso sign, names with ñ), and any cell that
- * begins like a formula is prefixed with an apostrophe: a landlord could
- * otherwise type "=HYPERLINK(...)" as a listing name and have it run in the
- * spreadsheet of the administrator who opens the export.
- *
- * Every export is written to the audit log.
+ * Cells starting with = + - @ get a leading ' so Excel can't run them as
+ * formulas (CSV injection). A UTF-8 mark keeps ₱ and ñ readable in Excel.
  */
 require __DIR__ . '/../includes/init.php';
 

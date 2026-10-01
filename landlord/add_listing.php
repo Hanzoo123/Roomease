@@ -1,9 +1,7 @@
 <?php
 /**
- * A new listing: the house and its rooms in one form. A listing is not shown
- * to boarders until it has at least one room, so at least one is required
- * here. More rooms, photos, and slot counts can be changed later from the
- * listing's Rooms card.
+ * Add Listing: the house and its rooms in one form. At least one room is
+ * required (boarders only see listings with rooms).
  */
 require __DIR__ . '/../includes/init.php';
 require_login('landlord');
@@ -55,9 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $errors = listing_errors($listing);
 
-    // Rooms arrive as rooms[<index>][field], each with its photos in
-    // room_photos_<index>. The index only pairs the two; it is checked to be
-    // a plain number so it is safe to build the photo field name from.
+    // Rooms come as rooms[i][field], photos as room_photos_i. i must be a number.
     $formRoomsPosted = true;
     $formRooms = [];
     $roomErrors = [];
@@ -132,9 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         audit_log('listing_create', $newId, $listing['name'],
             'With ' . count($roomIds) . ' ' . (count($roomIds) === 1 ? 'room' : 'rooms'));
 
-        // Photos are moved into place only once the listing and its rooms are
-        // saved. A refused photo does not undo the listing: the landlord is sent
-        // to it with the reason, and can upload again from there.
+        // Photos are saved after the listing. A bad photo doesn't undo the listing.
         $photoErrors = [];
         try {
             $paths = handle_photo_uploads('photos', $newId);

@@ -1,11 +1,7 @@
 <?php
 /**
- * RoomEase Admin - One account
- *
- * A landlord's or boarder's profile and status, their listings or saved
- * listings, how they sign in, and every change an administrator made to the
- * account, with the same actions as Manage Users. Administrator accounts are
- * not managed here, exactly as in Manage Users.
+ * One landlord's or boarder's account: profile, status, listings or saved
+ * listings, and history, with the same actions as Manage Users.
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -28,9 +24,7 @@ $removed = $user['deleted_at'] !== null;
 $listings = [];
 $saved = [];
 if ($isLandlord) {
-  // Every listing, removed ones included, with its room figures and its
-  // cover photo: the Portfolio card puts the newest one's photo beside the
-  // figures, the way the reference puts the room beside its booking.
+  // All their listings (removed ones too), with room totals and cover photo.
   $listStmt = $pdo->prepare(
     'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ', ' . COVER_PHOTO_SELECT . '
        FROM boarding_houses bh
@@ -140,11 +134,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       );
   }
 
-  // The heading names the kind of page and the line under it names the person,
-  // rather than the other way round. The name has to be here as well as in the
-  // Profile card: on the Listings and History tabs that card is not on screen,
-  // and a list of listings with no indication whose they are is a page you can
-  // misread.
+  // The name goes in the header too, so it shows on every tab.
   panel_page_header($isLandlord ? 'Landlord Profile' : 'Boarder Profile', [
     'subtitle' => $fullName,
     'back' => 'admin/manage_users.php' . ($removed ? '?view=archived' : ''),

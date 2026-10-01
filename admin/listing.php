@@ -1,12 +1,7 @@
 <?php
 /**
- * RoomEase Admin - Review a listing
- *
- * Everything an administrator needs to decide on a listing, on one page: its
- * photos, rooms and rents, stay terms, amenities and utilities, the map, the
- * landlord's account and other listings, and every decision made on it
- * before. Approve, reject, remove and restore all work from here and come
- * back here.
+ * Review a listing: everything needed to approve, reject, remove or restore
+ * it, on one page (photos, rooms, terms, map, landlord, history).
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -87,10 +82,7 @@ $otherStmt = $pdo->prepare(
 $otherStmt->execute([$listing['landlord_id'], $listingId]);
 $otherListings = $otherStmt->fetchAll();
 
-// Decisions and the landlord's own changes, in one timeline, so a reviewer
-// can see what was edited since the last approval.
-// The history is the audit log's entries for this page, so only a super
-// admin sees it; for anyone else the History tab is left out.
+// History from the audit log: super admins only.
 $history = is_super_admin() ? audit_entries_for('listing', $listingId, 40) : null;
 
 // A listing approved before and changed since is back in the queue; say so,
@@ -123,15 +115,10 @@ foreach (['visitors_allowed' => 'Visitors', 'pets_allowed' => 'Pets', 'cooking_a
 
 $hasMap = ($listing['latitude'] ?? null) !== null && ($listing['longitude'] ?? null) !== null;
 
-// The rest of the approval queue, so a decision here can lead straight to the
-// next listing instead of back to the table. Both come from the one helper
-// that listing_action.php uses after a decision, so the count in the button
-// and the listing it actually goes to can never disagree.
+// The rest of the pending queue, for the "Approve & next" button.
 $pendingQueue = pending_queue_after($listingId);
 
-// Where approving or rejecting lands. Removing is deliberately left out: it is
-// the heaviest of the three, and whoever does it should see the result rather
-// than be carried off to another listing.
+// After approve/reject, go to the next pending listing (not after remove).
 $decisionReturn = $pendingQueue['next'] !== null ? 'next' : 'review';
 
 $canApprove = !$archived && $listing['moderation_status'] !== 'approved' && $rooms && $landlordLive;
@@ -152,10 +139,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <div class="content-wrapper">
   <?php
-  // Only History is put behind a tab. Everything a decision rests on — the
-  // photos, the rooms, the terms, the landlord — stays on one screen, because
-  // making a moderator click between tabs to approve a listing would be a
-  // worse page than the one this replaced, however tidy it looked.
+  // Only History is a tab; everything needed to decide stays on one screen.
   panel_page_header($listing['name'], [
     'subtitle' => $listing['address'],
     'back' => 'admin/manage_listings.php' . ($archived ? '?view=removed' : ''),

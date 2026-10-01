@@ -1,13 +1,7 @@
 <?php
 /**
- * A landlord deleting one of their own listings.
- *
- * The listing is archived, not erased: deleted_at and deleted_by are set, and
- * its rooms, photos and boarders' saves stay where they are. Every public,
- * boarder and landlord page already leaves archived listings out, so to
- * everyone but an administrator it is gone. An administrator sees it under
- * Manage Listings, Removed, marked as deleted by the landlord, and can
- * restore it if the landlord deleted it by mistake.
+ * A landlord deletes their own listing. It is hidden (deleted_at), not erased,
+ * so an admin can restore it from Manage Listings > Removed if it was a mistake.
  */
 require __DIR__ . '/../includes/init.php';
 require_login('landlord');

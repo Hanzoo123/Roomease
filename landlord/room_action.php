@@ -1,14 +1,10 @@
 <?php
 /**
- * Quick actions on one of a landlord's rooms, from the Rooms card:
- *
- *   slots        delta=1 or delta=-1: a tenant moved in or out
- *   toggle_open  close the room to new tenants, or reopen it
- *   delete       remove the room and its photos
- *
- * The buttons post here with fetch() and get JSON back, so the table updates
- * without a reload. Without JavaScript they are ordinary form posts that
- * redirect back to the listing.
+ * Quick room actions from the Rooms card:
+ *   slots        delta=1 / -1: a tenant moved in or out
+ *   toggle_open  close or reopen the room
+ *   delete       delete the room and its photos
+ * Replies with JSON for fetch(), or a redirect without JavaScript.
  */
 require __DIR__ . '/../includes/init.php';
 

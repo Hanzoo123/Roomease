@@ -1,10 +1,5 @@
 <?php
-/**
- * RoomEase Admin - Manage Listings (AdminLTE Theme)
- *
- * Every listing by approval status, plus a Removed tab for the listings an
- * administrator archived, where they can be restored.
- */
+/** Manage Listings: all listings by status, plus a Removed tab to restore from. */
 require __DIR__ . '/../includes/init.php';
 
 require_login('admin');
@@ -148,11 +143,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <table id="listingsTable" class="table table-bordered table-striped table-hover">
             <thead>
               <tr>
-                <?php /* The cover photo needs room beside the name, or the column
-                     collapses to the width of the thumbnail and breaks the name
-                     onto one word a line — slower to scan than plain text was.
-                     This is the only column here given a picture: eight columns
-                     of a table this dense cannot afford a second one. */ ?>
+                <?php /* Min width so the name doesn't wrap beside the thumbnail. */ ?>
                 <th style="min-width: 215px;">Boarding House</th>
                 <th>Landlord</th>
                 <th>Address</th>
