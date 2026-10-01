@@ -77,6 +77,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old['phone_number'] !== '' ? phone_problem($old['phone_number']) : null,
   ]));
 
+  // The email is where password reset codes go, so changing it takes the
+  // current password, as changing the password does. Otherwise anyone at an
+  // unattended, signed-in browser could move the email to their own and then
+  // reset the password from "Forgot password". Adding a first email (a new
+  // administrator) needs nothing: there is no address to take over yet.
+  $currentEmail = (string) ($user['email'] ?? '');
+  $emailChanging = !$googleLinked && $currentEmail !== ''
+    && mb_strtolower($old['email']) !== mb_strtolower($currentEmail);
+  if ($emailChanging) {
+    $currentPassword = is_string($_POST['current_password'] ?? null) ? $_POST['current_password'] : '';
+    if ($currentPassword === '') {
+      $errors[] = 'Enter your current password to change your email address.';
+    } elseif (!password_verify($currentPassword, $user['password_hash'])) {
+      $errors[] = 'Incorrect current password, so your email address was not changed.';
+    }
+  }
+
   if (!$errors) {
     $check = $pdo->prepare('SELECT user_id FROM users WHERE email = ? AND user_id != ?');
     $check->execute([$old['email'], $userId]);
@@ -112,6 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $values[] = $userId;
 
     $pdo->prepare('UPDATE users SET ' . implode(', ', $columns) . ' WHERE user_id = ?')->execute($values);
+    if ($emailChanging) {
+      audit_log('email_change', $userId, $old['email'], 'From ' . $currentEmail);
+    }
 
     // The old file goes only once the new path is safely saved, so a
     // failure above leaves the account with the photo it already had.
@@ -236,9 +256,21 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
           </p>
         <?php else: ?>
           <input type="email" class="<?= $cls['input'] ?>" id="email" name="email" value="<?= h($old['email']) ?>"
-            autocomplete="email" required>
+            autocomplete="email" required data-original-email="<?= h((string) ($user['email'] ?? '')) ?>">
         <?php endif; ?>
       </div>
+
+      <?php if (!$googleLinked && (string) ($user['email'] ?? '') !== ''): ?>
+        <?php /* Asked for only when the email changes (see the POST handler). The
+                 script below hides it until then; without the script it simply
+                 stays visible, with the hint saying when it is needed. */ ?>
+        <div class="<?= $cls['group'] ?>" id="email-password-group">
+          <label for="current_password">Current password</label>
+          <input type="password" class="<?= $cls['input'] ?>" id="current_password" name="current_password"
+            autocomplete="current-password" aria-describedby="current-password-hint">
+          <p class="<?= $cls['hint'] ?>" id="current-password-hint">Needed only when you change your email address.</p>
+        </div>
+      <?php endif; ?>
 
       <div class="<?= $cls['group'] ?>">
         <label for="phone_number">Phone number</label>
@@ -268,6 +300,19 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
 <?php endif; ?>
 
 <script>
+  // Current password appears only once the email is different from the saved one.
+  (function () {
+    var email = document.getElementById('email');
+    var group = document.getElementById('email-password-group');
+    if (!email || !group || !email.hasAttribute('data-original-email')) return;
+    var original = email.getAttribute('data-original-email').trim().toLowerCase();
+    function sync() {
+      group.hidden = email.value.trim().toLowerCase() === original;
+    }
+    email.addEventListener('input', sync);
+    sync();
+  })();
+
   // Show the chosen file in place of the current photo before it is uploaded.
   // Purely a preview: the square crop still happens on the server.
   (function () {

@@ -110,7 +110,7 @@ $amenStmt = $pdo->prepare(
   'SELECT a.amenity_name
      FROM boarding_house_amenities bha
      JOIN amenities a ON bha.amenity_id = a.amenity_id
-     WHERE bha.boarding_house_id = ? AND bha.is_available = 1'
+     WHERE bha.boarding_house_id = ?'
 );
 $amenStmt->execute([$listingId]);
 $amenities = $amenStmt->fetchAll(PDO::FETCH_COLUMN);
@@ -152,10 +152,6 @@ $terms = [];
 if (($listing['curfew'] ?? null) !== null) {
   $terms[] = ['clock', 'Curfew hours', $listing['curfew']];
 }
-if (($listing['security_deposit'] ?? null) !== null) {
-  $terms[] = ['shield', 'Security deposit',
-    (float) $listing['security_deposit'] == 0 ? 'No deposit required' : peso_round($listing['security_deposit'])];
-}
 if (!empty($listing['minimum_stay_months'])) {
   $months = (int) $listing['minimum_stay_months'];
   $terms[] = ['calendar', 'Minimum stay', $months . ' ' . ($months === 1 ? 'month' : 'months')];
@@ -164,8 +160,6 @@ $paymentLabel = payment_methods_label($listing['payment_methods'] ?? '');
 if ($paymentLabel !== '') {
   $terms[] = ['card', 'Payment options', $paymentLabel];
 }
-$terms[] = ['key', 'Reservation fee',
-  ($listing['reservation_fee'] === null || $listing['reservation_fee'] === '') ? 'Not required' : peso_round($listing['reservation_fee'])];
 
 // House rules are free text, one rule per line; list markers a landlord typed
 // ("-", "*", "•") are dropped so every line gets the same tick.
@@ -260,11 +254,7 @@ require __DIR__ . '/../includes/layouts/header.php';
     <p class="listing-addr"><?= icon('pin', 16) ?><?= h($listing['address']) ?></p>
 
     <ul class="listing-tags">
-      <?php if ($listing['availability_status'] !== 'available'): ?>
-        <li class="pill pill--unavailable">Hidden by landlord</li>
-      <?php else: ?>
-        <li class="pill <?= h($avail['pill']) ?>"><?= h($avail['label']) ?></li>
-      <?php endif; ?>
+      <li class="pill <?= h($avail['pill']) ?>"><?= h($avail['label']) ?></li>
       <?php if ($rooms): ?>
         <li class="tag-light"><?= icon('door', 14) ?><?= h($avail['summary']) ?></li>
       <?php endif; ?>
@@ -499,7 +489,7 @@ require __DIR__ . '/../includes/layouts/header.php';
         <h2>Worth asking the landlord</h2>
         <ul class="check-list">
           <li><?= icon('info', 16) ?><span>Whether the rent already covers water and electricity</span></li>
-          <li><?= icon('info', 16) ?><span>What the reservation fee holds, and whether it is refundable</span></li>
+          <li><?= icon('info', 16) ?><span>Whether a reservation fee or deposit is needed, and if it is refundable</span></li>
           <li><?= icon('info', 16) ?><span>When the room frees up, and if you can visit before deciding</span></li>
         </ul>
       </section>

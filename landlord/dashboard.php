@@ -11,8 +11,6 @@ $landlordId = $_SESSION['user_id'];
 // Summary figures for this landlord only.
 $countStmt = $pdo->prepare(
   "SELECT COUNT(*) AS total,
-          SUM(availability_status = 'available')   AS available,
-          SUM(availability_status = 'unavailable') AS unavailable,
           SUM(moderation_status = 'approved')      AS approved,
           SUM(moderation_status = 'pending')       AS pending,
           SUM(moderation_status = 'rejected')      AS rejected

@@ -68,10 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$googleLinked) {
   if ($newPassword !== $confirmPassword) {
     $errors[] = 'New passwords do not match.';
   }
+  // Otherwise a temporary password could be "replaced" with itself.
+  if (!$errors && password_verify($newPassword, $user['password_hash'])) {
+    $errors[] = 'Choose a new password that is different from your current one.';
+  }
 
   if (!$errors) {
     $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
     $pdo->prepare('UPDATE users SET password_hash = ?, updated_by = ? WHERE user_id = ?')->execute([$newHash, $userId, $userId]);
+    // Their own password now, so the panel opens up again (require_login()).
+    set_password_change_required($userId, false);
+    $_SESSION['must_change_password'] = false;
     audit_log('password_change', $userId, $user['email'], 'Other devices signed out');
 
     // A password change invalidates every other copy of this session, so
@@ -135,6 +142,13 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
         </div>
       </form>
     <?php else: ?>
+      <?php if (password_change_required()): ?>
+        <div class="alert alert-info">
+          Your password was set by a super admin. Choose your own to continue, using the temporary one as your
+          current password.
+        </div>
+      <?php endif; ?>
+
       <?php if ($errors): ?>
         <div class="<?= $cls['alert'] ?>">
           <?php foreach ($errors as $e)

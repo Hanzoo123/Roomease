@@ -71,8 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     verify_csrf();
 
-    foreach (['name', 'address', 'reservation_fee', 'availability_status', 'description', 'contact_number',
-              'house_rules'] as $key) {
+    foreach (['name', 'address', 'description', 'contact_number', 'house_rules'] as $key) {
         $listing[$key] = trim($_POST[$key] ?? '');
     }
     [$stayTerms, $stayErrors, $stayEcho] = stay_terms_from_post($_POST);
@@ -85,46 +84,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newUtilityRows = $lookups['new_utilities'];
 
     $errors = listing_errors($listing);
-    if (!in_array($listing['availability_status'], ['available', 'unavailable'], true)) {
-        $listing['availability_status'] = 'available';
-    }
     $errors = array_merge($errors, $stayErrors, $lookups['errors']);
 
     if (!$errors) {
         $stayAssignments = implode(', ', array_map(function ($column) {
             return $column . '=?';
         }, STAY_TERM_COLUMNS));
-        $stmt = $pdo->prepare(
-            'UPDATE boarding_houses SET name=?, address=?, reservation_fee=?, availability_status=?, description=?,
-             contact_number=?, house_rules=?, ' . $stayAssignments . ', updated_by=?
-             WHERE boarding_house_id=? AND landlord_id=?'
-        );
-        $stmt->execute(array_merge([
-            $listing['name'], $listing['address'],
-            $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
-            $listing['availability_status'],
-            $listing['description'], $listing['contact_number'], $listing['house_rules'],
-        ], array_values($stayTerms), [
-            $landlordId, $boardingHouseId, $landlordId,
-        ]));
+        // The house and its amenities and utilities are saved together, as on
+        // Add Listing: the amenities are replaced (deleted, then inserted
+        // again), so a failure part way would otherwise leave none ticked.
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare(
+                'UPDATE boarding_houses SET name=?, address=?, description=?,
+                 contact_number=?, house_rules=?, ' . $stayAssignments . ', updated_by=?
+                 WHERE boarding_house_id=? AND landlord_id=?'
+            );
+            $stmt->execute(array_merge([
+                $listing['name'], $listing['address'],
+                $listing['description'], $listing['contact_number'], $listing['house_rules'],
+            ], array_values($stayTerms), [
+                $landlordId, $boardingHouseId, $landlordId,
+            ]));
 
-        // A rejected listing has presumably just been corrected, so put it
-        // back in the queue for another look. Approved listings stay approved.
-        if ($storedModeration === 'rejected') {
-            $pdo->prepare(
-                "UPDATE boarding_houses
-                    SET moderation_status = 'pending', rejection_reason = NULL, moderated_at = NULL, moderated_by = NULL
-                  WHERE boarding_house_id = ? AND landlord_id = ?"
-            )->execute([$boardingHouseId, $landlordId]);
+            // A rejected listing has presumably just been corrected, so put it
+            // back in the queue for another look.
+            if ($storedModeration === 'rejected') {
+                return_listing_to_queue($boardingHouseId, $landlordId, 'rejected');
+            }
+
+            save_listing_lookups($boardingHouseId, $landlordId, $lookups, true);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
 
-        save_listing_lookups($boardingHouseId, $landlordId, $lookups, true);
+        // What the approval covered and has now changed (REVIEWED_LISTING_FIELDS),
+        // to which new photos are added below.
+        $reviewedChanges = [];
+        foreach (REVIEWED_LISTING_FIELDS as $column => $label) {
+            if ((string) $storedListing[$column] !== (string) $listing[$column]) {
+                $reviewedChanges[] = $label;
+            }
+        }
 
         // Which fields changed, by name only. Amenities and utilities count as
         // changed when the set ticked differs, or a new one was added.
         $changed = audit_changed_fields($storedListing, array_merge($listing, $stayTerms), array_merge([
-            'name' => 'name', 'address' => 'address', 'reservation_fee' => 'reservation fee',
-            'availability_status' => 'availability', 'description' => 'description',
+            'name' => 'name', 'address' => 'address', 'description' => 'description',
             'contact_number' => 'contact number', 'house_rules' => 'house rules',
         ], array_combine(STAY_TERM_COLUMNS, array_map(function ($column) {
             return in_array($column, ['latitude', 'longitude'], true) ? 'map pin' : str_replace('_', ' ', $column);
@@ -149,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // House photos. If the house has no cover yet, the first photo in
         // this batch becomes it.
         $paths = [];
+        $photoError = null;
         try {
             $paths = handle_photo_uploads('photos', $boardingHouseId);
             if ($paths) {
@@ -166,12 +177,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } catch (RuntimeException $e) {
-            if ($changed) {
-                audit_log('listing_edit', $boardingHouseId, $listing['name'], 'Changed: ' . implode(', ', $changed));
-            }
-            flash_set('Listing updated, but the photos could not be uploaded: ' . $e->getMessage(), 'error');
-            redirect('landlord/edit_listing.php?id=' . $boardingHouseId);
+            $photoError = $e->getMessage();
         }
+
+        // An approved listing whose text or photos changed goes back to an
+        // administrator before boarders see it again: otherwise a listing
+        // could be approved and then turned into something else entirely.
+        if ($paths) {
+            $reviewedChanges[] = 'photos';
+        }
+        $backForReview = $storedModeration === 'approved' && $reviewedChanges
+            && return_listing_to_queue($boardingHouseId, $landlordId, 'approved');
 
         // A save that changed nothing and added no photo is not worth an entry.
         if ($changed) {
@@ -181,8 +197,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit_log('photos_add', $boardingHouseId, $listing['name'],
                 count($paths) . ' house ' . (count($paths) === 1 ? 'photo' : 'photos'));
         }
+        if ($backForReview) {
+            audit_log('listing_resubmit', $boardingHouseId, $listing['name'], 'Changed: ' . implode(', ', $reviewedChanges));
+        }
+        $reviewNote = $backForReview
+            ? ' Because its ' . implode(', ', $reviewedChanges) . ' changed, it went back to an administrator for approval,'
+              . ' and boarders will not see it until it is approved again.'
+            : '';
 
-        flash_set('Boarding house listing updated successfully.', 'success');
+        if ($photoError !== null) {
+            flash_set('Listing updated, but the photos could not be uploaded: ' . $photoError . $reviewNote, 'error');
+            redirect('landlord/edit_listing.php?id=' . $boardingHouseId);
+        }
+
+        flash_set('Boarding house listing updated successfully.' . $reviewNote, 'success');
         redirect('landlord/dashboard.php');
     }
 }
@@ -367,6 +395,14 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <div class="alert alert-warning mb-0">
                   <i class="fas fa-clock mr-1"></i> This listing is waiting for administrator approval and is not
                   visible to boarders yet.
+                </div>
+              </div>
+            <?php elseif ($storedModeration === 'approved'): ?>
+              <div class="card-body pb-0">
+                <div class="alert alert-light border mb-0">
+                  <i class="fas fa-info-circle mr-1"></i> This listing is approved. Changing its name, address,
+                  description or house rules, or adding photos, sends it back to an administrator, and boarders will
+                  not see it until it is approved again. Rooms, rents, slots and stay terms can change at any time.
                 </div>
               </div>
             <?php endif; ?>

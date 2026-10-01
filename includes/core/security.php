@@ -264,6 +264,11 @@ function enforce_session_policy()
         && (trim((string) $account['first_name']) === '' || trim((string) $account['last_name']) === ''
             || (string) ($account['email'] ?? '') === '');
     $_SESSION['avatar_path'] = $account['avatar_path'];
+
+    // Read on its own rather than in the query above: on a database without
+    // the column, only this check is lost, not every check in this function.
+    $_SESSION['must_change_password'] = $account['role'] === 'administrator'
+        && account_must_change_password($_SESSION['user_id']);
 }
 
 /**

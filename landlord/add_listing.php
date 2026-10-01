@@ -19,8 +19,6 @@ $errors = [];
 $listing = [
     'name'                => '',
     'address'             => '',
-    'reservation_fee'     => '',
-    'availability_status' => 'available',
     'description'         => '',
     'contact_number'      => '',
     'house_rules'         => '',
@@ -56,9 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newUtilityRows = $lookups['new_utilities'];
 
     $errors = listing_errors($listing);
-    if (!in_array($listing['availability_status'], ['available', 'unavailable'], true)) {
-        $listing['availability_status'] = 'available';
-    }
 
     // Rooms arrive as rooms[<index>][field], each with its photos in
     // room_photos_<index>. The index only pairs the two; it is checked to be
@@ -101,8 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
         try {
         $columns = array_merge(
-            ['landlord_id', 'name', 'address', 'reservation_fee',
-             'availability_status', 'description', 'contact_number', 'house_rules'],
+            ['landlord_id', 'name', 'address', 'description', 'contact_number', 'house_rules'],
             STAY_TERM_COLUMNS,
             ['created_by', 'updated_by']
         );
@@ -114,8 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $landlordId,
             $listing['name'],
             $listing['address'],
-            $listing['reservation_fee'] !== '' ? $listing['reservation_fee'] : null,
-            $listing['availability_status'],
             $listing['description'],
             $listing['contact_number'],
             $listing['house_rules'],

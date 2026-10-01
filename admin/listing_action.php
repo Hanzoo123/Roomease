@@ -43,6 +43,7 @@ if ($goToNext || (($_POST['return_to'] ?? '') === 'review' && $boardingHouseId >
 
 $stmt = $pdo->prepare(
     'SELECT bh.boarding_house_id, bh.name, bh.moderation_status, bh.deleted_at,
+            bh.deleted_by, bh.landlord_id,
             u.is_active AS landlord_active, u.deleted_at AS landlord_deleted_at
        FROM boarding_houses bh
        JOIN users u ON u.user_id = bh.landlord_id
@@ -152,13 +153,30 @@ if ($action === 'approve') {
         redirect($returnTo);
     }
 
-    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NULL, deleted_by = NULL, updated_by = ? WHERE boarding_house_id = ?')
+    // An approved listing its own landlord deleted comes back pending.
+    // Restoring is for a deletion made by mistake, but the rooms may no longer
+    // be for rent, so it is checked again before boarders see it.
+    $deletedByLandlord = $listing['deleted_by'] !== null
+        && (int) $listing['deleted_by'] === (int) $listing['landlord_id'];
+    $backToPending = $deletedByLandlord && $listing['moderation_status'] === 'approved';
+
+    $pdo->prepare('UPDATE boarding_houses SET deleted_at = NULL, deleted_by = NULL, updated_by = ?'
+        . ($backToPending
+            ? ", moderation_status = 'pending', rejection_reason = NULL, moderated_at = NULL, moderated_by = NULL"
+            : '')
+        . ' WHERE boarding_house_id = ?')
         ->execute([current_user_id(), $boardingHouseId]);
-    audit_log('listing_restore', $boardingHouseId, $listing['name']);
+    audit_log('listing_restore', $boardingHouseId, $listing['name'],
+        $backToPending ? 'Back to pending, because its landlord had deleted it' : null);
     $sent = notify_landlord_of_decision($boardingHouseId, 'listing_restore');
-    $where = $listing['moderation_status'] === 'approved'
-        ? ' It is visible to boarders again.'
-        : ' It is back with the ' . $listing['moderation_status'] . ' listings.';
+    if ($backToPending) {
+        $where = ' Its landlord had deleted it, so it is back with the pending listings,'
+            . ' and boarders will see it once it is approved again.';
+    } elseif ($listing['moderation_status'] === 'approved') {
+        $where = ' It is visible to boarders again.';
+    } else {
+        $where = ' It is back with the ' . $listing['moderation_status'] . ' listings.';
+    }
     flash_set('"' . $name . '" was restored.' . $where . $emailNote($sent), 'success');
     if (strpos($returnTo, 'listing.php') === false) {
         $returnTo = 'admin/manage_listings.php';

@@ -422,7 +422,7 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
     }
 
     $insAmen = $pdo->prepare(
-        'INSERT IGNORE INTO boarding_house_amenities (boarding_house_id, amenity_id, is_available) VALUES (?, ?, 1)'
+        'INSERT IGNORE INTO boarding_house_amenities (boarding_house_id, amenity_id) VALUES (?, ?)'
     );
     foreach (array_unique($amenityIds) as $id) {
         $insAmen->execute([$houseId, $id]);

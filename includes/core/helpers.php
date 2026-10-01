@@ -39,6 +39,55 @@ function base_url($path = '')
     return $base . '/' . ltrim($path, '/');
 }
 
+/**
+ * The last word on an exception nothing else caught. includes/init.php
+ * registers it, so every page has it.
+ *
+ * Without it, a failure no page expected (a database hiccup, or two sign-ups
+ * racing for one email) ends in a blank page. The details go to the PHP error
+ * log and never to the visitor. A page that answers fetch() with JSON gets
+ * JSON back, so its script can show the message. A transaction left open is
+ * rolled back by MySQL when the script ends.
+ */
+
+function handle_uncaught_exception(Throwable $e)
+{
+    error_log('RoomEase: uncaught ' . get_class($e) . ': ' . $e->getMessage()
+        . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+    $message = 'Something went wrong on our side, and nothing was saved from that last step. Please try again.';
+
+    // Part of the page is already on its way, so the most that can be done
+    // is to say so beneath it.
+    if (headers_sent()) {
+        echo '<p role="alert" style="margin:16px;padding:12px 16px;border:1px solid #c0392b;color:#1F2A28;">'
+            . h($message) . '</p>';
+        return;
+    }
+
+    http_response_code(500);
+    if (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest') {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'reload' => true, 'message' => $message]);
+        return;
+    }
+
+    // The 404 page's layout and styles (.notfound in style.css), so an error
+    // looks like part of the site rather than a broken one.
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        . '<meta name="robots" content="noindex"><title>Something went wrong · RoomEase</title>'
+        . '<link rel="stylesheet" href="' . h(base_url('assets/css/style.css')) . '"></head><body>'
+        . '<main class="notfound"><div class="notfound-inner">'
+        . '<p class="notfound-code">Error</p>'
+        . '<h1 class="notfound-title">Something went wrong</h1>'
+        . '<p class="notfound-lede">' . h($message) . '</p>'
+        . '<div class="notfound-actions">'
+        . '<a class="btn btn-accent" href="' . h(base_url('boarder/browse.php')) . '">Browse rooms</a>'
+        . '<a class="notfound-link" href="' . h(base_url('index.php')) . '">Go to the home page &rarr;</a>'
+        . '</div></div></main></body></html>';
+}
+
 /** Flash message helpers (one-time messages shown after redirect). */
 
 function flash_set($message, $type = 'success')

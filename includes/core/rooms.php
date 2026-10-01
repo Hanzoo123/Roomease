@@ -12,7 +12,7 @@ function find_landlord_room($roomId, $landlordId)
 {
     global $pdo;
     $stmt = $pdo->prepare(
-        'SELECT r.*, bh.name AS house_name, bh.landlord_id
+        'SELECT r.*, bh.name AS house_name, bh.landlord_id, bh.moderation_status AS house_moderation
            FROM rooms r
            JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id
           WHERE r.room_id = ? AND bh.landlord_id = ? AND bh.deleted_at IS NULL'

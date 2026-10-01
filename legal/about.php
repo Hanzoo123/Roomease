@@ -32,7 +32,7 @@ $values = [
   ],
   [
     'title' => 'The rent, up front',
-    'text' => 'Every room carries its own monthly rent, with the reservation fee, the house rules and '
+    'text' => 'Every room carries its own monthly rent, with the house rules and '
       . 'what is included beside it, so nothing has to be asked before deciding whether to visit.',
   ],
   [

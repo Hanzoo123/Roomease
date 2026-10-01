@@ -61,33 +61,11 @@ function avatar_initials($name)
 
 function resize_avatar_square($sourcePath, $destPath, $ext)
 {
-    if (!function_exists('imagecreatetruecolor')) {
-        return false;
-    }
-
-    $readers = ['jpg' => 'imagecreatefromjpeg', 'png' => 'imagecreatefrompng', 'webp' => 'imagecreatefromwebp'];
-    $reader = $readers[$ext] ?? null;
-    if ($reader === null || !function_exists($reader)) {
-        return false;
-    }
-
-    $source = @$reader($sourcePath);
+    // Opened the same way as listing photos (includes/core/uploads.php),
+    // turned upright from the EXIF tag.
+    $source = load_image_upright($sourcePath, $ext);
     if (!$source) {
         return false;
-    }
-
-    // Phone cameras record the rotation rather than applying it, so a portrait
-    // photo arrives lying on its side unless the EXIF tag is honoured.
-    if ($ext === 'jpg' && function_exists('exif_read_data')) {
-        $exif = @exif_read_data($sourcePath);
-        $orientation = (int) ($exif['Orientation'] ?? 0);
-        $angle = [3 => 180, 6 => -90, 8 => 90][$orientation] ?? 0;
-        if ($angle !== 0) {
-            $rotated = @imagerotate($source, $angle, 0);
-            if ($rotated) {
-                $source = $rotated;
-            }
-        }
     }
 
     $width  = imagesx($source);
@@ -152,8 +130,12 @@ function handle_avatar_upload($fileField, $userId)
     $mime  = finfo_file($finfo, $upload['tmp_name']);
     finfo_close($finfo);
 
-    if (!isset($allowed[$mime]) || @getimagesize($upload['tmp_name']) === false) {
+    $dimensions = @getimagesize($upload['tmp_name']);
+    if (!isset($allowed[$mime]) || $dimensions === false) {
         throw new RuntimeException('Your photo must be a JPG, PNG, or WEBP image.');
+    }
+    if ($dimensions[0] * $dimensions[1] > MAX_PHOTO_PIXELS) {
+        throw new RuntimeException('That photo has too many pixels. Please use one under 40 megapixels.');
     }
 
     $ext = $allowed[$mime];

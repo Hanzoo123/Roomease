@@ -100,7 +100,7 @@ if ($type === 'users') {
       ucfirst($l['moderation_status']), $l['moderator_name'],
       $l['moderated_at'] ? date('Y-m-d', strtotime($l['moderated_at'])) : '',
       $l['rejection_reason'],
-      $l['availability_status'] === 'available' ? 'Shown' : 'Hidden by landlord',
+      $l['deleted_at'] === null && $l['moderation_status'] === 'approved' ? 'Shown' : 'Not shown',
       $l['deleted_at'] !== null ? date('Y-m-d', strtotime($l['deleted_at'])) : '',
       $avail['room_count'], (int) ($l['rooms_available'] ?? 0),
       $avail['rent_from'] !== null ? number_format((float) $avail['rent_from'], 2, '.', '') : '',

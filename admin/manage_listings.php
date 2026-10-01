@@ -227,11 +227,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <?php if ($l['deleted_by_name'] !== null && $l['deleted_by_role'] !== 'landlord'): ?>
                         <small class="text-muted d-block mt-1">by <?= h($l['deleted_by_name']) ?></small>
                       <?php endif; ?>
-                    <?php elseif ($l['availability_status'] === 'available'): ?>
+                    <?php elseif ($l['moderation_status'] === 'approved'): ?>
                       <span class="badge badge-success px-2 py-1"><i class="fas fa-eye mr-1"></i> Shown</span>
                     <?php else: ?>
                       <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i>
-                        Hidden by landlord</span>
+                        Not shown</span>
                     <?php endif; ?>
                   </td>
                   <td class="text-sm text-muted" data-order="<?= h($showRemoved ? $l['deleted_at'] : $l['created_at']) ?>">

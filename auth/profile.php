@@ -45,7 +45,7 @@ if ($role === 'boarder') {
   // "Live" as boarders see it: approved and open, the same test as browse.
   $countStmt = $pdo->prepare(
     "SELECT COUNT(*) AS total,
-                COALESCE(SUM(moderation_status = 'approved' AND availability_status = 'available'), 0) AS live
+                COALESCE(SUM(moderation_status = 'approved'), 0) AS live
            FROM boarding_houses
           WHERE landlord_id = ? AND deleted_at IS NULL"
   );

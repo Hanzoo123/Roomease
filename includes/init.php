@@ -59,6 +59,10 @@ require_once __DIR__ . '/core/site_settings.php';
 // public site, so the one renderer is loaded here rather than page by page.
 require_once __DIR__ . '/components/avatar.php';
 
+// An exception no page caught ends on a "something went wrong" page instead of
+// a blank one, and its details go to the error log (includes/core/helpers.php).
+set_exception_handler('handle_uncaught_exception');
+
 configure_session_security();
 
 if (session_status() === PHP_SESSION_NONE) {

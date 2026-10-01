@@ -53,6 +53,8 @@ function audit_action_types()
         'listing_create'  => ['label' => 'Created listing',     'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
         'listing_edit'    => ['label' => 'Edited listing',      'badge' => 'badge-info',      'target' => 'listing', 'group' => 'landlord'],
         'listing_delete'  => ['label' => 'Deleted listing',     'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'landlord'],
+        // An approved listing whose text or photos changed, back in the queue.
+        'listing_resubmit' => ['label' => 'Sent back for review', 'badge' => 'badge-warning', 'target' => 'listing', 'group' => 'landlord'],
         'room_create'     => ['label' => 'Added room',          'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
         'room_edit'       => ['label' => 'Edited room',         'badge' => 'badge-info',      'target' => 'listing', 'group' => 'landlord'],
         'room_delete'     => ['label' => 'Deleted room',        'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'landlord'],
@@ -69,6 +71,7 @@ function audit_action_types()
         'signout'         => ['label' => 'Signed out',          'badge' => 'badge-secondary', 'target' => 'account', 'group' => 'signin'],
         'signup'          => ['label' => 'Created account',     'badge' => 'badge-info',      'target' => 'account', 'group' => 'signin'],
         'password_change' => ['label' => 'Changed password',    'badge' => 'badge-warning',   'target' => 'account', 'group' => 'signin'],
+        'email_change'    => ['label' => 'Changed email',       'badge' => 'badge-warning',   'target' => 'account', 'group' => 'signin'],
         'password_reset'  => ['label' => 'Reset password',      'badge' => 'badge-warning',   'target' => 'account', 'group' => 'signin'],
     ];
 }
@@ -307,6 +310,33 @@ function admin_target_url($targetType, $targetId)
 }
 
 /**
+ * Why a pending listing is waiting, when it was approved before and its
+ * landlord then changed its text or photos: the 'listing_resubmit' entry, so
+ * the administrator reviewing it knows what to look at. Null when the latest
+ * decision about the listing is not a resubmission. Read by every
+ * administrator, not only super admins, because it is part of the review.
+ */
+
+function listing_resubmission($listingId)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT action, detail, created_at FROM audit_logs
+              WHERE target_type = 'listing' AND target_id = ?
+                AND action IN ('listing_resubmit', 'listing_approve', 'listing_reject')
+              ORDER BY created_at DESC, log_id DESC
+              LIMIT 1"
+        );
+        $stmt->execute([(int) $listingId]);
+        $latest = $stmt->fetch();
+    } catch (PDOException $e) {
+        return null;
+    }
+    return $latest && $latest['action'] === 'listing_resubmit' ? $latest : null;
+}
+
+/**
  * Email a landlord about an administrator's decision on one of their listings.
  * Returns true if Gmail accepted it and false if sending failed. Returns null,
  * without trying, when the landlord's account is deactivated or removed.
@@ -354,10 +384,12 @@ function notify_landlord_of_decision($listingId, $action, $reason = null)
             break;
         case 'listing_restore':
             $subject = 'Your listing is back';
-            $paragraphs = [
-                $name . ' was restored and is on your dashboard again.'
-                . ($row['moderation_status'] === 'approved' ? ' Boarders can see it again.' : ''),
-            ];
+            // A listing its landlord deleted comes back pending (admin/listing_action.php).
+            $after = [
+                'approved' => ' Boarders can see it again.',
+                'pending'  => ' It is waiting for an administrator\'s approval before boarders can see it.',
+            ][$row['moderation_status']] ?? '';
+            $paragraphs = [$name . ' was restored and is on your dashboard again.' . $after];
             break;
         default:
             return false;

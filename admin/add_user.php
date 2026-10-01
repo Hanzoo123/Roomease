@@ -7,7 +7,8 @@
  * super admin gives only a username, a temporary password and the role. The
  * new administrator signs in with the username and adds their own name and
  * email before anything else (require_login() keeps them on Edit Profile
- * until they do), then changes the password in My Profile, Change Password.
+ * until they do), then replaces the temporary password with their own, which
+ * require_login() also insists on (users.must_change_password).
  */
 require __DIR__ . '/../includes/init.php';
 
@@ -52,10 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             current_user_id(),
         ]);
         $newId = (int) $pdo->lastInsertId();
+        set_password_change_required($newId, true);
 
         audit_log('admin_add', $newId, $form['username'], 'As ' . ($isSuper ? 'a super admin' : 'an administrator'));
         flash_set($form['username'] . ' was added. Give them the username and temporary password privately. '
-            . 'When they first sign in, they will add their name and email.', 'success');
+            . 'When they first sign in, they will add their name and email and choose their own password.', 'success');
         redirect('admin/admins.php');
     }
 }
@@ -86,7 +88,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-user-plus mr-1"></i> User details
               </h3>
-              <span class="card-subtitle">They add their own name and email the first time they sign in.</span>
+              <span class="card-subtitle">They add their own name and email, and choose their own password, the first time they sign in.</span>
             </div>
 
             <?php if ($errors): ?>

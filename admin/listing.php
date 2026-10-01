@@ -62,7 +62,7 @@ $rooms = $roomStmt->fetchAll();
 $amenStmt = $pdo->prepare(
   'SELECT a.amenity_name FROM boarding_house_amenities bha
      JOIN amenities a ON a.amenity_id = bha.amenity_id
-    WHERE bha.boarding_house_id = ? AND bha.is_available = 1
+    WHERE bha.boarding_house_id = ?
     ORDER BY a.amenity_name'
 );
 $amenStmt->execute([$listingId]);
@@ -92,15 +92,16 @@ $otherListings = $otherStmt->fetchAll();
 // The history is the audit log's entries for this page, so only a super
 // admin sees it; for anyone else the History tab is left out.
 $history = is_super_admin() ? audit_entries_for('listing', $listingId, 40) : null;
+
+// A listing approved before and changed since is back in the queue; say so,
+// and what changed, since only a super admin can read the full history.
+$resubmission = $listing['moderation_status'] === 'pending' ? listing_resubmission($listingId) : null;
 $types = audit_action_types();
 
 // Stay terms, only the ones the landlord stated.
 $terms = [];
 if (($listing['curfew'] ?? null) !== null) {
   $terms['Curfew'] = $listing['curfew'];
-}
-if (($listing['security_deposit'] ?? null) !== null) {
-  $terms['Security deposit'] = (float) $listing['security_deposit'] == 0 ? 'None' : peso_round($listing['security_deposit']);
 }
 if (!empty($listing['minimum_stay_months'])) {
   $months = (int) $listing['minimum_stay_months'];
@@ -110,8 +111,6 @@ $paymentLabel = payment_methods_label($listing['payment_methods'] ?? '');
 if ($paymentLabel !== '') {
   $terms['Payment'] = $paymentLabel;
 }
-$terms['Reservation fee'] = ($listing['reservation_fee'] === null || $listing['reservation_fee'] === '')
-  ? 'Not required' : peso_round($listing['reservation_fee']);
 $genderLabel = gender_policy_options()[$listing['gender_policy'] ?? ''] ?? null;
 if ($genderLabel !== null) {
   $terms['Who can stay'] = $genderLabel;
@@ -182,8 +181,6 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <span class="badge badge-secondary px-2 py-1"><i class="fas fa-trash mr-1"></i> Deleted by the landlord</span>
               <?php elseif ($archived): ?>
                 <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed</span>
-              <?php elseif ($listing['availability_status'] !== 'available'): ?>
-                <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i> Hidden by landlord</span>
               <?php endif; ?>
               <?php if (!$landlordLive): ?>
                 <span class="badge badge-secondary px-2 py-1">
@@ -207,6 +204,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
             </small>
             <?php if ($listing['moderation_status'] === 'rejected' && $listing['rejection_reason']): ?>
               <div class="mt-2"><strong>Rejected because:</strong> <?= h($listing['rejection_reason']) ?></div>
+            <?php endif; ?>
+            <?php if ($resubmission): ?>
+              <div class="mt-2">
+                <strong>Back for review:</strong> it was approved before, and the landlord changed it
+                <?= h(time_ago($resubmission['created_at'])) ?>. <?= h((string) $resubmission['detail']) ?>.
+              </div>
             <?php endif; ?>
             <?php if ($approveBlocked !== ''): ?>
               <div class="mt-2 text-muted"><i class="fas fa-info-circle mr-1"></i><?= h($approveBlocked) ?></div>

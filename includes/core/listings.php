@@ -16,12 +16,12 @@ const LIVE_LANDLORD_JOIN =
     'JOIN users lu ON lu.user_id = bh.landlord_id AND lu.is_active = 1 AND lu.deleted_at IS NULL';
 
 /**
- * A listing's own switches for being on the public site. A listing an
- * administrator removed stays in the table, archived, and never shows.
+ * What a listing itself needs to be on the public site: an administrator's
+ * approval. A listing an administrator removed stays in the table, archived,
+ * and never shows.
  */
 
-const LIVE_STATUS_WHERE = "bh.availability_status = 'available' AND bh.moderation_status = 'approved'"
-    . ' AND bh.deleted_at IS NULL';
+const LIVE_STATUS_WHERE = "bh.moderation_status = 'approved' AND bh.deleted_at IS NULL";
 
 /**
  * Everything else a listing needs to be on the public site: approved, switched
@@ -211,7 +211,7 @@ function filter_amenity_options()
                  OR EXISTS (SELECT 1 FROM boarding_house_amenities fa
                               JOIN boarding_houses bh ON bh.boarding_house_id = fa.boarding_house_id
                               ' . LIVE_LANDLORD_JOIN . '
-                             WHERE fa.amenity_id = a.amenity_id AND fa.is_available = 1 AND ' . LIVE_LISTING_WHERE . ')
+                             WHERE fa.amenity_id = a.amenity_id AND ' . LIVE_LISTING_WHERE . ')
               GROUP BY a.amenity_name
               ORDER BY standard DESC, (CASE WHEN standard = 1 THEN id END), name'
         );
@@ -408,7 +408,7 @@ function pending_queue_after($exceptId = 0)
 /* ---------------------------------------------------------------------------
  * Stay terms (database/roomease.sql)
  *
- * What a boarder asks before visiting: curfew, deposit, minimum stay, how rent
+ * What a boarder asks before visiting: curfew, minimum stay, how rent
  * is paid, who the house accepts, and whether visitors, pets and cooking are
  * allowed, plus the listing's map pin. Every one is optional, and NULL means
  * the landlord has not said, so the listing page leaves it out rather than
@@ -418,7 +418,7 @@ function pending_queue_after($exceptId = 0)
 /** The stay-term columns on boarding_houses, in the order the forms write them. */
 
 const STAY_TERM_COLUMNS = [
-    'curfew', 'security_deposit', 'minimum_stay_months', 'payment_methods', 'gender_policy',
+    'curfew', 'minimum_stay_months', 'payment_methods', 'gender_policy',
     'visitors_allowed', 'pets_allowed', 'cooking_allowed', 'latitude', 'longitude',
 ];
 
@@ -471,9 +471,6 @@ function listing_errors(array $listing)
     } else {
         $errors[] = phone_problem($listing['contact_number'], 'Contact number');
     }
-    if ($listing['reservation_fee'] !== '') {
-        $errors[] = money_problem($listing['reservation_fee'], 'Reservation fee');
-    }
     $errors[] = too_long($listing['name'], 150, 'Boarding house name');
     $errors[] = too_long($listing['address'], 500, 'Address');
     $errors[] = too_long($listing['description'], 2000, 'Description');
@@ -510,15 +507,6 @@ function stay_terms_from_post(array $post)
         $values['curfew'] = $curfew;
     }
 
-    $deposit = $text('security_deposit');
-    if ($deposit !== '') {
-        if ($problem = money_problem($deposit, 'Security deposit')) {
-            $errors[] = $problem;
-        } else {
-            $values['security_deposit'] = $deposit;
-        }
-    }
-
     $stay = $text('minimum_stay_months');
     if ($stay !== '') {
         if (!ctype_digit($stay) || (int) $stay < 1 || (int) $stay > 60) {
@@ -552,11 +540,41 @@ function stay_terms_from_post(array $post)
     }
 
     $echo = $values;
-    foreach (['curfew', 'security_deposit', 'minimum_stay_months', 'latitude', 'longitude'] as $typed) {
+    foreach (['curfew', 'minimum_stay_months', 'latitude', 'longitude'] as $typed) {
         $echo[$typed] = $text($typed);
     }
 
     return [$values, $errors, $echo];
+}
+
+/**
+ * The listing fields an administrator's approval vouches for, as column =>
+ * how a message names it: the text a boarder reads. Changing one of them, or
+ * adding a photo, sends an approved listing back for review. Rents, slots and
+ * stay terms are left to change freely, because a landlord updates them as
+ * rooms fill and empty.
+ */
+
+const REVIEWED_LISTING_FIELDS = [
+    'name' => 'name', 'address' => 'address', 'description' => 'description', 'house_rules' => 'house rules',
+];
+
+/**
+ * Put one of a landlord's listings back in the approval queue, if it is in
+ * $fromStatus now. Returns true when it moved. Used when a rejected listing is
+ * corrected, and when an approved one changes what its approval covered.
+ */
+
+function return_listing_to_queue($houseId, $landlordId, $fromStatus)
+{
+    global $pdo;
+    $stmt = $pdo->prepare(
+        "UPDATE boarding_houses
+            SET moderation_status = 'pending', rejection_reason = NULL, moderated_at = NULL, moderated_by = NULL
+          WHERE boarding_house_id = ? AND landlord_id = ? AND moderation_status = ? AND deleted_at IS NULL"
+    );
+    $stmt->execute([(int) $houseId, (int) $landlordId, $fromStatus]);
+    return $stmt->rowCount() === 1;
 }
 
 /**

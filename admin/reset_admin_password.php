@@ -4,7 +4,9 @@
  *
  * For an administrator who has forgotten their password and cannot use "I
  * forgot my password", such as one who has not added an email yet. The super
- * admin gives them the new password privately. Saving it signs the
+ * admin gives them the new password privately, and the administrator must
+ * replace it with their own when they next sign in (users.must_change_password,
+ * enforced by require_login()). Saving it signs the
  * administrator out everywhere: every session checks the password it was
  * signed in under (enforce_session_policy()), and remembered devices are
  * forgotten here.
@@ -46,9 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         $pdo->prepare('UPDATE users SET password_hash = ?, updated_by = ? WHERE user_id = ?')
             ->execute([password_hash($password, PASSWORD_DEFAULT), current_user_id(), $targetId]);
+        set_password_change_required($targetId, true);
         forget_all_remembered_logins($targetId);
         audit_log('admin_password', $targetId, $name, 'Signed out everywhere');
-        flash_set($name . ' has a new temporary password and was signed out everywhere. Give it to them privately.', 'success');
+        flash_set($name . ' has a new temporary password and was signed out everywhere. Give it to them privately;'
+            . ' they will choose their own when they next sign in.', 'success');
         redirect('admin/admins.php');
     }
 }

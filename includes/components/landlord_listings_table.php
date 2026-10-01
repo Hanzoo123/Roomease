@@ -92,7 +92,7 @@ $listings = $listings ?? [];
                 <?php endif; ?>
               </td>
               <td>
-                <?php if ($l['availability_status'] === 'available'): ?>
+                <?php if ($l['moderation_status'] === 'approved'): ?>
                   <span class="badge badge-success px-2 py-1"><i class="fas fa-eye mr-1"></i> Shown</span>
                 <?php else: ?>
                   <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i>

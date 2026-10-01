@@ -24,9 +24,10 @@ if ($roomId) {
     }
     $houseId = (int) $room['boarding_house_id'];
     $houseName = $room['house_name'];
+    $houseModeration = $room['house_moderation'];
 } else {
     $houseId = (int) ($_GET['house'] ?? $_POST['boarding_house_id'] ?? 0);
-    $stmt = $pdo->prepare('SELECT boarding_house_id, name FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ? AND deleted_at IS NULL');
+    $stmt = $pdo->prepare('SELECT boarding_house_id, name, moderation_status FROM boarding_houses WHERE boarding_house_id = ? AND landlord_id = ? AND deleted_at IS NULL');
     $stmt->execute([$houseId, $landlordId]);
     $house = $stmt->fetch();
     if (!$house) {
@@ -34,6 +35,7 @@ if ($roomId) {
         redirect('landlord/dashboard.php');
     }
     $houseName = $house['name'];
+    $houseModeration = $house['moderation_status'];
 }
 
 $roomTypes = room_type_options();
@@ -71,7 +73,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     verify_csrf();
 
-    [$form, $errors] = room_from_input($_POST, $roomTypes);
+    // The + and - buttons on the Rooms card change slots taken without this
+    // form. When the number was left as the form showed it, the room's current
+    // count is saved rather than the one the form was opened with, so a tenant
+    // counted in another tab meanwhile is not undone by saving a new rent.
+    $input = $_POST;
+    $slotsKept = null;
+    $shownSlots = $_POST['slots_taken_shown'] ?? null;
+    if ($room && is_string($shownSlots) && is_string($_POST['slots_taken'] ?? null)
+        && trim($_POST['slots_taken']) === $shownSlots) {
+        $input['slots_taken'] = (string) $room['slots_taken'];
+        if ($shownSlots !== (string) $room['slots_taken']) {
+            $slotsKept = (int) $room['slots_taken'];
+        }
+    }
+
+    [$form, $errors] = room_from_input($input, $roomTypes);
 
     if ($form['name'] !== '') {
         $dup = $pdo->prepare('SELECT room_id FROM rooms WHERE boarding_house_id = ? AND name = ? AND room_id <> ?');
@@ -116,7 +133,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('landlord/room_form.php?id=' . $roomId . '#photos');
         }
 
-        flash_set('"' . $form['name'] . '" saved.', 'success');
+        // New photos send an approved listing back for review, exactly as new
+        // house photos do on Edit Listing.
+        $backForReview = $added > 0 && $houseModeration === 'approved'
+            && return_listing_to_queue($houseId, $landlordId, 'approved');
+        if ($backForReview) {
+            audit_log('listing_resubmit', $houseId, $houseName, 'Changed: photos of ' . $form['name']);
+        }
+
+        $message = '"' . $form['name'] . '" saved.';
+        if ($slotsKept !== null) {
+            $message .= ' Slots taken had changed to ' . $slotsKept . ' since you opened this page, so that number was kept.';
+        }
+        if ($backForReview) {
+            $message .= ' The new photos sent the listing back to an administrator for approval, and boarders will not'
+                . ' see it until it is approved again.';
+        }
+        flash_set($message, 'success');
         if (($_POST['next'] ?? '') === 'another') {
             redirect('landlord/room_form.php?house=' . $houseId);
         }
@@ -176,6 +209,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <?= csrf_field() ?>
                 <?php if ($room): ?>
                   <input type="hidden" name="room_id" value="<?= (int) $roomId ?>">
+                  <?php /* The count as this form shows it; see the POST handler above. */ ?>
+                  <input type="hidden" name="slots_taken_shown" value="<?= h($form['slots_taken']) ?>">
                 <?php else: ?>
                   <input type="hidden" name="boarding_house_id" value="<?= (int) $houseId ?>">
                 <?php endif; ?>
@@ -246,6 +281,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   Photos of this room only. JPG, PNG or WEBP, up to <?= format_bytes(max_upload_bytes()) ?> each and
                   <?= max_photos_per_upload() ?> per upload.
                   <?php if (!$photos): ?>The first photo becomes the room's main photo.<?php endif; ?>
+                  <?php if ($houseModeration === 'approved'): ?>
+                    New photos send the listing back to an administrator for approval.
+                  <?php endif; ?>
                 </p>
                 <div class="form-group mb-0">
                   <label for="photos-input"><?= $photos ? 'Add more photos' : 'Upload photos' ?></label>

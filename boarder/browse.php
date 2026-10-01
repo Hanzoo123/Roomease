@@ -61,8 +61,7 @@ $whereFor = function (array $f) use ($amenityOptions) {
   foreach ($f['amenities'] ?? [] as $amenityId) {
     $where[] = 'EXISTS (SELECT 1 FROM boarding_house_amenities fa
                           JOIN amenities a ON a.amenity_id = fa.amenity_id
-                         WHERE fa.boarding_house_id = bh.boarding_house_id AND fa.is_available = 1
-                           AND a.amenity_name = ?)';
+                         WHERE fa.boarding_house_id = bh.boarding_house_id AND a.amenity_name = ?)';
     $params[] = $amenityOptions[$amenityId]['name'];
   }
   return [implode(' AND ', $where), $params];

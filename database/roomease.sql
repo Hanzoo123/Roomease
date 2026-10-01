@@ -88,6 +88,10 @@ CREATE TABLE users (
     -- other administrators (admin/admins.php) and the site's Appearance.
     -- Always 0 for landlords and boarders.
     is_super_admin  TINYINT(1) NOT NULL DEFAULT 0,
+    -- 1 while the password is a temporary one a super admin chose (adding the
+    -- administrator, or resetting their password). require_login() keeps them
+    -- on Change Password until they choose their own.
+    must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     deleted_at      DATETIME NULL DEFAULT NULL,
     deleted_by      INT NULL,
@@ -120,10 +124,9 @@ CREATE TABLE users (
 -- A property listing, owned by one landlord. Rent, room type and capacity
 -- belong to each room, not to the house (see `rooms`).
 --
--- availability_status is the landlord's switch: 'unavailable' hides the
--- listing from the public site. moderation_status is the administrator's:
--- only an 'approved' listing appears publicly, and moderated_by records who
--- made the latest decision. deleted_at is set when an administrator removes
+-- moderation_status is the administrator's decision: only an 'approved'
+-- listing appears publicly, and moderated_by records who made the latest
+-- decision. deleted_at is set when an administrator removes
 -- a listing — it is archived rather than destroyed, and can be restored.
 -- ---------------------------------------------------------
 CREATE TABLE boarding_houses (
@@ -131,8 +134,6 @@ CREATE TABLE boarding_houses (
     landlord_id         INT NOT NULL,
     name                VARCHAR(150) NOT NULL,
     address             TEXT NOT NULL,
-    reservation_fee     DECIMAL(10, 2) DEFAULT NULL,
-    availability_status ENUM('available', 'unavailable') NOT NULL DEFAULT 'available',
     moderation_status   ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
     rejection_reason    VARCHAR(500) DEFAULT NULL,
     moderated_at        TIMESTAMP NULL DEFAULT NULL,
@@ -143,7 +144,6 @@ CREATE TABLE boarding_houses (
     -- Stay terms and map pin. NULL means the landlord has not stated it, and
     -- the listing page leaves the line out rather than guessing.
     curfew              VARCHAR(60) DEFAULT NULL,
-    security_deposit    DECIMAL(10, 2) DEFAULT NULL,
     minimum_stay_months TINYINT UNSIGNED DEFAULT NULL,
     payment_methods     VARCHAR(100) DEFAULT NULL,
     gender_policy       ENUM('any', 'female', 'male') DEFAULT NULL,
@@ -162,9 +162,9 @@ CREATE TABLE boarding_houses (
     -- Who archived it: an administrator removing it, or its landlord deleting
     -- it. Restoring clears this and deleted_at together.
     deleted_by          INT NULL,
-    -- The two status columns lead because every browse query fixes both, and
-    -- the ordering column comes last so one index supplies the sort as well.
-    KEY idx_bh_public_recent   (moderation_status, availability_status, created_at),
+    -- The status column leads because every browse query fixes it, and the
+    -- ordering column comes last so one index supplies the sort as well.
+    KEY idx_bh_public_recent   (moderation_status, created_at),
     KEY idx_bh_created         (created_at),
     KEY idx_bh_landlord_recent (landlord_id, created_at),
     KEY idx_bh_deleted         (deleted_at),
@@ -251,7 +251,6 @@ CREATE TABLE boarding_house_amenities (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     boarding_house_id   INT NOT NULL,
     amenity_id          INT NOT NULL,
-    is_available        TINYINT(1) NOT NULL DEFAULT 1,
     UNIQUE KEY uq_bh_amenity (boarding_house_id, amenity_id),
     CONSTRAINT fk_bha_bh FOREIGN KEY (boarding_house_id)
         REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE,

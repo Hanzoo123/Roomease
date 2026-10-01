@@ -50,31 +50,10 @@ $policyPresets = [
     placeholder="e.g. Purok 3, Brgy. Pangasugan, Baybay City, Leyte" required>
 </div>
 
-<div class="form-row">
-  <div class="col-md-6 form-group">
-    <label for="reservation_fee">Reservation fee (&#8369;)</label>
-    <input type="number" step="0.01" min="0" class="form-control" id="reservation_fee" name="reservation_fee"
-      value="<?= $val('reservation_fee') ?>" placeholder="e.g. 1500.00">
-    <small class="form-text text-muted">Optional &mdash; leave blank if no reservation fee is required.</small>
-  </div>
-  <div class="col-md-6 form-group">
-    <label for="contact_number">Landlord contact number</label>
-    <input type="text" class="form-control" id="contact_number" name="contact_number"
-      value="<?= $val('contact_number') ?>" placeholder="e.g. 09171234567" required>
-  </div>
-</div>
-
 <div class="form-group">
-  <label for="availability_status">Show this listing on the website</label>
-  <select class="form-control" id="availability_status" name="availability_status">
-    <option value="available" <?= ($listing['availability_status'] ?? 'available') === 'available' ? 'selected' : '' ?>>
-      Shown (boarders can find it once it is approved)</option>
-    <option value="unavailable" <?= ($listing['availability_status'] ?? '') === 'unavailable' ? 'selected' : '' ?>>
-      Hidden (take the whole listing off the website)</option>
-  </select>
-  <small class="form-text text-muted">
-    To show a room as full or not available, update it on the Rooms card instead.
-  </small>
+  <label for="contact_number">Landlord contact number</label>
+  <input type="text" class="form-control" id="contact_number" name="contact_number"
+    value="<?= $val('contact_number') ?>" placeholder="e.g. 09171234567" required>
 </div>
 
 <div class="form-group">
@@ -254,12 +233,6 @@ $houseRuleFlags = [
 </div>
 
 <div class="form-row">
-  <div class="col-md-6 form-group">
-    <label for="security_deposit">Security deposit (&#8369;)</label>
-    <input type="number" step="0.01" min="0" class="form-control" id="security_deposit" name="security_deposit"
-      value="<?= $val('security_deposit') ?>" placeholder="e.g. 3000.00">
-    <small class="form-text text-muted">Enter 0 if no deposit is required.</small>
-  </div>
   <div class="col-md-6 form-group">
     <label for="minimum_stay_months">Minimum stay (months)</label>
     <input type="number" step="1" min="1" max="60" class="form-control" id="minimum_stay_months"

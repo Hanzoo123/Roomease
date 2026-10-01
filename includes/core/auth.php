@@ -79,6 +79,13 @@ function require_login($roles = null)
         flash_set('Welcome! Please add your name and email to finish setting up your account.', 'info');
         redirect('auth/edit_profile.php');
     }
+
+    // Then a temporary password, one a super admin chose, is replaced with
+    // their own: until it is, the super admin who chose it can sign in as them.
+    if (password_change_required() && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), $profilePages, true)) {
+        flash_set('Please choose your own password to replace the temporary one.', 'info');
+        redirect('auth/change_password.php');
+    }
 }
 
 /** The administrators' sign-in page, relative to the app root. */
@@ -177,6 +184,51 @@ function account_name_sql($alias)
 function profile_incomplete()
 {
     return !empty($_SESSION['profile_incomplete']);
+}
+
+/* ---------------------------------------------------------------------------
+ * Temporary passwords
+ *
+ * A password a super admin chooses for an administrator, when adding them
+ * (admin/add_user.php) or resetting it (admin/reset_admin_password.php), is
+ * known to two people. users.must_change_password marks it, and require_login()
+ * keeps the administrator on Change Password until they choose their own
+ * (auth/change_password.php, or auth/reset_password.php by emailed code).
+ *
+ * A database imported before the column existed still runs: the flag is then
+ * never set or read, and the error log says why.
+ * ------------------------------------------------------------------------ */
+
+/** True when the signed-in administrator must replace a temporary password. Set per request by enforce_session_policy(). */
+function password_change_required()
+{
+    return !empty($_SESSION['must_change_password']);
+}
+
+/** Whether the account's password is still a temporary one, read from the database. */
+function account_must_change_password($userId)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare('SELECT must_change_password FROM users WHERE user_id = ?');
+        $stmt->execute([(int) $userId]);
+        return (bool) $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/** Mark an account's password as temporary, or as its owner's own again. */
+function set_password_change_required($userId, $required)
+{
+    global $pdo;
+    try {
+        $pdo->prepare('UPDATE users SET must_change_password = ? WHERE user_id = ?')
+            ->execute([$required ? 1 : 0, (int) $userId]);
+    } catch (PDOException $e) {
+        error_log('RoomEase: users.must_change_password is missing, so temporary passwords are not enforced. '
+            . 'Import database/roomease.sql or add the column. ' . $e->getMessage());
+    }
 }
 
 /* ---------------------------------------------------------------------------

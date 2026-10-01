@@ -51,7 +51,9 @@ Options -Indexes
 </IfModule>
 
 # --- File types that are never meant to be downloaded ---------------------
-<FilesMatch "(?i)\.(sql|log|md|ini|json|lock|bak|old|sample|dist|yml|yaml)$">
+# Office files are documents about the project (a plan, the defense slides)
+# that end up in this folder; the site itself never serves one.
+<FilesMatch "(?i)\.(sql|log|md|ini|json|lock|bak|old|sample|dist|yml|yaml|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
