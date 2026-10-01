@@ -1,18 +1,13 @@
 <?php
 /**
- * "Continue with Google" — OpenID Connect sign-in without a library.
+ * "Continue with Google" (OpenID Connect, no library).
  *
- * Flow: auth/google_start.php sends the visitor to Google with a random state
- * and a PKCE challenge kept in the session. Google sends them back to
- * auth/google_callback.php with a one-time code, which is exchanged for an ID
- * token over a direct, certificate-checked HTTPS request to Google.
+ * 1. auth/google_start.php sends the visitor to Google (with state + PKCE).
+ * 2. Google sends them back to auth/google_callback.php with a code.
+ * 3. The code is exchanged with Google over HTTPS for the user's details.
  *
- * Credentials never live in a tracked file. They come from the project's .env
- * or from the environment (ROOMEASE_GOOGLE_CLIENT_ID /
- * ROOMEASE_GOOGLE_CLIENT_SECRET), or from config/google.local.php, which
- * .gitignore excludes; copy config/google.local.example.php to start. With
- * neither, the Google button still shows, and auth/google_start.php answers
- * it with "not set up yet".
+ * Credentials come from .env (ROOMEASE_GOOGLE_CLIENT_ID / _SECRET) or
+ * config/google.local.php, never from a tracked file.
  */
 
 require_once __DIR__ . '/env.php';
@@ -51,10 +46,7 @@ function google_enabled()
     return $config['client_id'] !== '' && $config['client_secret'] !== '';
 }
 
-/**
- * The callback URL. It must match an "Authorized redirect URI" in the Google
- * Cloud console exactly, scheme and path included.
- */
+/** The callback URL. Must match a redirect URI in the Google Cloud console exactly. */
 function google_redirect_uri()
 {
     return absolute_url('auth/google_callback.php');
@@ -72,9 +64,8 @@ function base64url_decode($text)
 }
 
 /**
- * Remember this attempt in the session and return the Google URL to send the
- * visitor to. $role applies only if Google sign-in ends up creating a new
- * account; $from is the page to return to if anything goes wrong.
+ * Start a Google sign-in and return the Google URL. $role is used only if a
+ * new account is made; $from is where to go back to on failure.
  */
 function google_begin($role, $remember, $from)
 {
@@ -102,11 +93,7 @@ function google_begin($role, $remember, $from)
     ]);
 }
 
-/**
- * POST a form to Google over HTTPS with certificate checks on. Returns
- * ['status' => int, 'body' => string]. Throws RuntimeException if the request
- * could not be made at all.
- */
+/** POST to Google over checked HTTPS. Returns ['status', 'body']; throws if it can't connect. */
 function google_http_post($url, array $fields)
 {
     if (!function_exists('curl_init')) {
@@ -124,9 +111,7 @@ function google_http_post($url, array $fields)
         CURLOPT_HTTPHEADER     => ['Accept: application/json'],
     ];
 
-    // A stock WAMP php.ini names no CA bundle, which makes every HTTPS call
-    // fail certificate checks. The operating system's certificate store is
-    // used instead, unless config/google.local.php names a bundle file.
+    // WAMP has no certificate bundle set, so use Windows' own certificates.
     $caBundle = google_config()['ca_bundle'];
     if ($caBundle !== '') {
         $options[CURLOPT_CAINFO] = $caBundle;
@@ -145,10 +130,7 @@ function google_http_post($url, array $fields)
     return ['status' => (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE), 'body' => (string) $body];
 }
 
-/**
- * Exchange the code from the callback for the signed-in Google account's
- * verified claims (sub, email, given_name, family_name, ...).
- */
+/** Exchange the callback code for the Google user's details (sub, email, names...). */
 function google_exchange_code($code, $verifier)
 {
     $config = google_config();
@@ -164,8 +146,7 @@ function google_exchange_code($code, $verifier)
 
     $data = json_decode($response['body'], true);
     if ($response['status'] !== 200 || !is_array($data) || empty($data['id_token'])) {
-        // Google's error body names the problem (redirect_uri_mismatch,
-        // invalid_client, ...) and holds no secret, so it goes to the log.
+        // Google's error message has no secrets, so it is logged.
         throw new RuntimeException('token endpoint answered HTTP ' . $response['status'] . ': '
             . substr($response['body'], 0, 300));
     }
@@ -174,13 +155,9 @@ function google_exchange_code($code, $verifier)
 }
 
 /**
- * Read and check the claims in an ID token.
- *
- * The token arrives straight from Google's token endpoint over an HTTPS
- * connection whose certificate was verified, and OpenID Connect Core 1.0
- * (section 3.1.3.7) allows that TLS check to stand in for verifying the
- * token's signature in exactly this case. Every claim that matters is still
- * checked here.
+ * Read and check the ID token's claims. The signature isn't checked: the token
+ * came straight from Google over verified HTTPS, which the OpenID spec allows
+ * (section 3.1.3.7).
  */
 function google_id_token_claims($jwt, $clientId)
 {
@@ -212,10 +189,10 @@ function google_id_token_claims($jwt, $clientId)
     return $claims;
 }
 
-/** How long the "One more step" page keeps a new Google account waiting. */
+/** Seconds the "One more step" page waits for a new Google user to pick a role. */
 const GOOGLE_SIGNUP_TTL = 900; // 15 minutes
 
-/** The parts of a Google sign-in a RoomEase account is made from. */
+/** The Google details we keep: id, email, first and last name. */
 function google_profile_from_claims(array $claims)
 {
     $email = mb_strtolower(trim($claims['email']));
@@ -229,14 +206,8 @@ function google_profile_from_claims(array $claims)
 }
 
 /**
- * The RoomEase account a Google sign-in belongs to. Returns
- * [$user, $error, $linked]: $user is null when there is no account yet,
- * $error is set when there is one that this Google account must not be let
- * into, and $linked is true when an existing account was linked to Google
- * just now.
- *
- * Matched by Google account id first, then by the email Google has verified.
- * An account found by email is linked to the Google account on the way.
+ * Find the account for a Google sign-in, by Google id, then by email (and
+ * link it). Returns [$user, $error, $linked]; $user is null if there is none yet.
  */
 function google_find_account($googleId, $email)
 {
@@ -255,9 +226,7 @@ function google_find_account($googleId, $email)
         return [null, null, false];
     }
 
-    // Administrators sign in only at admin/login.php, which has no Google and
-    // no "Remember me". Checked before anything is linked, so Google never
-    // touches an administrator account at all.
+    // Admins can't use Google; they sign in at admin/login.php.
     if ($user['role'] === 'administrator') {
         return [null, 'Administrators sign in on the admin sign-in page, with their email and password.', false];
     }
@@ -269,38 +238,26 @@ function google_find_account($googleId, $email)
         return [null, 'That email address is already linked to a different Google account.', false];
     }
 
-    // A deactivated or removed account is left exactly as it is, and
-    // google_sign_in() then refuses it with the usual message.
+    // Deactivated or removed: not linked; google_sign_in() refuses it.
     if (!empty($user['deleted_at']) || empty($user['is_active'])) {
         return [$user, null, false];
     }
 
-    // Google has verified this address belongs to whoever just signed in,
-    // which is the same proof a password reset email relies on.
-    //
-    // Sign-up never checked it, though, so whoever chose this account's
-    // password may not be the person Google just vouched for. Anyone could
-    // have registered someone else's address in advance and waited for its
-    // real owner to arrive through Google. The password is therefore
-    // replaced and every remembered device forgotten, so nobody keeps a way
-    // in that the owner does not know about, and any session still signed in
-    // under the old password ends on its next page (enforce_session_policy()).
-    // The owner can choose a new password from their profile, with a code
-    // sent to this address.
+    // Link it. The old password is replaced: sign-up never verified the email,
+    // so someone else may have registered this address and set the password.
+    // The real owner can set a new one from their profile.
     $replacement = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
     $link = $pdo->prepare(
         'UPDATE users SET google_id = ?, password_hash = ?, updated_by = user_id WHERE user_id = ? AND google_id IS NULL'
     );
     $link->execute([$googleId, $replacement, $user['user_id']]);
     if ($link->rowCount() !== 1) {
-        // Another request linked it first; start over from the fresh row.
+        // Another request linked it first; try again.
         return google_find_account($googleId, $email);
     }
     forget_all_remembered_logins($user['user_id']);
 
-    // google_sign_in() starts the session from this row, so it has to carry
-    // the new hash: a session started from the old one would be signed out
-    // on its next page, like every other session of the account.
+    // The session must start with the new hash (see start_user_session()).
     $user['google_id'] = $googleId;
     $user['password_hash'] = $replacement;
 
@@ -308,9 +265,8 @@ function google_find_account($googleId, $email)
 }
 
 /**
- * Create the account for a Google sign-in and return its row. It has no
- * password anyone knows: its owner signs in with Google, or sets one from
- * their profile. Throws PDOException if the email was taken in the meantime.
+ * Create an account for a Google user, with a random password nobody knows.
+ * Throws PDOException if the email was taken meanwhile.
  */
 function google_create_account(array $profile, $role, $phone = null)
 {
@@ -337,13 +293,8 @@ function google_create_account(array $profile, $role, $phone = null)
 }
 
 /**
- * Sign in to the account a Google sign-in resolved to and go to its home
- * page. Deactivated and removed accounts are refused exactly as the password
- * login refuses them: the reason is returned and nothing else happens.
- *
- * $linked is google_find_account()'s third value: the account was only just
- * linked to Google, so its old password has stopped working and the owner is
- * told so.
+ * Sign in and redirect. A deactivated or removed account gets the reason back.
+ * $linked: the account was just linked, so the user is told their old password no longer works.
  */
 function google_sign_in(array $user, $remember, $created, $linked = false)
 {
@@ -354,7 +305,7 @@ function google_sign_in(array $user, $remember, $created, $linked = false)
         return 'Your account is deactivated. Please contact support.';
     }
 
-    // Taken out first: start_user_session() empties the session.
+    // Before start_user_session(), which clears the session.
     $after = take_after_login();
     start_user_session($user);
     if ($created) {

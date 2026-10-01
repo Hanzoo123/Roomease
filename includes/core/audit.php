@@ -1,27 +1,16 @@
 <?php
 /**
- * The audit log, and telling landlords about the decisions made on their listings.
+ * The audit log (who did what), and telling landlords about decisions on
+ * their listings by email and on their dashboard.
  */
 
-/* ---------------------------------------------------------------------------
- * The audit log (audit_logs, database/roomease.sql)
- *
- * One table for who did what: administrators' decisions and exports,
- * landlords' changes to their listings and rooms, and every sign-in. The
- * Audit Log page (admin/activity.php) shows each group on its own tab, and
- * listing decisions are passed on to the landlord: by email, and on their
- * dashboard, which reads the same table.
- * ------------------------------------------------------------------------ */
-
-/** How long sign-in records are kept before audit_purge_old_signins() drops them. */
+/** Days sign-in records are kept. */
 
 const AUDIT_SIGNIN_DAYS = 90;
 
 /**
- * Every action the audit log records: how it reads, the badge it wears, what
- * kind of thing it acts on, and which tab it belongs to (admin, landlord or
- * signin). A landlord's room changes are filed under the room's listing, so
- * a listing's history shows them.
+ * Every action the log records: its label, badge, what it acts on, and its
+ * tab (admin, landlord or signin). Room changes are filed under the listing.
  */
 
 function audit_action_types()
@@ -39,7 +28,7 @@ function audit_action_types()
         'export_users'    => ['label' => 'Exported users',      'badge' => 'badge-secondary', 'target' => 'export',  'group' => 'admin'],
         'export_listings' => ['label' => 'Exported listings',   'badge' => 'badge-secondary', 'target' => 'export',  'group' => 'admin'],
 
-        // What a super admin does to the other administrators (admin/admins.php).
+        // What a super admin does to other admins.
         'admin_add'        => ['label' => 'Added administrator',       'badge' => 'badge-success', 'target' => 'administrator', 'group' => 'admin'],
         'admin_activate'   => ['label' => 'Activated administrator',   'badge' => 'badge-success', 'target' => 'administrator', 'group' => 'admin'],
         'admin_deactivate' => ['label' => 'Deactivated administrator', 'badge' => 'badge-warning', 'target' => 'administrator', 'group' => 'admin'],
@@ -53,7 +42,7 @@ function audit_action_types()
         'listing_create'  => ['label' => 'Created listing',     'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
         'listing_edit'    => ['label' => 'Edited listing',      'badge' => 'badge-info',      'target' => 'listing', 'group' => 'landlord'],
         'listing_delete'  => ['label' => 'Deleted listing',     'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'landlord'],
-        // An approved listing whose text or photos changed, back in the queue.
+        // An approved listing edited, so back to pending.
         'listing_resubmit' => ['label' => 'Sent back for review', 'badge' => 'badge-warning', 'target' => 'listing', 'group' => 'landlord'],
         'room_create'     => ['label' => 'Added room',          'badge' => 'badge-success',   'target' => 'listing', 'group' => 'landlord'],
         'room_edit'       => ['label' => 'Edited room',         'badge' => 'badge-info',      'target' => 'listing', 'group' => 'landlord'],
@@ -65,7 +54,7 @@ function audit_action_types()
         'photos_add'      => ['label' => 'Added photos',        'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
         'photo_remove'    => ['label' => 'Removed photo',       'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
 
-        // Signing in and out, and the account's password.
+        // Sign-ins, passwords and emails.
         'signin'          => ['label' => 'Signed in',           'badge' => 'badge-success',   'target' => 'account', 'group' => 'signin'],
         'signin_failed'   => ['label' => 'Failed sign-in',      'badge' => 'badge-danger',    'target' => 'account', 'group' => 'signin'],
         'signout'         => ['label' => 'Signed out',          'badge' => 'badge-secondary', 'target' => 'account', 'group' => 'signin'],
@@ -76,7 +65,7 @@ function audit_action_types()
     ];
 }
 
-/** The actions in one group (admin, landlord or signin), for an IN (...) list. */
+/** The actions in one tab (admin, landlord or signin). */
 
 function audit_actions_in_group($group)
 {
@@ -86,15 +75,10 @@ function audit_actions_in_group($group)
 }
 
 /**
- * Write one entry to the audit log.
- *
- * The actor is whoever is signed in, unless $actor gives a user row: a
- * sign-in is logged as the person it signs in, and a failed one with no
- * account behind it has no actor at all (pass []). $targetLabel is the
- * listing or account name as it is now, so the entry still reads correctly
- * after a rename. Sign-in events also keep the IP address and a short
- * browser description. A log that cannot be written is reported to the PHP
- * error log but never undoes or blocks the action it describes.
+ * Write one entry to the audit log. The actor is the signed-in user, unless
+ * $actor gives another user row ([] for nobody). $targetLabel keeps the name
+ * as it is now, so the entry still makes sense after a rename. A failed write
+ * is logged but never blocks the action.
  */
 
 function audit_log($action, $targetId, $targetLabel, $detail = null, ?array $actor = null)
@@ -138,11 +122,7 @@ function audit_log($action, $targetId, $targetLabel, $detail = null, ?array $act
     }
 }
 
-/**
- * What a failed sign-in typed into the email box, fit for the log. People now
- * and then type their password there by mistake, so anything that is not an
- * email address is never written down.
- */
+/** What was typed in a failed login, for the log. Not saved unless it is an email (it might be a password). */
 
 function audit_typed_login($loginId)
 {
@@ -151,11 +131,8 @@ function audit_typed_login($loginId)
 }
 
 /**
- * "Changed: rent, house rules" for the audit log, naming the fields whose
- * value differs between $before and $after, or null when none did. Only the
- * names are kept, never the old and new values. $labels maps each field to
- * compare onto the name to show. Numbers compare by value, so a stored
- * "500.00" and a submitted "500" count as the same.
+ * "Changed: rent, house rules" (field names only, not values), or null if
+ * nothing changed. "500.00" and "500" count as the same.
  */
 
 function audit_changed_fields(array $before, array $after, array $labels)
@@ -164,8 +141,7 @@ function audit_changed_fields(array $before, array $after, array $labels)
     foreach ($labels as $key => $label) {
         $old = $before[$key] ?? null;
         $new = $after[$key] ?? null;
-        // A textarea posts its line breaks as \r\n whatever the database
-        // holds, which is not a change anyone made.
+        // Ignore \r\n vs \n line-break differences.
         $old = $old === null ? '' : trim(str_replace("\r\n", "\n", (string) $old));
         $new = $new === null ? '' : trim(str_replace("\r\n", "\n", (string) $new));
         $same = (is_numeric($old) && is_numeric($new)) ? (float) $old === (float) $new : $old === $new;
@@ -176,11 +152,7 @@ function audit_changed_fields(array $before, array $after, array $labels)
     return $changed ? 'Changed: ' . implode(', ', $changed) : null;
 }
 
-/**
- * "Chrome on Windows" from a browser's User-Agent string: enough for an
- * administrator to notice a sign-in from somewhere unusual, without keeping
- * the whole fingerprint.
- */
+/** "Chrome on Windows" from a User-Agent string (not the full string, for privacy). */
 
 function short_user_agent($ua)
 {
@@ -207,11 +179,7 @@ function short_user_agent($ua)
     return $browser . ' on ' . $system;
 }
 
-/**
- * Sign-in records older than AUDIT_SIGNIN_DAYS are deleted, as the Privacy
- * Policy promises. Run when the Audit Log is opened, which is often enough
- * for a site this size and needs no scheduled task.
- */
+/** Delete sign-in records older than AUDIT_SIGNIN_DAYS (Privacy Policy). Runs when the Audit Log opens. */
 
 function audit_purge_old_signins()
 {
@@ -228,11 +196,7 @@ function audit_purge_old_signins()
     }
 }
 
-/**
- * The audit log for one listing or account, newest first, with the name of
- * whoever did each entry. $group narrows it to one tab's actions, e.g.
- * 'landlord' for the changes a landlord made to a listing.
- */
+/** Log entries for one listing or account, newest first. $group limits it to one tab. */
 
 function audit_entries_for($targetType, $targetId, $limit = 20, $group = null)
 {
@@ -260,11 +224,7 @@ function audit_entries_for($targetType, $targetId, $limit = 20, $group = null)
     }
 }
 
-/**
- * The decisions an administrator made on a landlord's listings in the last
- * $days days, newest first. Removed listings are included: telling the
- * landlord why a listing disappeared is the point.
- */
+/** Admin decisions on a landlord's listings in the last $days days, removed listings included. */
 
 function landlord_recent_decisions($landlordId, $days = 30, $limit = 5)
 {
@@ -287,7 +247,7 @@ function landlord_recent_decisions($landlordId, $days = 30, $limit = 5)
     }
 }
 
-/** Where the audit log links an entry to, or null for an export. */
+/** The page a log entry links to, or null. */
 
 function admin_target_url($targetType, $targetId)
 {
@@ -300,8 +260,7 @@ function admin_target_url($targetType, $targetId)
         case 'user':
         case 'account':
             return base_url('admin/user.php?id=' . (int) $targetId);
-        // Administrators have no page of their own; the list is for super
-        // admins only, so nobody else is shown a link they cannot follow.
+        // Only super admins can open the admins list.
         case 'administrator':
             return is_super_admin() ? base_url('admin/admins.php') : null;
         default:
@@ -309,13 +268,7 @@ function admin_target_url($targetType, $targetId)
     }
 }
 
-/**
- * Why a pending listing is waiting, when it was approved before and its
- * landlord then changed its text or photos: the 'listing_resubmit' entry, so
- * the administrator reviewing it knows what to look at. Null when the latest
- * decision about the listing is not a resubmission. Read by every
- * administrator, not only super admins, because it is part of the review.
- */
+/** If a pending listing was approved before and then edited, the entry saying what changed. Else null. */
 
 function listing_resubmission($listingId)
 {
@@ -336,11 +289,7 @@ function listing_resubmission($listingId)
     return $latest && $latest['action'] === 'listing_resubmit' ? $latest : null;
 }
 
-/**
- * Email a landlord about an administrator's decision on one of their listings.
- * Returns true if Gmail accepted it and false if sending failed. Returns null,
- * without trying, when the landlord's account is deactivated or removed.
- */
+/** Email the landlord about a decision. True (sent), false (failed), null (their account is off). */
 
 function notify_landlord_of_decision($listingId, $action, $reason = null)
 {
@@ -384,7 +333,7 @@ function notify_landlord_of_decision($listingId, $action, $reason = null)
             break;
         case 'listing_restore':
             $subject = 'Your listing is back';
-            // A listing its landlord deleted comes back pending (admin/listing_action.php).
+            // A listing the landlord deleted is restored as pending.
             $after = [
                 'approved' => ' Boarders can see it again.',
                 'pending'  => ' It is waiting for an administrator\'s approval before boarders can see it.',

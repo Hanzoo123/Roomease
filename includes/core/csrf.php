@@ -3,7 +3,7 @@
  * CSRF tokens for forms. Add csrf_field() to every POST form, verify_csrf() in its handler.
  */
 
-/** Simple CSRF token helpers. */
+/** This session's token, made on first use. */
 
 function csrf_token()
 {
@@ -19,11 +19,8 @@ function csrf_field()
 }
 
 /**
- * True when the form sent the token this session was given. An empty token on
- * either side is never a match: a session that has not shown a form since
- * signing in has no token yet, and '' equal to '' would let a form with no
- * token through. The pages that answer fetch() with JSON check this before
- * verify_csrf(), so they can reply in JSON.
+ * True when the form sent this session's token. An empty token never matches.
+ * Pages that answer with JSON call this first, so they can reply in JSON.
  */
 
 function csrf_ok()

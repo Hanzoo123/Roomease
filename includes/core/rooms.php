@@ -3,10 +3,7 @@
  * Rooms inside a listing: reading them from a form and saving them.
  */
 
-/**
- * A landlord's own room, joined to its listing, or false. Ownership is part of
- * the query, so a room id from another landlord's listing simply is not found.
- */
+/** One of this landlord's rooms with its listing, or false. Another landlord's room is never found. */
 
 function find_landlord_room($roomId, $landlordId)
 {
@@ -30,12 +27,8 @@ function blank_room($name = '')
 }
 
 /**
- * Read and check one room's fields as submitted, from the room page or from a
- * row of the Add Listing form. Returns [$room, $errors]: $room keeps what was
- * typed so the form can be shown again, and $errors are ready to display.
- * $label, such as "Room 2", starts each message when several rooms are
- * checked at once. Whether the name is already used is up to the caller,
- * since that depends on which listing the room belongs to.
+ * Read and check one room from a form. Returns [$room, $errors].
+ * $label (e.g. "Room 2") starts each message. Duplicate names are checked by the caller.
  */
 
 function room_from_input(array $input, array $roomTypes, $label = '')
@@ -106,10 +99,8 @@ function insert_room($houseId, array $room)
 }
 
 /**
- * Store the photos uploaded in $fileField as a room's photos. The first one
- * becomes the room's main photo when it has none. Returns how many were
- * saved; throws RuntimeException, from handle_photo_uploads(), if a file is
- * refused.
+ * Save uploaded photos for a room. The first becomes the main photo if there
+ * is none. Returns how many were saved; throws if a file is refused.
  */
 
 function attach_room_photos($houseId, $roomId, $fileField)

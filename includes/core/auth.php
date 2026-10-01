@@ -1,32 +1,24 @@
 <?php
 /**
- * Who is signed in, and gating pages by role.
- * Also the return-to-page-after-login helpers and administrator usernames.
+ * Who is signed in, role checks, admin usernames, temporary passwords, and
+ * returning to the right page after login.
  */
 
-/** True if a user is currently logged in. */
+/** True if a user is logged in. */
 
 function is_logged_in()
 {
     return isset($_SESSION['user_id']);
 }
 
-/**
- * The signed-in user's id, or null. What a save writes into created_by and
- * updated_by, the "who" columns on every table people create and edit rows
- * in (database/roomease.sql). NULL there means the system did it.
- */
+/** The signed-in user's id, or null. Saved into created_by / updated_by. */
 
 function current_user_id()
 {
     return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
 }
 
-/**
- * Mark a just-created account as created, and so far changed, by itself:
- * the id a sign-up needs for its own created_by only exists once the row is
- * in. Called by both kinds of sign-up (auth/register.php, Google).
- */
+/** After sign-up, mark the new account as created by itself. */
 
 function mark_self_created($userId)
 {
@@ -35,7 +27,7 @@ function mark_self_created($userId)
         ->execute([(int) $userId]);
 }
 
-/** Get the logged-in user's role, or null. */
+/** The logged-in user's role, or null. */
 
 function current_role()
 {
@@ -43,11 +35,8 @@ function current_role()
 }
 
 /**
- * Force login; optionally restrict to specific roles. Redirects otherwise.
- *
- * Administrators have their own sign-in page, so a signed-out visitor to a
- * page only administrators can use is sent there; every other page sends them
- * to the public login.
+ * Require login, and optionally one of $roles. Otherwise redirect.
+ * Admin-only pages send signed-out visitors to the admin login page.
  */
 
 function require_login($roles = null)
@@ -59,7 +48,7 @@ function require_login($roles = null)
     }
     if ($roles !== null) {
         $roles = (array) $roles;
-        // Support 'admin' alias for 'administrator'
+        // 'admin' and 'administrator' mean the same.
         if (in_array('admin', $roles, true) && !in_array('administrator', $roles, true)) {
             $roles[] = 'administrator';
         }
@@ -71,48 +60,37 @@ function require_login($roles = null)
         }
     }
 
-    // A new administrator adds their name and email before anything else.
-    // Their own profile pages stay open, Change Password included, so the
-    // temporary password can be replaced too.
+    // A new admin must first add their name and email...
     $profilePages = ['profile.php', 'edit_profile.php', 'change_password.php'];
     if (profile_incomplete() && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), $profilePages, true)) {
         flash_set('Welcome! Please add your name and email to finish setting up your account.', 'info');
         redirect('auth/edit_profile.php');
     }
 
-    // Then a temporary password, one a super admin chose, is replaced with
-    // their own: until it is, the super admin who chose it can sign in as them.
+    // ...and replace a temporary password, which the super admin also knows.
     if (password_change_required() && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), $profilePages, true)) {
         flash_set('Please choose your own password to replace the temporary one.', 'info');
         redirect('auth/change_password.php');
     }
 }
 
-/** The administrators' sign-in page, relative to the app root. */
-
 const ADMIN_LOGIN_PATH = 'admin/login.php';
 
-/** Check if current user is an administrator. */
+/** True if the current user is an administrator. */
 
 function is_admin()
 {
     return in_array(current_role(), ['administrator', 'admin'], true);
 }
 
-/**
- * True for a super admin: an administrator with users.is_super_admin set, who
- * can also add and manage the other administrators (admin/admins.php) and
- * change the site's Appearance. Everything else is the same for every
- * administrator. The session copy is refreshed on every request by
- * enforce_session_policy(), so a demotion takes effect on the next click.
- */
+/** True for a super admin: an admin who can also manage other admins and Appearance. */
 
 function is_super_admin()
 {
     return is_admin() && !empty($_SESSION['is_super_admin']);
 }
 
-/** For pages only a super admin may open: anyone else goes to the dashboard. */
+/** For super-admin-only pages. Anyone else goes to the dashboard. */
 
 function require_super_admin()
 {
@@ -124,24 +102,14 @@ function require_super_admin()
 }
 
 /* ---------------------------------------------------------------------------
- * Administrator usernames
- *
- * An administrator can sign in with a username as well as an email. A super
- * admin creates the account with only a username, a temporary password and a
- * role (admin/add_user.php); the administrator then adds their own name and
- * email, which they must do before using the panel (require_login()). Until
- * then the username stands in wherever a name would be shown. Landlords and
- * boarders have no username.
+ * Admin usernames. A super admin creates an admin with only a username and a
+ * temporary password; the admin adds their name and email on first login.
+ * Landlords and boarders have no username.
  * ------------------------------------------------------------------------ */
 
-/** The shape of a username: 3 to 30 letters, digits, dots and underscores. */
 const USERNAME_PATTERN = '/^[A-Za-z0-9._]{3,30}$/';
 
-/**
- * What is wrong with a username for a new administrator, or null. There is
- * no @, so a username can never be mistaken for an email. The column ignores
- * capitals, so "Juan" is taken when "juan" is.
- */
+/** What is wrong with a new username, or null. No @ allowed, so it can't look like an email. */
 function username_problem($username)
 {
     global $pdo;
@@ -157,7 +125,7 @@ function username_problem($username)
     return $taken->fetchColumn() ? 'That username is already taken.' : null;
 }
 
-/** The name to show for an account: its full name, else its username, else its email. */
+/** The name to show: full name, else username, else email. */
 function account_display_name(array $user)
 {
     $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
@@ -167,45 +135,31 @@ function account_display_name(array $user)
     return (string) (($user['username'] ?? '') !== '' ? $user['username'] : ($user['email'] ?? ''));
 }
 
-/**
- * account_display_name() in SQL, for a users table joined as $alias: the full
- * name, else the username, else the email.
- */
+/** account_display_name() as SQL, for a users table joined as $alias. */
 function account_name_sql($alias)
 {
     return "COALESCE(NULLIF(TRIM(CONCAT({$alias}.first_name, ' ', {$alias}.last_name)), ''), {$alias}.username, {$alias}.email)";
 }
 
-/**
- * True for an administrator who has not yet added their name and email. They
- * are kept on Edit Profile (and Change Password, to replace the temporary
- * one) until they do. Set per request by enforce_session_policy().
- */
+/** True for an admin who hasn't added their name and email yet. */
 function profile_incomplete()
 {
     return !empty($_SESSION['profile_incomplete']);
 }
 
 /* ---------------------------------------------------------------------------
- * Temporary passwords
- *
- * A password a super admin chooses for an administrator, when adding them
- * (admin/add_user.php) or resetting it (admin/reset_admin_password.php), is
- * known to two people. users.must_change_password marks it, and require_login()
- * keeps the administrator on Change Password until they choose their own
- * (auth/change_password.php, or auth/reset_password.php by emailed code).
- *
- * A database imported before the column existed still runs: the flag is then
- * never set or read, and the error log says why.
+ * Temporary passwords. A password a super admin sets (Add User, Reset
+ * Password) is marked with users.must_change_password, and the admin must
+ * replace it before using the panel.
  * ------------------------------------------------------------------------ */
 
-/** True when the signed-in administrator must replace a temporary password. Set per request by enforce_session_policy(). */
+/** True when the signed-in admin must replace a temporary password. */
 function password_change_required()
 {
     return !empty($_SESSION['must_change_password']);
 }
 
-/** Whether the account's password is still a temporary one, read from the database. */
+/** Whether the account's password is temporary. False if the column is missing. */
 function account_must_change_password($userId)
 {
     global $pdo;
@@ -218,7 +172,7 @@ function account_must_change_password($userId)
     }
 }
 
-/** Mark an account's password as temporary, or as its owner's own again. */
+/** Mark the account's password as temporary (true) or the owner's own (false). */
 function set_password_change_required($userId, $required)
 {
     global $pdo;
@@ -232,16 +186,12 @@ function set_password_change_required($userId, $required)
 }
 
 /* ---------------------------------------------------------------------------
- * After sign-in: back where they were, with the save that sent them there
- *
- * A guest who taps Save is sent to log in. The page they were on, and the
- * listing they meant to save, wait in the session; start_user_session()
- * empties the session, so they are taken out before it runs and acted on
- * after. Only pages on this short list can be returned to, so the address
- * cannot be pointed anywhere else.
+ * After login: go back to the page the guest was on, and save the listing
+ * they tapped Save on. Only pages on a short list are allowed as a return
+ * address, so it can't be used to send people to another site.
  * ------------------------------------------------------------------------ */
 
-/** A path a sign-in may return to, or '' when it is not one of ours. */
+/** $path if it is a page we allow returning to, otherwise ''. */
 
 function safe_return_path($path)
 {
@@ -249,7 +199,7 @@ function safe_return_path($path)
     return preg_match('#^(index\.php|boarder/(view_listing|browse|saved)\.php)(\?[\w\-=&%.+~]*)?$#', $path) ? $path : '';
 }
 
-/** Remember where to go, and what to save, once the visitor has signed in. */
+/** Remember where to go, and what to save, after login. */
 
 function remember_after_login($next, $saveListingId = 0)
 {
@@ -264,23 +214,20 @@ function remember_after_login($next, $saveListingId = 0)
     ];
 }
 
-/** Take the pending return out of the session, before it is emptied. */
+/** Take the saved return out of the session (login clears the session). */
 
 function take_after_login()
 {
     $after = $_SESSION['after_login'] ?? null;
     unset($_SESSION['after_login']);
-    // Half an hour is plenty to sign in; older than that, it is forgotten.
+    // Forgotten after 30 minutes.
     if (!is_array($after) || time() - (int) ($after['set_at'] ?? 0) > 1800) {
         return null;
     }
     return $after;
 }
 
-/**
- * Finish what the visitor came to sign in for, and say where to send them.
- * The save only happens for a boarder, and only for a listing that is live.
- */
+/** Save the listing (boarders only, live listings only) and return where to go. */
 
 function complete_after_login($after, $welcome)
 {

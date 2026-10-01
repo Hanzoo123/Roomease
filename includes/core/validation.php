@@ -1,16 +1,8 @@
 <?php
 /**
- * Checks for typed values. Each returns an error message, or null when the value is fine.
+ * Checks for typed values, shared by every form. Each returns an error
+ * message, or null when the value is fine. Length limits match the columns.
  */
-
-/* ---------------------------------------------------------------------------
- * Checking typed values
- *
- * One rule and one message per kind of value, shared by every form, so sign
- * up, the profile and the listing form cannot drift apart. Each returns the
- * message to show, or null when the value is fine. A length limit is the
- * column's size in database/roomease.sql, so nothing is cut off on save.
- * ------------------------------------------------------------------------ */
 
 /** "First name must be 100 characters or fewer.", or null. */
 
@@ -21,10 +13,7 @@ function too_long($value, $max, $label)
         : null;
 }
 
-/**
- * A phone number anyone could dial: digits, spaces and + - ( ), with 7 to 15
- * digits. That takes 0917 123 4567, +63 917 123 4567 and (053) 335-1234 alike.
- */
+/** 7 to 15 digits, with spaces and + - ( ) allowed, e.g. +63 917 123 4567. */
 
 function phone_problem($phone, $label = 'Phone number')
 {
@@ -36,7 +25,7 @@ function phone_problem($phone, $label = 'Phone number')
     if ($digits < 7 || $digits > 15) {
         return $label . ' must have 7 to 15 digits.';
     }
-    // Only reachable with a great deal of spacing; users.phone_number is 30.
+    // The column holds 30 characters.
     return too_long($phone, 30, $label);
 }
 

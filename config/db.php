@@ -1,26 +1,12 @@
 <?php
 /**
- * Database connection.
- *
- * Credentials come from the project's .env file (read by vlucas/phpdotenv) or
- * from real environment variables, so a deployed copy never has to keep its
- * real password in a file that ships with the code. Either route is read by
- * env_value() in includes/core/env.php, which the mail and Google settings
- * use as well. The values below are the stock WAMP/XAMPP defaults and are
- * only a fallback for local development.
- *
- * The connection settings are built inside a closure so that $host, $dbname,
- * $username and $password stay local to it. They used to be plain globals, and
- * because this file is required at the top of almost every page, any script
- * that had its own variable by one of those names had it silently overwritten
- * the moment it required this file. Only $pdo escapes into the global scope.
+ * Database connection ($pdo). Credentials come from .env; the defaults below
+ * are WAMP's, for local use. Built inside a function so only $pdo becomes global.
  */
 
 require_once __DIR__ . '/../includes/core/env.php';
 
-// vendor/ and .env both sit in the project root, one level above config/.
-// Without `composer install` the site still runs on the defaults below, and
-// safeLoad() (unlike load()) doesn't throw when there is no .env file.
+// Load .env if Composer is installed. Without it, the defaults below are used.
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($autoload)) {
     require_once $autoload;
@@ -44,17 +30,13 @@ $pdo = (static function (): PDO {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]
         );
-        // MySQL 8's own default mode, set here because WAMP ships with an
-        // empty one. Without it a value too long for its column is silently
-        // cut off and an out-of-range number silently capped; with it, as on
-        // most hosting, the save fails and the mistake is seen. Setting it on
-        // the connection makes every copy of RoomEase behave the same.
+        // Strict mode: too-long or out-of-range values cause an error instead
+        // of being silently cut. WAMP leaves this off by default.
         $pdo->exec("SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
             . "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
         return $pdo;
     } catch (PDOException $e) {
-        // The driver message names the host, database and user, so it goes to
-        // the error log rather than to whoever happened to load the page.
+        // The error names the host and user, so it is logged, not shown.
         error_log('RoomEase: database connection failed - ' . $e->getMessage());
         http_response_code(503);
         die('The site is temporarily unavailable. Please try again shortly.');

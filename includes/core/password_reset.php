@@ -1,35 +1,23 @@
 <?php
 /**
- * Password reset by emailed code: issuing, checking and redeeming codes.
+ * Password reset by emailed code:
+ * 1. auth/forgot_password.php emails a 6-digit code.
+ * 2. auth/verify_code.php checks it and gives the session a one-time token.
+ * 3. auth/reset_password.php uses the token to save the new password.
+ *
+ * $scope is 'public', 'admin', or 'profile' (a signed-in Google account
+ * setting its first password).
  */
 
-/* ---------------------------------------------------------------------------
- * Password reset by emailed code (database/roomease.sql)
- *
- * 1. auth/forgot_password.php takes an email address and emails a 6-digit
- *    code. The attempt is remembered in $_SESSION['password_reset'].
- * 2. auth/verify_code.php checks the code. A right code is swapped for a
- *    random token that lives only in that session.
- * 3. auth/reset_password.php finds the reset by that token and saves the new
- *    password.
- *
- * The profile page uses the same steps, so an account made with Google can set
- * its first password; there the scope is 'profile' instead of 'public' or
- * 'admin'. Codes go out through Gmail (includes/core/mailer.php).
- * ------------------------------------------------------------------------ */
-
-/** Wrong guesses one code survives before it stops working. */
+/** Wrong guesses allowed per code. */
 
 const RESET_CODE_MAX_TRIES = 5;
 
-/** How long someone waits before asking for another code. */
+/** Seconds to wait before asking for another code. */
 
 const RESET_CODE_RESEND_SECONDS = 60;
 
-/**
- * How long a reset code stays valid, and how long a right code then leaves to
- * choose the new password.
- */
+/** Minutes a code is valid, and then minutes to choose the new password. */
 
 function password_reset_ttl_minutes()
 {
@@ -44,14 +32,9 @@ function is_local_request()
 }
 
 /**
- * True when a reset code that could not be emailed may be shown on screen
- * instead. A development convenience only: it needs ROOMEASE_SHOW_RESET_CODES
- * turned on in .env AND a request from this machine, and it is off otherwise.
- *
- * A request from this machine used to be enough on its own. It is not: share
- * the site through ngrok, Cloudflare Tunnel or any other proxy running on the
- * same computer and every visitor arrives from 127.0.0.1, so anyone could
- * have read the code for any account, an administrator's included.
+ * Development only: show a code on screen when the email failed. Needs
+ * ROOMEASE_SHOW_RESET_CODES=true in .env AND a request from this computer.
+ * (Being local alone isn't enough: through ngrok, every visitor looks local.)
  */
 
 function show_reset_codes_on_screen()
@@ -61,9 +44,8 @@ function show_reset_codes_on_screen()
 }
 
 /**
- * The account a reset for $email may go to, or null. Administrators reset only
- * from the admin page and everyone else only from the public one; 'profile' is
- * always the signed-in user. Deactivated and archived accounts get nothing.
+ * The account to reset, or null. Admins only reset from the admin page, others
+ * from the public page. Deactivated and removed accounts get nothing.
  */
 
 function password_reset_account($email, $scope)
@@ -92,15 +74,9 @@ function password_reset_account($email, $scope)
 }
 
 /**
- * Email a fresh code for $email and remember the attempt in the session.
- *
- * Returns true if the email went out, false if it could not be sent, and null
- * if there is no such account. Only the profile page, where the account is the
- * visitor's own, may tell anyone which of those happened; the public pages say
- * the same thing every time.
- *
- * When sending fails and show_reset_codes_on_screen() allows it, the code is
- * kept in the session so the next page can show it. Nobody else ever sees it.
+ * Email a new code and remember the attempt in the session.
+ * Returns true (sent), false (failed) or null (no such account). Public pages
+ * show the same message either way, so nobody learns which emails exist.
  */
 
 function issue_password_reset_code($email, $scope)
@@ -116,14 +92,12 @@ function issue_password_reset_code($email, $scope)
             $localCode = $code;
         }
     } elseif (mail_enabled()) {
-        // Talking to Gmail takes a second or two. Without a similar pause, how
-        // fast the page answered would give away whether the account exists.
+        // Pause like a real send would, so the timing doesn't reveal the account exists.
         usleep(random_int(1000000, 2500000));
     }
 
     $_SESSION['password_reset'] = [
-        // The address as typed, not as stored: echoing back the stored
-        // spelling would show that the account exists.
+        // As typed, not as stored, for the same reason.
         'email'      => $scope === 'profile' && $account ? $account['email'] : $email,
         'scope'      => $scope,
         'user_id'    => $scope === 'profile' && $account ? (int) $account['user_id'] : null,
@@ -137,26 +111,21 @@ function issue_password_reset_code($email, $scope)
 }
 
 /**
- * Store a new 6-digit code for a user and return it.
- *
- * The code is stored with password_hash(), not a plain SHA-256: there are
- * only a million codes, so a fast hash would fall to a guessing loop in
- * moments if the table ever leaked. Any earlier code for the same user is
- * dropped, so only the newest one works.
+ * Make a new 6-digit code, store its hash, and return it. Older codes stop working.
+ * Hashed with password_hash() (slow), since a million codes are quick to guess with a fast hash.
  */
 
 function create_password_reset_code($userId)
 {
     global $pdo;
 
-    // Housekeeping: clear this user's outstanding codes plus anything stale.
+    // Remove this user's old codes, and anyone's expired ones.
     $pdo->prepare('DELETE FROM password_resets WHERE user_id = ?')->execute([$userId]);
     $pdo->exec('DELETE FROM password_resets WHERE expires_at < NOW() - INTERVAL 1 DAY');
 
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-    // token_hash is set only once the code is proven. Until then it holds the
-    // hash of random bytes nobody keeps, which no token can ever match.
+    // token_hash gets a random placeholder until the code is entered correctly.
     $pdo->prepare(
         'INSERT INTO password_resets (user_id, token_hash, code_hash, expires_at)
          VALUES (?, ?, ?, NOW() + INTERVAL ? MINUTE)'
@@ -171,13 +140,9 @@ function create_password_reset_code($userId)
 }
 
 /**
- * Check a code. A right one is exchanged for a raw token, which is returned;
- * anything else returns null.
- *
- * A try is claimed before the code is compared, in one conditional UPDATE, so
- * guesses sent in parallel cannot squeeze past RESET_CODE_MAX_TRIES. A right
- * code is burned the moment it is used and a new token takes its place with a
- * fresh expiry, so the code cannot be used twice.
+ * Check a code. Right: returns a one-time token (the code can't be used again).
+ * Wrong: null. Each try is counted in the database first, so fast parallel
+ * guesses can't get past the limit.
  */
 
 function redeem_password_reset_code($userId, $code)
@@ -214,11 +179,7 @@ function redeem_password_reset_code($userId, $code)
     return $swap->rowCount() === 1 ? $token : null;
 }
 
-/**
- * Look up a proven, unused, unexpired reset by its token. Returns the reset row
- * joined to its user, or null. The lookup is by hash, so the raw token is never
- * compared against stored data.
- */
+/** The valid, unused reset for this token (looked up by its hash), with its user, or null. */
 
 function find_valid_reset($token)
 {
@@ -243,9 +204,7 @@ function find_valid_reset($token)
     return $stmt->fetch() ?: null;
 }
 
-/**
- * Where "get a new code" leads for a reset in $scope: the page it started on.
- */
+/** The page a reset in $scope started on. */
 
 function password_reset_start_path($scope)
 {
@@ -255,12 +214,7 @@ function password_reset_start_path($scope)
     return $scope === 'admin' ? 'admin/forgot_password.php' : 'auth/forgot_password.php';
 }
 
-/**
- * Email a reset code through Gmail. Returns true only if Gmail accepted it.
- *
- * A record of the attempt is logged, deliberately WITHOUT the code, so the log
- * itself can never be used to take over an account.
- */
+/** Email a reset code. True if Gmail accepted it. The log never contains the code. */
 
 function send_password_reset_code($email, $firstName, $code, $scope = 'public')
 {
@@ -275,8 +229,7 @@ function send_password_reset_code($email, $firstName, $code, $scope = 'public')
         . "If you didn't ask for this, ignore this email. Your password stays the same.\r\n\r\n"
         . "RoomEase\r\n";
 
-    // Mail apps ignore stylesheets and web fonts, so everything is inline and
-    // every font has a system fallback. The code is the only thing that stands out.
+    // Email apps ignore stylesheets, so styles are inline.
     $html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"></head>'
         . '<body style="margin:0;padding:32px 16px;background:#FAF8F3;">'
         . '<div style="max-width:440px;margin:0 auto;font-family:\'IBM Plex Sans\',\'Segoe UI\',Helvetica,Arial,sans-serif;'

@@ -1,17 +1,9 @@
 <?php
 /**
- * Amenities, utilities and room types: the lists landlords pick from, and how they are added or merged.
+ * Amenities, utilities and room types: the lists landlords pick from.
  */
 
-/**
- * Read a lookup table, or log why it could not be read and return nothing.
- *
- * These three lists used to fall back to a hard-coded copy of the seed data.
- * That made a missing table invisible: the form still rendered a full set of
- * checkboxes, the landlord ticked them, and the insert into the junction table
- * failed silently afterwards. An empty list is worse-looking but honest, and
- * the callers say so on the page.
- */
+/** Read a lookup table. If it fails, log it and return an empty list (the page says so). */
 
 function lookup_options($sql, $mode = PDO::FETCH_COLUMN)
 {
@@ -24,14 +16,7 @@ function lookup_options($sql, $mode = PDO::FETCH_COLUMN)
     }
 }
 
-/**
- * Room types offered on the room form and in the browse filter, as
- * room_type_id => room_type_name.
- *
- * Both read from here so the two lists cannot drift apart, and since
- * rooms.room_type_id is a foreign key onto this table, a value that is not in
- * this list can no longer be stored at all.
- */
+/** Room types as id => name, for the room form and the browse filter. */
 
 function room_type_options()
 {
@@ -48,15 +33,11 @@ function room_type_options()
 }
 
 /* ---------------------------------------------------------------------------
- * Utilities and amenities
- *
- * Both lists work the same way. An item with a NULL landlord_id was made by
- * the administrator and every landlord can use it. An item with a landlord_id
- * was made by that landlord, and only that landlord sees it or can put it on a
- * listing. Boarders see whatever a listing has, whoever made it.
+ * Utilities and amenities. landlord_id NULL = made by the admin, usable by
+ * every landlord. Otherwise only that landlord can use it.
  * ------------------------------------------------------------------------ */
 
-/** Table and column names for each kind of list. */
+/** Table and column names for 'amenity' or 'utility'. */
 
 function lookup_kind($kind)
 {
@@ -74,18 +55,14 @@ function lookup_kind($kind)
     return $kinds[$kind];
 }
 
-/** A typed item name with its spacing tidied, as it will be stored. */
+/** A typed name with extra spaces removed. */
 
 function normalise_lookup_name($name)
 {
     return trim(preg_replace('/\s+/u', ' ', (string) $name));
 }
 
-/**
- * The items a landlord may put on a listing: the administrator's, then their
- * own. Each row is ['id', 'name', 'own']. With $landlordId null, only the
- * administrator's.
- */
+/** Items a landlord can use: the admin's, then their own. Rows of ['id', 'name', 'own']. */
 
 function lookup_choices($kind, $landlordId = null)
 {
@@ -108,12 +85,7 @@ function lookup_choices($kind, $landlordId = null)
     }
 }
 
-/**
- * An existing item whose name clashes with $name, or null. A landlord's item
- * clashes with the administrator's list and with their own; an administrator
- * item clashes only with the administrator's list. The column collation
- * ignores case, so "water" clashes with "Water".
- */
+/** An existing item with the same name (ignoring case), or null. */
 
 function lookup_name_clash($kind, $name, $landlordId = null, $exceptId = null)
 {
@@ -150,12 +122,7 @@ function lookup_name_problem($kind, $name)
     return null;
 }
 
-/**
- * Move every landlord's copy of a name onto an administrator item, so no
- * landlord ends up with the same thing listed twice. Listings keep what they
- * had: their rows are pointed at the administrator item, and where a listing
- * already had both, the administrator item's row (and billing policy) stays.
- */
+/** Merge landlords' items with the same name into the admin's item. Listings keep their ticks. */
 
 function merge_lookup_copies($kind, $globalId)
 {
@@ -185,11 +152,7 @@ function merge_lookup_copies($kind, $globalId)
     return $merged;
 }
 
-/**
- * Add an item. Returns [id, error]. With $reuse, a name that already exists
- * in what the landlord can use returns that item's id instead of an error,
- * which is what the listing form wants when a landlord types "Water".
- */
+/** Add an item. Returns [id, error]. With $reuse, an existing name returns its id instead of an error. */
 
 function create_lookup($kind, $name, $landlordId = null, $reuse = false)
 {
@@ -246,11 +209,7 @@ function rename_lookup($kind, $id, $name, $landlordId = null)
     return null;
 }
 
-/**
- * Make a landlord's item available to every landlord. If the administrator
- * already has one by that name, the landlord's copies are merged into it.
- * Returns an error message, or null on success.
- */
+/** Make a landlord's item available to everyone (merged if the admin has the same name). Error or null. */
 
 function promote_lookup($kind, $id)
 {
@@ -264,7 +223,7 @@ function promote_lookup($kind, $id)
         return 'That ' . $k['singular'] . ' was not found, or is already available to everyone.';
     }
 
-    // Joins a transaction the caller already opened rather than nesting one.
+    // Use the caller's transaction if there is one.
     $ownTransaction = !$pdo->inTransaction();
     if ($ownTransaction) {
         $pdo->beginTransaction();
@@ -308,12 +267,9 @@ function lookup_usage_counts($kind)
 }
 
 /**
- * Read the utilities and amenities part of a submitted listing form.
- *
- * Returns ['amenity_ids' => int[], 'utilities' => [id => policy],
- * 'new_amenities' => string[], 'new_utilities' => [['name', 'policy']],
- * 'errors' => string[]]. Only items this landlord may use are kept, so a
- * forged id for another landlord's item is dropped rather than stored.
+ * Read the amenities and utilities from a listing form. Ids the landlord isn't
+ * allowed to use are dropped. Returns amenity_ids, utilities, new_amenities,
+ * new_utilities and errors.
  */
 
 function listing_lookups_from_post(array $post, $landlordId)
@@ -332,8 +288,7 @@ function listing_lookups_from_post(array $post, $landlordId)
         }
     }
 
-    // A billing note longer than its column is refused with one message, not
-    // cut off: a cut note can end mid-sentence and say something else.
+    // A too-long billing note is refused, not cut off mid-sentence.
     $policyTooLong = 'Each utility\'s billing note must be 150 characters or fewer.';
 
     $utilities = [];
@@ -388,12 +343,7 @@ function listing_lookups_from_post(array $post, $landlordId)
     ];
 }
 
-/**
- * Store a listing's utilities and amenities from listing_lookups_from_post().
- * Items the landlord typed in are created as theirs first (or matched to one
- * they can already use). With $replace, the listing's current rows are
- * cleared first, as an edit does.
- */
+/** Save a listing's amenities and utilities, creating any new ones typed. $replace clears the old ones first. */
 
 function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
 {
@@ -436,11 +386,7 @@ function save_listing_lookups($houseId, $landlordId, array $lookups, $replace)
     }
 }
 
-/**
- * The message shown in place of a lookup checklist that came back empty, so a
- * missing or unimported table is visible on the page instead of silently
- * costing the landlord their selections.
- */
+/** Message shown when a checklist is empty because its table is missing. */
 
 function lookup_unavailable_notice($what, $table)
 {

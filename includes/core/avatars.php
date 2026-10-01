@@ -4,28 +4,20 @@
  */
 
 /* ---------------------------------------------------------------------------
- * Profile photos (database/migration_avatars.sql)
- *
- * An account's photo is a file under assets/uploads/avatars/, and the path to
- * it lives in users.avatar_path. That folder is covered by the same
- * assets/uploads/.htaccess as listing photos, which takes PHP off the folder
- * and pins the content type, so a profile photo cannot be made to run.
- *
- * A photo is always stored as a square, because every place that draws one
- * draws a circle. Cropping once on upload beats cropping in CSS on every page,
- * and it also caps what the server keeps: a 4000px phone photo becomes a
- * 512px file of a few tens of kilobytes.
+ * Photos are saved in assets/uploads/avatars/ (PHP can't run there, see its
+ * .htaccess), with the path in users.avatar_path. They are cropped to a 512px
+ * square on upload, since they are always shown as circles.
  * ------------------------------------------------------------------------ */
 
-/** Where profile photos live, relative to the app root. */
+/** Folder for profile photos. */
 
 const AVATAR_UPLOAD_DIR = 'assets/uploads/avatars';
 
-/** The side, in pixels, of a stored profile photo. */
+/** Size of a stored profile photo, in pixels. */
 
 const AVATAR_SIZE = 512;
 
-/** True for a path this app wrote into AVATAR_UPLOAD_DIR, and nothing else. */
+/** True only for a file this app saved in AVATAR_UPLOAD_DIR. */
 
 function is_avatar_path($path)
 {
@@ -33,11 +25,7 @@ function is_avatar_path($path)
         && preg_match('#^assets/uploads/avatars/av-[0-9]+-[a-f0-9]{16}\.(jpg|png|webp)$#', $path) === 1;
 }
 
-/**
- * The initials drawn in place of a photo: the first letter of the first two
- * words of the name. Used by every avatar, on the panel and the public site,
- * so an account without a photo looks the same everywhere.
- */
+/** Initials shown when there is no photo: first letters of the first two words. */
 
 function avatar_initials($name)
 {
@@ -52,17 +40,10 @@ function avatar_initials($name)
     return mb_strtoupper($letters);
 }
 
-/**
- * Square-crop and shrink an uploaded image to AVATAR_SIZE, writing it back in
- * its own format. Returns false when GD cannot handle the file, which leaves
- * the caller to store the original untouched rather than reject the upload:
- * GD is not guaranteed to be installed on every machine this project runs on.
- */
+/** Crop to a square and shrink to AVATAR_SIZE. False if GD can't (the original is kept). */
 
 function resize_avatar_square($sourcePath, $destPath, $ext)
 {
-    // Opened the same way as listing photos (includes/core/uploads.php),
-    // turned upright from the EXIF tag.
     $source = load_image_upright($sourcePath, $ext);
     if (!$source) {
         return false;
@@ -71,8 +52,7 @@ function resize_avatar_square($sourcePath, $destPath, $ext)
     $width  = imagesx($source);
     $height = imagesy($source);
     $side   = min($width, $height);
-    // Crop from the centre horizontally, but from a third of the way down
-    // vertically: in a portrait photo of a person the face sits above centre.
+    // Crop a bit above centre, where a face usually is.
     $srcX = (int) (($width - $side) / 2);
     $srcY = (int) (($height - $side) / 3);
 
@@ -90,20 +70,13 @@ function resize_avatar_square($sourcePath, $destPath, $ext)
     $quality = ['jpg' => 88, 'png' => 6, 'webp' => 88];
     $ok = @$writers[$ext]($canvas, $destPath, $quality[$ext]);
 
-    // No imagedestroy() here on purpose: a GdImage is an object and is freed
-    // when it goes out of scope. The call has done nothing since PHP 8.0 and
-    // raises a deprecation notice on PHP 8.5, which would print into the page.
+    // No imagedestroy(): not needed since PHP 8.0, and deprecated in 8.5.
     return (bool) $ok;
 }
 
 /**
- * Store one uploaded profile photo for $userId and return its relative path.
- * Returns null when nothing was uploaded. Throws on validation failure, with a
- * message meant to be shown to whoever tried.
- *
- * Every check runs before anything is written, in the same order as the
- * listing photo upload above: the extension is decided by the sniffed MIME
- * type and never by the name the browser sent.
+ * Save an uploaded profile photo and return its path (null if none was sent).
+ * The extension comes from the file's real type, never its name. Throws on a bad file.
  */
 
 function handle_avatar_upload($fileField, $userId)
@@ -151,8 +124,7 @@ function handle_avatar_upload($fileField, $userId)
         throw new RuntimeException('Could not save your photo.');
     }
 
-    // Squaring is an improvement, not a requirement: on a machine without GD
-    // the original is kept and the circle crops it in CSS instead.
+    // Without GD the original is kept; CSS crops it to a circle.
     resize_avatar_square($target, $target, $ext);
 
     return $stored;

@@ -1,30 +1,18 @@
 <?php
 /**
- * Transport- and session-level hardening for RoomEase.
- *
- * This file is required from the top of includes/init.php, BEFORE
- * session_start(), because cookie flags can only be chosen while there is no
- * session yet. Everything here applies itself: no page has to remember to call
- * it, so a new page cannot accidentally opt out of it.
+ * Session and security settings: cookies, headers, session timeouts,
+ * "Remember me" and sign-in throttling. Loaded by includes/init.php before
+ * the session starts.
  */
 
-/** How long a session may sit idle before it is thrown away. */
-const SESSION_IDLE_TIMEOUT = 1800;       // 30 minutes
+const SESSION_IDLE_TIMEOUT = 1800;       // 30 minutes idle signs you out
+const SESSION_ABSOLUTE_LIFETIME = 43200; // 12 hours at most per session
 
-/** How long a session may live at all, however active it is. */
-const SESSION_ABSOLUTE_LIFETIME = 43200; // 12 hours
+const LOGIN_MAX_PER_ACCOUNT = 5;         // failed logins per account...
+const LOGIN_MAX_PER_IP = 20;             // ...and per IP address...
+const LOGIN_WINDOW_SECONDS = 900;        // ...within 15 minutes, then a pause
 
-/** Failed logins allowed per email address before that account is paused. */
-const LOGIN_MAX_PER_ACCOUNT = 5;
-
-/** Failed logins allowed from one IP address before it is paused. */
-const LOGIN_MAX_PER_IP = 20;
-
-/** The window attempts are counted over, and the length of a lockout. */
-const LOGIN_WINDOW_SECONDS = 900;        // 15 minutes
-
-/** Password-reset requests allowed per email address per window. */
-const RESET_MAX_PER_ACCOUNT = 3;
+const RESET_MAX_PER_ACCOUNT = 3;         // reset codes per email per 15 minutes
 
 /** True when the current request arrived over HTTPS. */
 function is_https_request()
@@ -32,19 +20,17 @@ function is_https_request()
     if (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') {
         return true;
     }
-    // Behind a reverse proxy the original scheme survives only in this header.
+    // Behind a proxy, only this header says the request was HTTPS.
     return ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
 }
 
 /**
- * The URL path the app is served from, used to scope the session cookie so a
- * neighbouring app in the same webroot cannot read or overwrite it.
+ * The app's URL path, e.g. /roomease/. Cookies are limited to it so other
+ * apps on the same server can't read them.
  */
 function app_cookie_path()
 {
-    // The folder list matches base_url()'s. A page in a folder missing from
-    // here would scope its session cookie to that folder, and the sign-in it
-    // started would be invisible to the rest of the site.
+    // Same folder list as base_url(). Add new page folders to both.
     $script  = $_SERVER['SCRIPT_NAME'] ?? '/';
     $appRoot = preg_replace('#/(auth|landlord|boarder|admin|legal)/[^/]*$#', '', $script);
     if ($appRoot === $script) {
@@ -54,11 +40,8 @@ function app_cookie_path()
 }
 
 /**
- * Cookie and session-id settings. Must run before session_start().
- *
- * use_strict_mode is the important one: without it PHP will adopt a session id
- * that a visitor invented, which is what makes session fixation possible in
- * the first place.
+ * Session cookie settings. Must run before session_start().
+ * use_strict_mode stops PHP accepting a made-up session id (session fixation).
  */
 function configure_session_security()
 {
@@ -81,14 +64,9 @@ function configure_session_security()
 }
 
 /**
- * Response headers that limit what an injected string could do if one ever got
- * through. The policy still allows inline scripts and styles, because AdminLTE
- * and these pages are written that way, but it blocks loading or exfiltrating
- * through any third-party origin, and blocks <base> and plugin content outright.
- *
- * The one third-party origin is OpenStreetMap's tile server, and only as an
- * image source: the listing map and the landlord's pin picker draw its tiles.
- * Leaflet itself is served from assets/vendor, so no script leaves 'self'.
+ * Security headers sent with every page. The Content-Security-Policy only
+ * allows files from this site, plus OpenStreetMap map tiles as images.
+ * Inline scripts are allowed because AdminLTE and our pages use them.
  */
 function send_security_headers()
 {
@@ -119,20 +97,15 @@ function send_security_headers()
     }
 }
 
-/** Best-effort client IP. Only the direct peer is trusted; headers are not. */
+/** The visitor's IP. Headers like X-Forwarded-For are ignored: they can be faked. */
 function client_ip()
 {
     return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 }
 
 /**
- * Tear down the current session and send the visitor to the login page with an
- * explanation. Used when a session ages out or the account behind it stops
- * being valid.
- *
- * An administrator goes back to the administrators' sign-in page and everyone
- * else to the public one. $wasAdmin is taken from the session unless the
- * caller has already cleared the session and passes it in.
+ * End the session and send the visitor to the right login page with $message.
+ * Pass $wasAdmin if the session was already cleared.
  */
 function force_logout($message, $wasAdmin = null)
 {
@@ -140,8 +113,7 @@ function force_logout($message, $wasAdmin = null)
         $wasAdmin = is_admin();
     }
 
-    // A remembered device would otherwise sign straight back in on the next
-    // request, which is exactly what force_logout exists to prevent.
+    // Otherwise "Remember me" would sign them straight back in.
     forget_remembered_login();
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
@@ -157,21 +129,15 @@ function force_logout($message, $wasAdmin = null)
 }
 
 /**
- * Run on every request once a session exists.
- *
- * Two things happen here that a login-time check cannot do. Sessions age out,
- * idle and absolute, so a signed-in browser left open on a shared computer
- * stops being a way in. And the account is re-read from the database, so an
- * administrator deactivating a user, deleting them, or changing their role
- * takes effect on that user's very next click instead of whenever they happen
- * to log out. A changed password is noticed the same way: every session that
- * was signed in under the old password ends on its next request.
+ * Runs on every request. Times out old sessions, and re-reads the account
+ * from the database, so deactivating a user, changing their role or changing
+ * their password takes effect on their very next click.
  */
 function enforce_session_policy()
 {
     global $pdo;
 
-    // No session, but a "Remember me" cookie: sign the device back in quietly.
+    // Not signed in, but has a "Remember me" cookie: sign them back in.
     if (!is_logged_in() && !restore_remembered_login()) {
         return;
     }
@@ -180,8 +146,7 @@ function enforce_session_policy()
     $idle = isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity']) > SESSION_IDLE_TIMEOUT;
     $aged = isset($_SESSION['session_started_at']) && ($now - $_SESSION['session_started_at']) > SESSION_ABSOLUTE_LIFETIME;
 
-    // A session that has aged out still ends. A remembered device then gets a
-    // brand new session from its cookie; anyone else is signed out.
+    // Timed out: a remembered device gets a fresh session, anyone else is signed out.
     if ($idle || $aged) {
         $wasAdmin = is_admin();
         $_SESSION = [];
@@ -198,8 +163,7 @@ function enforce_session_policy()
         $_SESSION['session_started_at'] = $now;
     }
 
-    // Every web page gets $pdo from includes/init.php. Without one (a script run
-    // outside the site) only the ageing checks above apply.
+    // No database (a script run outside the site): only the timeouts apply.
     if (!isset($pdo) || !($pdo instanceof PDO)) {
         return;
     }
@@ -213,15 +177,13 @@ function enforce_session_policy()
         $stmt->execute([$_SESSION['user_id']]);
         $account = $stmt->fetch();
     } catch (PDOException $e) {
-        return; // A database blip must not sign the whole site out.
+        return; // A database hiccup should not sign everyone out.
     }
 
     if (!$account) {
         force_logout('That account no longer exists.');
     }
-    // An archived account is checked before the active flag, so archiving
-    // takes effect on the user's very next request even if is_active was
-    // left set. Either way every remembered device goes with the session.
+    // Removed or deactivated: sign out, on every remembered device too.
     if (!empty($account['deleted_at'])) {
         forget_all_remembered_logins($_SESSION['user_id']);
         force_logout('That account has been removed. Please contact support.');
@@ -231,20 +193,8 @@ function enforce_session_policy()
         force_logout('Your account has been deactivated. Please contact support.');
     }
 
-    // A password change ends every other session of the account. Each session
-    // holds a fingerprint of the password it was signed in under, so one that
-    // no longer matches was started before the change, possibly by whoever the
-    // change was meant to shut out. The session that made the change stored
-    // the new fingerprint as it saved (auth/profile.php, auth/reset_password.php),
-    // so it is the one that stays signed in. A session with no fingerprint was
-    // either already open when this check was added or started from a row
-    // without password_hash; it takes the current one and is covered from
-    // then on.
-    //
-    // Only this device's "Remember me" goes, inside force_logout(). The pages
-    // that change a password have already forgotten every remembered device,
-    // and forgetting them all again here would also throw away the new one
-    // that the device making the change was just given.
+    // Password changed since this session signed in: sign it out. The device
+    // that made the change saved the new fingerprint, so it stays signed in.
     $fingerprint = password_fingerprint($account['password_hash']);
     if (!isset($_SESSION['password_fingerprint'])) {
         $_SESSION['password_fingerprint'] = $fingerprint;
@@ -252,11 +202,9 @@ function enforce_session_policy()
         force_logout('Your password was changed, so you were signed out. Please log in again.');
     }
 
-    // The session is a cache of the account, never the source of truth for it.
+    // Refresh the session from the database, which is always the truth.
     $_SESSION['role'] = $account['role'];
     $_SESSION['is_super_admin'] = !empty($account['is_super_admin']);
-    // The name and email too, so an administrator who has just added theirs is
-    // shown by name, and let out of Edit Profile, on the very next page.
     $_SESSION['full_name'] = account_display_name($account);
     $_SESSION['email'] = (string) ($account['email'] ?? '');
     $_SESSION['username'] = $account['username'] ?? null;
@@ -265,18 +213,15 @@ function enforce_session_policy()
             || (string) ($account['email'] ?? '') === '');
     $_SESSION['avatar_path'] = $account['avatar_path'];
 
-    // Read on its own rather than in the query above: on a database without
-    // the column, only this check is lost, not every check in this function.
+    // Separate query, so an older database without this column only loses this check.
     $_SESSION['must_change_password'] = $account['role'] === 'administrator'
         && account_must_change_password($_SESSION['user_id']);
 }
 
 /**
- * What a session remembers about the password it was signed in under, so
- * enforce_session_policy() can tell when that password has been changed. It
- * is a SHA-256 of the stored hash rather than the hash itself: session files
- * are guarded less carefully than the database, and a bcrypt hash copied out
- * of one could be used to guess the password offline, where this cannot.
+ * A fingerprint of the password hash, kept in the session to notice a password
+ * change. Not the hash itself, so a leaked session file can't be used to guess
+ * the password.
  */
 function password_fingerprint($passwordHash)
 {
@@ -284,22 +229,11 @@ function password_fingerprint($passwordHash)
 }
 
 /**
- * Begin a signed-in session for a user row: user_id, role, first_name,
- * last_name and email, plus avatar_path and password_hash where the caller
- * selected them. Used by the password login, Google sign-in, and "Remember
- * me", so all three start a session the same way: a brand new session id and
- * nothing carried over from whatever session came before.
+ * Sign a user in: a new session id, with nothing kept from the old session.
+ * Used by password login, Google sign-in and "Remember me".
  *
- * The session keeps a fingerprint of password_hash, and the per-request check
- * above signs it out as soon as the stored hash stops matching. So the row
- * has to carry the hash the account has now, not one read before it was
- * saved again: the login pages take the hash upgrade_password_hash() returns,
- * and google_find_account() copies in the password it replaces. A stale hash
- * would end the session on its very next page.
- *
- * A caller that left out avatar_path or password_hash still gets a working
- * session: the per-request refresh above fills either one in from the
- * account on the very next page.
+ * $user['password_hash'] must be the current hash, or the session is signed
+ * out on the next page (see enforce_session_policy()).
  */
 function start_user_session(array $user)
 {
@@ -309,11 +243,9 @@ function start_user_session(array $user)
     $_SESSION['last_activity'] = time();
     $_SESSION['user_id'] = $user['user_id'];
     $_SESSION['role'] = $user['role'];
-    // Refreshed on every request too; a row without the column is not a super admin.
     $_SESSION['is_super_admin'] = !empty($user['is_super_admin']);
     $_SESSION['first_name'] = $user['first_name'];
     $_SESSION['last_name'] = $user['last_name'];
-    // A new administrator has no name or email yet; their username stands in.
     $_SESSION['full_name'] = account_display_name($user);
     $_SESSION['email'] = (string) ($user['email'] ?? '');
     $_SESSION['username'] = $user['username'] ?? null;
@@ -326,15 +258,11 @@ function start_user_session(array $user)
 /* ---------------------------------------------------------------------------
  * Remember me
  *
- * Ticking "Remember me" issues a cookie holding selector:validator. The
- * selector finds the row; only a SHA-256 hash of the validator is stored, so
- * the table alone cannot be replayed as a login. Every sign-in from a cookie
- * deletes its row and issues a new one, so a copied cookie stops working the
- * moment the real device uses it. Logging out, changing or resetting the
- * password, and deactivation all delete the rows.
+ * The cookie holds selector:validator. Only a hash of the validator is stored,
+ * so a leaked table can't be used to sign in. Each use replaces the token, so
+ * a copied cookie stops working once the real device uses it.
  * ------------------------------------------------------------------------ */
 
-/** How long "Remember me" keeps a device signed in. */
 const REMEMBER_LIFETIME = 2592000; // 30 days
 
 const REMEMBER_COOKIE = 'roomease_remember';
@@ -400,7 +328,7 @@ function remember_login($userId)
              VALUES (?, ?, ?, FROM_UNIXTIME(?))'
         )->execute([$userId, $selector, hash('sha256', $validator), $expires]);
 
-        // Opportunistic housekeeping so expired devices do not pile up.
+        // Now and then, clear out expired tokens.
         if (random_int(1, 20) === 1) {
             $pdo->exec('DELETE FROM remember_tokens WHERE expires_at < NOW()');
         }
@@ -438,7 +366,7 @@ function forget_remembered_login()
         try {
             $pdo->prepare('DELETE FROM remember_tokens WHERE selector = ?')->execute([$parts[0]]);
         } catch (PDOException $e) {
-            // The row expires on its own; clearing the cookie still matters.
+            // The row expires anyway; the cookie is still cleared below.
         }
     }
     set_remember_cookie('', time() - 3600);
@@ -458,10 +386,7 @@ function forget_all_remembered_logins($userId)
     }
 }
 
-/**
- * Sign a visitor back in from their "Remember me" cookie. Returns true when
- * the cookie was valid and a session was started.
- */
+/** Sign a visitor back in from their "Remember me" cookie. True on success. */
 function restore_remembered_login()
 {
     global $pdo;
@@ -492,15 +417,13 @@ function restore_remembered_login()
         return false;
     }
 
-    // No row: the token was already used or forgotten. The cookie is left
-    // alone, because a parallel request may just have replaced it with a new
-    // one, and clearing it here could race and throw that new cookie away.
+    // Token already used. The cookie is left alone: another request may have
+    // just replaced it with a new one.
     if (!$row) {
         return false;
     }
 
-    // Right selector, wrong validator: someone is guessing at a real token.
-    // Every device for the account is signed out rather than risk it.
+    // Right selector, wrong validator: someone may be guessing. Sign out every device.
     if (!hash_equals($row['validator_hash'], hash('sha256', $validator))) {
         error_log('RoomEase: remember-me validator mismatch for user ' . (int) $row['user_id']
             . ' - all remembered devices for this account were forgotten.');
@@ -524,19 +447,11 @@ function restore_remembered_login()
 }
 
 /* ---------------------------------------------------------------------------
- * Throttling
- *
- * Login and password-reset are the two endpoints an outsider can hammer, and
- * neither costs an attacker anything to retry. Attempts are recorded in the
- * login_attempts table (database/roomease.sql) and counted over a
- * rolling window.
+ * Throttling: limits on failed logins and reset requests, counted in the
+ * login_attempts table over the last 15 minutes.
  * ------------------------------------------------------------------------ */
 
-/**
- * True when the throttle table is present. If the schema has not been
- * imported the app keeps working rather than locking everyone out, but it
- * says so in the PHP error log so the gap does not stay invisible.
- */
+/** True when the login_attempts table exists. If not, throttling is off and the error log says so. */
 function throttle_available()
 {
     global $pdo;
@@ -556,20 +471,14 @@ function throttle_available()
     return $available;
 }
 
-/**
- * Record one failed attempt against both the identifier and the caller's IP.
- * user_id is the account the identifier belongs to, looked up in the same
- * statement, or NULL when no account has that email.
- */
+/** Record one failed attempt for this email (or username) and this IP. */
 function record_failed_attempt($kind, $identifier)
 {
     global $pdo;
     if (!throttle_available()) {
         return;
     }
-    // Cut to the column's 190 characters, so an absurdly long typed "email"
-    // is still counted rather than refused by strict mode. No account's email
-    // is that long, so nothing real is lost.
+    // Cut to the column's 190 characters, so a very long typed value is still counted.
     $identifier = mb_substr(mb_strtolower(trim($identifier)), 0, 190);
     try {
         $pdo->prepare(
@@ -577,7 +486,7 @@ function record_failed_attempt($kind, $identifier)
              VALUES (?, ?, (SELECT u.user_id FROM users u WHERE u.email = ? OR u.username = ? LIMIT 1), ?)'
         )->execute([$kind, $identifier, $identifier, $identifier, client_ip()]);
 
-        // Opportunistic housekeeping so the table cannot grow without bound.
+        // Now and then, delete attempts older than a day.
         if (random_int(1, 50) === 1) {
             $pdo->exec('DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL 1 DAY');
         }
@@ -586,7 +495,7 @@ function record_failed_attempt($kind, $identifier)
     }
 }
 
-/** Forget an identifier's failures, called after a successful login. */
+/** Clear the failed attempts for this email, after a successful login. */
 function clear_failed_attempts($kind, $identifier)
 {
     global $pdo;
@@ -597,17 +506,13 @@ function clear_failed_attempts($kind, $identifier)
         $pdo->prepare('DELETE FROM login_attempts WHERE kind = ? AND identifier = ?')
             ->execute([$kind, mb_strtolower(trim($identifier))]);
     } catch (PDOException $e) {
-        // Nothing useful to do here; the rows expire on their own.
+        // Not important: old rows are cleared anyway.
     }
 }
 
 /**
- * Seconds the caller must wait, or 0 if they may proceed.
- *
- * Both the account and the source address are counted. The per-account limit
- * stops one password being guessed; the per-IP limit stops one attacker
- * spraying a single common password across many accounts, which would never
- * trip a per-account counter.
+ * Seconds to wait before trying again, or 0. Counts per account (stops
+ * guessing one password) and per IP (stops one person trying many accounts).
  */
 function throttle_retry_after($kind, $identifier)
 {
@@ -654,30 +559,19 @@ function throttle_retry_after($kind, $identifier)
 }
 
 /* ---------------------------------------------------------------------------
- * Checking the password on the two sign-in pages
+ * Checking passwords on the sign-in pages
  *
- * With no account for the typed email there is nothing to check, and a page
- * that answered at once would let anyone time it to learn which emails are
- * registered. So a missing account is checked against a hash nobody knows
- * the password to, which takes as long as checking a real one.
+ * An unknown email is checked against a dummy hash, so it takes as long as a
+ * real one. Otherwise the response time would reveal which emails exist.
  * ------------------------------------------------------------------------ */
 
-/**
- * password_hash() of random strings that were thrown away, one for each cost
- * PHP has used by default: 10 up to PHP 8.3 and 12 from PHP 8.4. A hash's cost
- * decides how long checking it takes, so the dummy has to have the same cost
- * as the stored hashes, which is this server's default once
- * upgrade_password_hash() has moved them to it.
- */
+/** Dummy hashes of thrown-away passwords, one per bcrypt cost (10 before PHP 8.4, 12 after). */
 const DUMMY_PASSWORD_HASHES = [
     10 => '$2y$10$JUoyE50X7TaGZNYaVHc7BOpQUUE9r/XMmsHGJ.Wl8iCOdp.ui2/hS',
     12 => '$2y$12$k3ieTaYZzIOp/UNoS2s84eqsAafSe7Qm54VLUGyZ.n0TzYns0xTau',
 ];
 
-/**
- * True when $password is right for $user, the row a sign-in page looked up,
- * or false when there was no such row. Either way it takes the same time.
- */
+/** True if $password matches $user. No user: false, after the same delay. */
 function check_login_password($password, $user)
 {
     if ($user) {
@@ -689,23 +583,10 @@ function check_login_password($password, $user)
 }
 
 /**
- * After a successful sign-in, store the password again if its hash's cost is
- * not this server's default, so every account costs the same to check as the
- * dummy above. Old accounts were hashed at 10 before PHP 8.4 made 12 the
- * default; a hash made by a different PHP than the web server's, such as the
- * command line running database/set_admin_password.php, can be off the other
- * way. The WHERE clause leaves a password changed in the meantime alone.
- *
- * Returns the hash to hand to start_user_session(): the new one if it was
- * stored, otherwise the one passed in. If the password was changed in the
- * meantime, the one passed in is already out of date, and the session it
- * starts is signed out on its next page, as it should be.
- *
- * To enforce_session_policy() a hash stored again looks exactly like a new
- * password, so any other session open for the account at that moment is
- * signed out as though the password had changed. That happens at most once
- * per account each time the server's default cost moves, and is the price of
- * noticing password changes without adding a column to users.
+ * After a successful login, re-hash the password if it uses an older bcrypt
+ * cost, so every account takes the same time to check. Returns the hash to
+ * pass to start_user_session(). Side effect: other open sessions of the
+ * account are signed out, as if the password had changed.
  */
 function upgrade_password_hash(array $user, $password)
 {
@@ -715,8 +596,7 @@ function upgrade_password_hash(array $user, $password)
     }
     $newHash = password_hash($password, PASSWORD_DEFAULT);
     try {
-        // Housekeeping, not an edit: updated_at = updated_at keeps the
-        // account's last-changed time, and updated_by is left alone.
+        // Not a real edit, so updated_at is kept as it was.
         $update = $pdo->prepare(
             'UPDATE users SET password_hash = ?, updated_at = updated_at WHERE user_id = ? AND password_hash = ?'
         );
@@ -730,7 +610,7 @@ function upgrade_password_hash(array $user, $password)
     return $user['password_hash'];
 }
 
-/** "3 minutes" / "45 seconds", for telling someone how long they must wait. */
+/** "3 minutes" or "45 seconds". */
 function format_wait($seconds)
 {
     if ($seconds >= 60) {

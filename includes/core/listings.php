@@ -1,55 +1,31 @@
 <?php
 /**
- * Listing queries and rules: what is live, room availability, browse filters,
- * stay terms, moderation status and saved listings.
+ * Listing queries and rules: what is public, room availability, browse
+ * filters, stay terms, moderation and saved listings.
  */
 
-/**
- * The JOIN that hides listings whose landlord is deactivated or archived.
- *
- * Browse never used to look at the landlord's account at all, so a
- * deactivated landlord's listings stayed on the public site. Soft deletion
- * would have inherited exactly the same hole.
- */
+/** JOIN that hides listings whose landlord is deactivated or removed. */
 
 const LIVE_LANDLORD_JOIN =
     'JOIN users lu ON lu.user_id = bh.landlord_id AND lu.is_active = 1 AND lu.deleted_at IS NULL';
 
-/**
- * What a listing itself needs to be on the public site: an administrator's
- * approval. A listing an administrator removed stays in the table, archived,
- * and never shows.
- */
+/** A listing is public when approved and not removed. */
 
 const LIVE_STATUS_WHERE = "bh.moderation_status = 'approved' AND bh.deleted_at IS NULL";
 
-/**
- * Everything else a listing needs to be on the public site: approved, switched
- * on, and at least one room. Pair with LIVE_LANDLORD_JOIN.
- */
+/** LIVE_STATUS_WHERE plus at least one room. Use with LIVE_LANDLORD_JOIN. */
 
 const LIVE_LISTING_WHERE = LIVE_STATUS_WHERE
     . ' AND EXISTS (SELECT 1 FROM rooms hr WHERE hr.boarding_house_id = bh.boarding_house_id)';
 
-/**
- * A listing's cover photo: its house cover first, then any house photo, and
- * only then a room photo, so a listing with only room photos still has one.
- */
+/** Cover photo: the house cover, else any house photo, else a room photo. */
 
 const COVER_PHOTO_SELECT = '(SELECT img.image_path FROM images img
        WHERE img.boarding_house_id = bh.boarding_house_id
        ORDER BY img.room_id IS NULL DESC, img.is_primary DESC, img.image_id ASC
        LIMIT 1) AS cover_photo';
 
-/**
- * A listing's cover photo at thumbnail size, for the administrator's queue and
- * tables. $l needs cover_photo (COVER_PHOTO_SELECT).
- *
- * A listing with no photo gets a drawn placeholder rather than an empty gap,
- * because "this one has nothing to look at" is itself something a moderator
- * wants to see at a glance. The picture is decorative: the listing's name is
- * always the link beside it.
- */
+/** Cover photo thumbnail for admin tables, or a camera icon if there is none. */
 
 function listing_thumb_html(array $l, $class = 'queue-thumb')
 {
@@ -62,24 +38,18 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
 }
 
 /* ---------------------------------------------------------------------------
- * Rooms (database/roomease.sql)
- *
- * Rent, room type and capacity belong to each room. Whether a room is
- * available is never stored: it is open with a slot left, full, or closed.
+ * Rooms. Availability is never stored; it is worked out from is_open,
+ * capacity and slots_taken.
  * ------------------------------------------------------------------------ */
 
-/** The room summary columns room_summary_join() provides, for a SELECT list. */
+/** Columns that room_summary_join() adds, for a SELECT list. */
 
 const ROOM_SUMMARY_COLUMNS = 'rs.room_count, rs.rooms_available, rs.rooms_open,
        rs.rent_from_available, rs.rent_from_all, rs.room_types, rs.open_room_types, rs.slots_left';
 
 /**
- * One row of room figures per listing, joined as `rs`. Pass $inner = true
- * where a listing with no rooms should drop out of the results.
- *
- * room_types names every room, which is what the panels list. A boarder's
- * card reads open_room_types instead, so a closed room is not advertised, and
- * slots_left, the beds still free across the open rooms.
+ * Room totals per listing, joined as `rs`. $inner = true drops listings with no rooms.
+ * Boarders see open_room_types (closed rooms left out); the panels see room_types.
  */
 
 function room_summary_join($inner = false)
@@ -102,11 +72,8 @@ function room_summary_join($inner = false)
 }
 
 /**
- * Where a room stands, for any row with capacity, slots_taken and is_open.
- *
- * Returns key (available|full|closed), label, pill (public CSS class), badge
- * (Bootstrap class for the panel), slots_left, and note, the one line a
- * boarder reads under the room.
+ * A room's status: available, full or closed. Returns key, label, pill
+ * (public CSS class), badge (panel CSS class), slots_left and note.
  */
 
 function room_state(array $room)
@@ -128,7 +95,7 @@ function room_state(array $room)
         'note' => $capacity === 1 ? 'Vacant' : $left . ' of ' . $capacity . ' slots left'];
 }
 
-/** Sort order for rooms shown to boarders: available, then full, then closed. */
+/** Sort order: available, then full, then closed. */
 
 function room_state_rank(array $room)
 {
@@ -136,10 +103,8 @@ function room_state_rank(array $room)
 }
 
 /**
- * Where a whole listing stands, from the room_summary_join() columns.
- *
- * Returns key (available|full|closed|none), label and pill for the badge,
- * summary ("3 of 5 rooms available"), rent_from, and room_count.
+ * A whole listing's status from the room totals: available, full, closed or
+ * none. Also returns a summary like "3 of 5 rooms available" and rent_from.
  */
 
 function listing_availability(array $listing)
@@ -163,8 +128,7 @@ function listing_availability(array $listing)
             'summary' => $count === 1 ? '1 room, available' : $available . ' of ' . $count . ' rooms available'];
     }
     if ($open > 0) {
-        // "All 5 rooms taken" only when every room really is full; with some
-        // closed as well, say how many are available instead.
+        // "All rooms taken" only if none are closed.
         $summary = $count === 1 ? '1 room, occupied'
             : ($open === $count ? 'All ' . $count . ' rooms taken' : '0 of ' . $count . ' rooms available');
         return $base + ['key' => 'full', 'label' => 'Fully occupied', 'pill' => 'pill--unavailable',
@@ -175,23 +139,14 @@ function listing_availability(array $listing)
 }
 
 /* ---------------------------------------------------------------------------
- * Browse filters
- *
- * Browse, its "try instead" suggestions and the heart forms on its cards all
- * rebuild the filters from known keys here, so nothing from the request is
- * echoed into a URL unchecked.
+ * Browse filters. Filters are rebuilt from known keys only, so nothing from
+ * the URL is passed on unchecked.
  * ------------------------------------------------------------------------ */
 
 /**
- * The amenities a boarder can filter by, as id => ['name', 'extra'].
- *
- * The administrator's amenities come first, in the order they were made,
- * because every landlord picks from them. After them come the amenities
- * landlords added themselves ('extra' => true), but only those on a listing
- * boarders can see, since any other would find nothing. The same name added by
- * two landlords is one choice, keyed by its lowest id: the filter matches by
- * name (browse_amenity_where()), so ticking it finds both listings. The column
- * collation ignores case, so "rooftop" and "Rooftop" are one choice too.
+ * Amenities boarders can filter by, as id => ['name', 'extra']. The admin's
+ * list comes first, then landlords' own ones that appear on a public listing.
+ * Matching is by name, so the same name from two landlords is one choice.
  */
 
 function filter_amenity_options()
@@ -224,41 +179,36 @@ function filter_amenity_options()
     return $options;
 }
 
-/**
- * The browse filters that actually apply, from $_GET or a heart form's POST.
- * Returns only the keys that are set: q, room_type, max_rent, vacant,
- * amenities (a sorted list of ids from filter_amenity_options()), page.
- */
+/** The valid filters from $_GET or $_POST: q, room_type, max_rent, vacant, amenities, page. */
 
 function browse_filters(array $src, array $roomTypes)
 {
     $filters = [];
 
-    // A list sent as q[] is no search, rather than a PHP warning.
+    // q[] (an array) is ignored.
     $q = is_string($src['q'] ?? null) ? trim($src['q']) : '';
     if ($q !== '') {
         $filters['q'] = mb_substr($q, 0, 100);
     }
 
-    // An unrecognised room type is "no filter", not "no results".
+    // An unknown room type is ignored.
     $type = (int) ($src['room_type'] ?? 0);
     if ($type > 0 && isset($roomTypes[$type])) {
         $filters['room_type'] = $type;
     }
 
-    // A budget of nothing, or less, is no budget at all.
+    // Zero or negative means no budget.
     $rent = $src['max_rent'] ?? '';
     if (is_numeric($rent) && (float) $rent > 0) {
         $filters['max_rent'] = (int) ceil((float) $rent);
     }
 
-    // Only a listing with a room open and not yet full.
+    // Only listings with a free slot.
     if (($src['vacant'] ?? '') === '1') {
         $filters['vacant'] = 1;
     }
 
-    // An id that is not a choice any more is dropped, not an error: a saved
-    // link can outlive the amenity it named.
+    // Unknown amenity ids are dropped (an old link may name a deleted one).
     $ticked = array_filter((array) ($src['amenities'] ?? []), function ($id) {
         return is_scalar($id) && ctype_digit((string) $id);
     });
@@ -276,7 +226,7 @@ function browse_filters(array $src, array $roomTypes)
     return $filters;
 }
 
-/** Browse at the given filters, as a path for base_url() or redirect(). */
+/** The browse page path for these filters. */
 
 function browse_path(array $filters, $fragment = '')
 {
@@ -284,11 +234,7 @@ function browse_path(array $filters, $fragment = '')
         . ($fragment !== '' ? '#' . $fragment : '');
 }
 
-/**
- * How many listings the public site is showing right now, and how many rooms
- * in them are available. The home page quotes both, so they have to be the
- * real figures, never rounded or padded.
- */
+/** Number of public listings and available rooms, for the home page. */
 
 function live_listing_stats()
 {
@@ -306,11 +252,7 @@ function live_listing_stats()
     }
 }
 
-/**
- * Every room type with the number of live listings that have an open room of
- * that type, which is exactly what browse returns for that filter. Types with
- * none are kept, with a count of 0, in the same order as the browse filter.
- */
+/** Each room type with how many public listings have an open room of that type (0 included). */
 
 function room_type_counts()
 {
@@ -326,10 +268,7 @@ function room_type_counts()
     );
 }
 
-/**
- * Every listing a landlord owns, newest first, with its room figures and a
- * photo count each. Shown on the dashboard and on My Boarding Houses.
- */
+/** A landlord's listings, newest first, with room totals and photo counts. */
 
 function landlord_listings($landlordId)
 {
@@ -347,11 +286,7 @@ function landlord_listings($landlordId)
     return $stmt->fetchAll();
 }
 
-/**
- * Listings waiting for an administrator's decision. A listing whose landlord
- * is removed or deactivated is not counted: it cannot be approved until the
- * account is back, so it is not waiting on anyone.
- */
+/** Number of pending listings (not counting those whose landlord is deactivated or removed). */
 
 function pending_listing_count()
 {
@@ -369,17 +304,8 @@ function pending_listing_count()
 }
 
 /**
- * What is still waiting for a decision once $exceptId is set aside, so an
- * administrator can go from one review straight to the next.
- *
- * Returns ['count' => int, 'next' => ['boarding_house_id' => int, 'name' =>
- * string]|null]. Ordered oldest change first, matching the dashboard's queue
- * and the sidebar's count, so "next" is genuinely the one that has waited
- * longest rather than whichever the database happened to return.
- *
- * $exceptId is excluded whatever its state: called before a decision it skips
- * the listing being looked at, and called after one it skips a listing whose
- * new state may not have landed in this connection's view yet.
+ * The pending queue without $exceptId: ['count' => int, 'next' => listing|null].
+ * "next" is the one waiting longest, so the admin can review them in order.
  */
 
 function pending_queue_after($exceptId = 0)
@@ -406,30 +332,26 @@ function pending_queue_after($exceptId = 0)
 }
 
 /* ---------------------------------------------------------------------------
- * Stay terms (database/roomease.sql)
- *
- * What a boarder asks before visiting: curfew, minimum stay, how rent
- * is paid, who the house accepts, and whether visitors, pets and cooking are
- * allowed, plus the listing's map pin. Every one is optional, and NULL means
- * the landlord has not said, so the listing page leaves it out rather than
- * guessing.
+ * Stay terms: curfew, minimum stay, payment, gender policy, visitors, pets,
+ * cooking and the map pin. All optional; NULL means "not stated" and the
+ * listing page leaves it out.
  * ------------------------------------------------------------------------ */
 
-/** The stay-term columns on boarding_houses, in the order the forms write them. */
+/** The stay-term columns, in form order. */
 
 const STAY_TERM_COLUMNS = [
     'curfew', 'minimum_stay_months', 'payment_methods', 'gender_policy',
     'visitors_allowed', 'pets_allowed', 'cooking_allowed', 'latitude', 'longitude',
 ];
 
-/** Payment methods a landlord can tick, as stored value => label. */
+/** Payment methods, as stored value => label. */
 
 function payment_method_options()
 {
     return ['cash' => 'Cash', 'gcash' => 'GCash', 'maya' => 'Maya', 'bank_transfer' => 'Bank transfer'];
 }
 
-/** Who a listing accepts, as stored value => label. */
+/** Gender policies, as stored value => label. */
 
 function gender_policy_options()
 {
@@ -450,12 +372,7 @@ function payment_methods_label($stored)
     return implode(', ', $labels);
 }
 
-/**
- * What is wrong with a listing's own fields as typed on Add Listing or Edit
- * Listing, as messages ready to show. Both pages call this, so the two forms
- * always accept exactly the same listing. Stay terms, amenities and utilities,
- * and rooms are checked by their own functions.
- */
+/** Errors in a listing's main fields. Used by both Add and Edit Listing, so they match. */
 
 function listing_errors(array $listing)
 {
@@ -480,16 +397,9 @@ function listing_errors(array $listing)
 }
 
 /**
- * Read and validate the stay-term fields from a submitted listing form.
- *
- * Returns [$values, $errors, $echo]:
- *   $values  exactly STAY_TERM_COLUMNS, normalised for the database: blanks
- *            become NULL, yes/no rules become 1, 0 or NULL, payment methods
- *            are filtered to the known list, and coordinates are kept only as
- *            a valid pair.
- *   $errors  messages for the form.
- *   $echo    what to put back in the form if it is shown again, so a typo is
- *            corrected rather than silently cleared.
+ * Read and check the stay terms from a form. Returns [$values, $errors, $echo]:
+ * $values ready to save (blanks become NULL), and $echo, what was typed, to
+ * refill the form after an error.
  */
 
 function stay_terms_from_post(array $post)
@@ -548,22 +458,15 @@ function stay_terms_from_post(array $post)
 }
 
 /**
- * The listing fields an administrator's approval vouches for, as column =>
- * how a message names it: the text a boarder reads. Changing one of them, or
- * adding a photo, sends an approved listing back for review. Rents, slots and
- * stay terms are left to change freely, because a landlord updates them as
- * rooms fill and empty.
+ * Changing one of these fields (or adding photos) sends an approved listing
+ * back for review. Rents, slots and stay terms can change freely.
  */
 
 const REVIEWED_LISTING_FIELDS = [
     'name' => 'name', 'address' => 'address', 'description' => 'description', 'house_rules' => 'house rules',
 ];
 
-/**
- * Put one of a landlord's listings back in the approval queue, if it is in
- * $fromStatus now. Returns true when it moved. Used when a rejected listing is
- * corrected, and when an approved one changes what its approval covered.
- */
+/** Set a listing back to pending if it is currently $fromStatus. True if it changed. */
 
 function return_listing_to_queue($houseId, $landlordId, $fromStatus)
 {
@@ -577,10 +480,7 @@ function return_listing_to_queue($houseId, $landlordId, $fromStatus)
     return $stmt->rowCount() === 1;
 }
 
-/**
- * Bootstrap badge for a listing's moderation state. Used by the admin queue
- * and the landlord dashboard so both describe a listing the same way.
- */
+/** Badge for pending / approved / rejected. */
 
 function moderation_badge($status)
 {
@@ -594,10 +494,7 @@ function moderation_badge($status)
     }
 }
 
-/**
- * The boarding_house_id values the given user has saved, as a lookup set.
- * Fetched once per page rather than queried per listing.
- */
+/** The listing ids this user has saved, as a lookup set. One query per page. */
 
 function saved_listing_ids($userId)
 {
@@ -610,21 +507,14 @@ function saved_listing_ids($userId)
     return array_flip($stmt->fetchAll(PDO::FETCH_COLUMN));
 }
 
-/**
- * True when the current user may save listings. Saving is a boarder feature;
- * landlords and administrators manage listings instead.
- */
+/** True for boarders: only they can save listings. */
 
 function can_save_listings()
 {
     return is_logged_in() && current_role() === 'boarder';
 }
 
-/**
- * True when the heart should be drawn: for a boarder, and for a guest, whose
- * tap sends them to log in and then saves the listing. Landlords and
- * administrators cannot save, so they are never shown a heart that refuses.
- */
+/** Show the save heart to boarders and guests (guests are asked to log in first). */
 
 function shows_save_heart()
 {

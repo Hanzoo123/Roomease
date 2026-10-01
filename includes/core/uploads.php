@@ -3,12 +3,7 @@
  * Photo upload limits and saving listing photos to assets/uploads/.
  */
 
-/**
- * A client-supplied filename, reduced to something safe to show back.
- *
- * These names end up inside error messages, and those messages are rendered as
- * a flash notification, so the browser must never be handed the raw string.
- */
+/** An uploaded file's name, cleaned so it is safe to show in an error message. */
 
 function safe_filename($name)
 {
@@ -52,11 +47,7 @@ function format_bytes($bytes)
     return max(1, (int) round($bytes / 1024)) . ' KB';
 }
 
-/**
- * Largest single photo we will accept: our own 5MB policy, but never more
- * than PHP itself is configured to take, so the limit shown on the form is
- * the limit actually enforced.
- */
+/** Largest photo accepted: 5 MB, or PHP's upload limit if that is smaller. */
 
 function max_upload_bytes()
 {
@@ -67,28 +58,20 @@ function max_upload_bytes()
     return $bytes;
 }
 
-/** How many photos may be attached to one submission. */
+/** Most photos per upload. */
 
 function max_photos_per_upload()
 {
     return 10;
 }
 
-/**
- * The most pixels a photo may have. A 2 MB file can still unpack to far more
- * memory than PHP is allowed, so the server checks this before opening one.
- * 40 megapixels is well above any phone camera.
- */
+/** Most pixels a photo may have (40 MP). A small file can still need a lot of memory to open. */
 const MAX_PHOTO_PIXELS = 40000000;
 
-/** The longest side, in pixels, a listing photo is stored at. */
+/** Longest side of a stored listing photo, in pixels. */
 const LISTING_PHOTO_MAX_SIDE = 1600;
 
-/**
- * Raise PHP's memory limit, for this request only, far enough to open an
- * image of this size. A decoded image takes four bytes a pixel, and shrinking
- * it needs a second, smaller copy beside it.
- */
+/** Raise the memory limit for this request, enough to open an image this size. */
 
 function make_room_for_image($width, $height)
 {
@@ -102,11 +85,7 @@ function make_room_for_image($width, $height)
     }
 }
 
-/**
- * Open an uploaded image with GD, turned the right way up. Returns the image,
- * or null when GD is not installed, cannot read the file, or the file is
- * larger than MAX_PHOTO_PIXELS. Used for listing photos and profile photos.
- */
+/** Open an image with GD, rotated upright. Null if GD can't read it or it is too large. */
 
 function load_image_upright($path, $ext)
 {
@@ -131,8 +110,7 @@ function load_image_upright($path, $ext)
         return null;
     }
 
-    // Phone cameras record the rotation rather than applying it, so a portrait
-    // photo arrives lying on its side unless the EXIF tag is honoured.
+    // Phones store the rotation in EXIF instead of rotating the photo.
     if ($ext === 'jpg' && function_exists('exif_read_data')) {
         $exif = @exif_read_data($path);
         $orientation = (int) ($exif['Orientation'] ?? 0);
@@ -149,16 +127,9 @@ function load_image_upright($path, $ext)
 }
 
 /**
- * Save a stored photo again through GD, no wider or taller than $maxSide.
- *
- * Saving it again matters as much as shrinking it. A phone photo carries EXIF
- * data, often including the GPS position where it was taken, which for a
- * boarding house can be the landlord's own home. GD writes only the pixels,
- * so the copy that is kept carries none of it, and a 4000px photo becomes a
- * file a phone can load quickly.
- *
- * Returns false, leaving the file as it was, when GD is missing or cannot
- * read it; the upload still succeeds, and the error log says what happened.
+ * Re-save a photo through GD, at most $maxSide pixels on its longest side.
+ * This removes EXIF data, which can include where the photo was taken.
+ * Returns false (file unchanged) if GD can't read it.
  */
 
 function shrink_photo($path, $ext, $maxSide)
@@ -183,8 +154,7 @@ function shrink_photo($path, $ext, $maxSide)
     }
     imagecopyresampled($canvas, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
 
-    // Written beside the original and then moved over it, so a write that
-    // fails half way never leaves a broken photo behind.
+    // Write to a temp file first, so a failed write never breaks the photo.
     $writers = ['jpg' => 'imagejpeg', 'png' => 'imagepng', 'webp' => 'imagewebp'];
     $quality = ['jpg' => 85, 'png' => 6, 'webp' => 85];
     $temp = $path . '.tmp';
@@ -197,9 +167,8 @@ function shrink_photo($path, $ext, $maxSide)
 }
 
 /**
- * True when the browser sent more data than post_max_size allows. PHP then
- * discards $_POST and $_FILES entirely, which otherwise surfaces as a
- * confusing CSRF failure rather than "your photos were too large".
+ * True when the upload was bigger than post_max_size. PHP then empties
+ * $_POST, which would otherwise look like a CSRF error.
  */
 
 function post_too_large()
@@ -210,11 +179,8 @@ function post_too_large()
 }
 
 /**
- * Handle one or more uploaded property images. Every file is validated
- * before any of them is moved, so one bad file in a batch cannot leave a
- * half-uploaded set behind. Accepts both the single-file and multi-file
- * shapes of $_FILES. Returns the stored relative paths, in submitted order.
- * Throws on validation failure.
+ * Save uploaded listing photos and return their paths. All files are checked
+ * before any is saved, so one bad file saves none. Throws on a bad file.
  */
 
 function handle_photo_uploads($fileField, $boardingHouseId)
@@ -259,8 +225,7 @@ function handle_photo_uploads($fileField, $boardingHouseId)
         if ($sizes[$i] > $maxBytes) {
             throw new RuntimeException('"' . safe_filename($name) . '" is larger than the ' . format_bytes($maxBytes) . ' limit.');
         }
-        // The same proof profile photos need: it has to open as an image, not
-        // only start like one. Checked here, before anything is saved.
+        // It must really open as an image, not just look like one.
         $dimensions = @getimagesize($tmps[$i]);
         if ($dimensions === false) {
             throw new RuntimeException('"' . safe_filename($name) . '" is not a JPG, PNG, or WEBP image.');
@@ -285,7 +250,7 @@ function handle_photo_uploads($fileField, $boardingHouseId)
     foreach ($queue as $item) {
         $filename = uniqid('bh_', true) . '.' . $item['ext'];
         if (!move_uploaded_file($item['tmp'], $dir . '/' . $filename)) {
-            // Keep the batch all-or-nothing: undo whatever already landed.
+            // All or nothing: remove the ones already saved.
             foreach ($stored as $done) {
                 @unlink(__DIR__ . '/../../' . $done);
             }

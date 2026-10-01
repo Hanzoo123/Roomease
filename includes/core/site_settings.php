@@ -1,17 +1,9 @@
 <?php
 /**
- * Administrator-controlled site settings, such as the sign-in page background.
+ * Settings an admin changes from the panel, such as the sign-in background.
  */
 
-/* ---------------------------------------------------------------------------
- * Site settings (database/roomease.sql)
- * ------------------------------------------------------------------------ */
-
-/**
- * One administrator-controlled setting, or $default. All settings are read in
- * a single query the first time any is asked for. If the table has not been
- * created yet every setting simply reads as its default.
- */
+/** One setting, or $default. All settings are loaded in one query, once per request. */
 
 function site_setting($key, $default = null, $reload = false)
 {
@@ -54,15 +46,13 @@ function save_site_settings(array $values)
     site_setting('', null, true);
 }
 
-/** The sign-in pages' default background. */
-
 const AUTH_BACKGROUND_DEFAULT = '#FAF8F3';
 
-/** Where an uploaded sign-in background lives, relative to the app root. */
+/** Folder for uploaded sign-in backgrounds. */
 
 const SITE_UPLOAD_DIR = 'assets/uploads/site';
 
-/** True for a path this app wrote into SITE_UPLOAD_DIR, and nothing else. */
+/** True only for a file this app saved in SITE_UPLOAD_DIR. */
 
 function is_site_upload_path($path)
 {
@@ -71,12 +61,8 @@ function is_site_upload_path($path)
 }
 
 /**
- * The sign-in pages' background, chosen in admin/appearance.php.
- *
- * Returns ['style' => inline CSS for <body>, 'tone' => 'light'|'dark'].
- * "dark" means the brand and the links around the card are drawn in white.
- * A photo always gets a forest tint and dark tone so the text above the card
- * stays readable whatever the photo is.
+ * The sign-in page background: ['style' => CSS, 'tone' => 'light'|'dark'].
+ * 'dark' means white text. Photos get a green tint so text stays readable.
  */
 
 function auth_background()
@@ -103,10 +89,7 @@ function auth_background()
     ];
 }
 
-/**
- * True when white text reads better than forest-green text on a colour,
- * compared by WCAG contrast ratio.
- */
+/** True when white text has better contrast than green text on this colour (WCAG formula). */
 
 function colour_prefers_light_text($hex)
 {

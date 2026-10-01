@@ -24,11 +24,8 @@ function base_url($path = '')
 {
     static $base = null;
     if ($base === null) {
-        // Worked out from SCRIPT_NAME, the page being served, rather than from
-        // where this file sits: the app root is the folder above auth/,
-        // landlord/, boarder/, admin/ or legal/, or the page's own folder
-        // otherwise. A new folder of pages has to be named here and in
-        // app_cookie_path(), which scopes the session cookie the same way.
+        // The app root is the folder above auth/, landlord/, etc. Add new
+        // page folders here and in app_cookie_path().
         $script = $_SERVER['SCRIPT_NAME'] ?? '';
         $appRoot = preg_replace('#/(auth|landlord|boarder|admin|legal)/[^/]*$#', '', $script);
         if ($appRoot === $script) {
@@ -40,14 +37,8 @@ function base_url($path = '')
 }
 
 /**
- * The last word on an exception nothing else caught. includes/init.php
- * registers it, so every page has it.
- *
- * Without it, a failure no page expected (a database hiccup, or two sign-ups
- * racing for one email) ends in a blank page. The details go to the PHP error
- * log and never to the visitor. A page that answers fetch() with JSON gets
- * JSON back, so its script can show the message. A transaction left open is
- * rolled back by MySQL when the script ends.
+ * Handles any error no page caught: logs the details, and shows the visitor a
+ * friendly "something went wrong" page (or JSON) instead of a blank one.
  */
 
 function handle_uncaught_exception(Throwable $e)
@@ -57,8 +48,7 @@ function handle_uncaught_exception(Throwable $e)
 
     $message = 'Something went wrong on our side, and nothing was saved from that last step. Please try again.';
 
-    // Part of the page is already on its way, so the most that can be done
-    // is to say so beneath it.
+    // Part of the page was already sent: add a message below it.
     if (headers_sent()) {
         echo '<p role="alert" style="margin:16px;padding:12px 16px;border:1px solid #c0392b;color:#1F2A28;">'
             . h($message) . '</p>';
@@ -72,8 +62,7 @@ function handle_uncaught_exception(Throwable $e)
         return;
     }
 
-    // The 404 page's layout and styles (.notfound in style.css), so an error
-    // looks like part of the site rather than a broken one.
+    // Same look as the 404 page (.notfound in style.css).
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
         . '<meta name="robots" content="noindex"><title>Something went wrong · RoomEase</title>'
@@ -115,13 +104,7 @@ function peso($amount)
     return '₱' . number_format((float) $amount, 2);
 }
 
-/**
- * Peso with the centavos dropped when the amount is a whole number.
- *
- * Rents are whole pesos in practice, so a column of them all ending in ".00"
- * is two characters of noise on every row of the listing board. peso() keeps
- * the exact figure for anywhere a centavo could matter; this is for display.
- */
+/** Like peso(), but drops ".00" from whole amounts (₱2,500 not ₱2,500.00). */
 
 function peso_round($amount)
 {
@@ -133,15 +116,7 @@ function peso_round($amount)
     return '₱' . number_format($value, $decimals);
 }
 
-/* ---------------------------------------------------------------------------
- * Small display helpers for the public pages
- * ------------------------------------------------------------------------ */
-
-/**
- * True when an uploaded photo is really on disk. A database row can outlive
- * its file, and a missing picture drawn as a broken image looks worse than
- * the placeholder that stands in for no picture at all.
- */
+/** True when the photo file exists, so a missing file isn't shown as a broken image. */
 
 function photo_on_disk($path)
 {
@@ -149,10 +124,7 @@ function photo_on_disk($path)
     return $path !== '' && is_file(dirname(__DIR__, 2) . '/' . $path);
 }
 
-/**
- * An address without the ", Baybay City, Leyte" every listing shares, for the
- * cards: on a phone the tail used to push the barangay itself out of view.
- */
+/** The address without ", Baybay City, Leyte", which every listing shares. For cards. */
 
 function short_address($address)
 {
@@ -168,13 +140,8 @@ function sql_placeholders($count)
 }
 
 /**
- * The database's clock, as 'Y-m-d H:i:s', read once per request.
- *
- * PHP here runs on UTC (date.timezone in php.ini) while MySQL runs on the
- * machine's local time, eight hours ahead in the Philippines. A timestamp read
- * from the database is therefore only ever compared with this, never with
- * time(): mixing the two made an action taken a minute ago read "just now" for
- * eight hours, and put late-evening sign-ups on the wrong day.
+ * The database's current time ('Y-m-d H:i:s'). Compare database timestamps
+ * with this, not time(): PHP runs on UTC but MySQL on Philippine time.
  */
 
 function db_now()
@@ -208,11 +175,7 @@ function time_ago($datetime)
     return 'just now';
 }
 
-/**
- * An absolute URL to a page of this site, which is what an email link needs,
- * and what a link-preview tag or the sitemap needs as well: a relative
- * address means nothing to a mail client, to Facebook or to a crawler.
- */
+/** A full URL (with http:// and host), for emails and link previews. */
 
 function absolute_url($path)
 {
@@ -220,10 +183,7 @@ function absolute_url($path)
     return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . base_url($path);
 }
 
-/**
- * The full address of the page being served, query string and all, which is
- * what og:url has to carry: a link preview names the page it was made from.
- */
+/** The full URL of the current page, for link previews (og:url). */
 
 function current_url()
 {

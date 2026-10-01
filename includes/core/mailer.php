@@ -1,20 +1,11 @@
 <?php
 /**
- * Outgoing email through Gmail's SMTP server, without a library.
+ * Sends email through Gmail's SMTP server (encrypted), without a library.
+ * PHP's mail() doesn't work on WAMP, which has no mail server.
  *
- * PHP's mail() hands messages to a mail server on localhost, and a stock WAMP
- * install has none, so nothing ever left the machine. This talks to
- * smtp.gmail.com directly instead: an encrypted, certificate-checked
- * connection, signed in with a Gmail address and an App Password.
- *
- * Credentials never live in a tracked file. They come from the project's .env
- * or from the environment (ROOMEASE_MAIL_USERNAME / ROOMEASE_MAIL_PASSWORD),
- * or from config/mail.local.php, which .gitignore excludes; copy
- * config/mail.local.example.php to start.
- *
- * Every attempt is logged to storage/mail.log with the recipient and the
- * outcome, and on failure Gmail's reason. The message itself and the password
- * are never logged.
+ * Credentials: .env (ROOMEASE_MAIL_USERNAME / _PASSWORD, a Gmail App
+ * Password) or config/mail.local.php. Each send is logged to storage/mail.log,
+ * never with the message or password.
  */
 
 require_once __DIR__ . '/env.php';
@@ -29,9 +20,7 @@ function mail_config()
             'password'  => (string) env_value('ROOMEASE_MAIL_PASSWORD'),
             'from_name' => 'RoomEase',
             'host'      => 'smtp.gmail.com',
-            // 465 talks TLS from the first byte; 587 connects in the clear and
-            // starts TLS with STARTTLS, which is the way through a network
-            // that blocks 465. send_mail() reads the number to tell which.
+            // 465 = encrypted from the start; 587 = STARTTLS (for networks that block 465).
             'port'      => (int) (env_value('ROOMEASE_MAIL_PORT') ?: 465),
             'ca_bundle' => '',
         ];
@@ -40,7 +29,7 @@ function mail_config()
         if (is_file($local)) {
             $file = require $local;
             if (is_array($file)) {
-                // The environment wins for the credentials; the file fills gaps.
+                // .env wins; the file only fills what is missing.
                 foreach (['username', 'password'] as $key) {
                     if ($config[$key] === '' && isset($file[$key]) && is_string($file[$key])) {
                         $config[$key] = trim($file[$key]);
@@ -51,28 +40,21 @@ function mail_config()
                         $config[$key] = trim($file[$key]);
                     }
                 }
-                // As with the credentials, the file only fills a port that
-                // .env and the environment have said nothing about.
+                // Same for the port.
                 if (env_value('ROOMEASE_MAIL_PORT') === '' && isset($file['port']) && (int) $file['port'] > 0) {
                     $config['port'] = (int) $file['port'];
                 }
             }
         }
 
-        // Google shows an App Password in groups of four, and people copy the
-        // spaces along with it.
+        // Remove spaces people copy from Google's "abcd efgh ..." format.
         $config['password'] = preg_replace('/\s+/', '', $config['password']);
     }
 
     return $config;
 }
 
-/**
- * The example values in config/mail.local.example.php. Left in place they
- * would reach Gmail and come back as "Username and Password not accepted",
- * which reads like a Google problem rather than an unfilled form, so they
- * count as not set up at all.
- */
+/** True if the example values from mail.local.example.php are still in place. */
 function mail_is_placeholder(array $config)
 {
     return $config['password'] === 'abcdefghijklmnop'
@@ -87,11 +69,7 @@ function mail_enabled()
     return $config['username'] !== '' && $config['password'] !== '' && !mail_is_placeholder($config);
 }
 
-/**
- * Send one email. Returns true only if Gmail accepted it for delivery.
- * $htmlBody is optional; when given, $textBody goes along as the plain-text
- * version for mail apps that do not show HTML.
- */
+/** Send one email. True if Gmail accepted it. $htmlBody is optional. */
 function send_mail($to, $subject, $textBody, $htmlBody = null)
 {
     if (!mail_enabled()) {
@@ -101,7 +79,7 @@ function send_mail($to, $subject, $textBody, $htmlBody = null)
         return false;
     }
 
-    // Header injection: neither value may carry a line break into the message.
+    // No line breaks allowed: they could inject extra email headers.
     if (!filter_var($to, FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', $to . $subject)) {
         mail_log($to, 'not sent - invalid recipient or subject');
         return false;
@@ -121,8 +99,7 @@ function send_mail($to, $subject, $textBody, $htmlBody = null)
         smtp_command($smtp, 'RCPT TO:<' . $to . '>', [250, 251], 'RCPT TO');
         smtp_command($smtp, 'DATA', 354, 'DATA');
 
-        // A line that starts with a dot is doubled, so it cannot end the
-        // message early; a lone dot on its own line then ends it.
+        // SMTP: double leading dots; a lone "." ends the message.
         $message = mail_build_message($config, $to, $subject, $textBody, $htmlBody);
         smtp_command($smtp, preg_replace('/^\./m', '..', $message) . "\r\n.", 250, 'message');
 
@@ -140,11 +117,7 @@ function send_mail($to, $subject, $textBody, $htmlBody = null)
     }
 }
 
-/**
- * Connect, say hello, and get the connection encrypted. Port 465 is encrypted
- * from the first byte; any other port starts plain and upgrades with STARTTLS
- * before the password is sent.
- */
+/** Connect to Gmail and encrypt the connection before the password is sent. */
 function smtp_open(array $config)
 {
     $implicitTls = (int) $config['port'] === 465;
@@ -187,11 +160,7 @@ function smtp_open(array $config)
     return $smtp;
 }
 
-/**
- * Send one command and check the reply code. $step names the command in any
- * error, so the command itself (which may be the base64 password) is never
- * written to the log.
- */
+/** Send one SMTP command and check the reply. Errors name $step, never the command (it may be the password). */
 function smtp_command($smtp, $line, $expect, $step)
 {
     $data = $line . "\r\n";
@@ -258,7 +227,7 @@ function mail_build_message(array $config, $to, $subject, $textBody, $htmlBody)
         . '--' . $boundary . '--';
 }
 
-/** One body part, base64 encoded so any character and line length is safe. */
+/** One body part, base64 encoded. */
 function mail_part($type, $body)
 {
     $body = preg_replace('/\r\n|\r|\n/', "\r\n", (string) $body);
@@ -277,7 +246,7 @@ function mail_encode_header($value, $quoted = false)
     return '=?UTF-8?B?' . base64_encode($value) . '?=';
 }
 
-/** The name this server greets Gmail with. Gmail does not check it. */
+/** The name sent to Gmail in the greeting (not checked). */
 function mail_hostname()
 {
     $name = $_SERVER['SERVER_NAME'] ?? (gethostname() ?: '');
