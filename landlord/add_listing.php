@@ -4,6 +4,7 @@
  * required (boarders only see listings with rooms).
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require_login('landlord');
 
 /** Rooms accepted in one submission; a larger house adds the rest afterwards. */

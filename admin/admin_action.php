@@ -5,6 +5,7 @@
  * active super admin. Changes apply on the admin's next click.
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 
 require_super_admin();
 

@@ -5,6 +5,7 @@
  *   ?id=ROOM    edit that room
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require_login('landlord');
 
 $landlordId = (int) $_SESSION['user_id'];

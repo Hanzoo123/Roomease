@@ -4,6 +4,7 @@
  * removes it from their listings). The admin's shared items are read-only.
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require_login('landlord');
 
 $landlordId = (int) $_SESSION['user_id'];

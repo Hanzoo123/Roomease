@@ -1,6 +1,7 @@
 <?php
 /** Appearance (super admins only): the sign-in pages' background, a colour or a photo. */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 
 require_super_admin();
 

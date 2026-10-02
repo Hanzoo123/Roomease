@@ -4,6 +4,7 @@
  * Landlords' own items are listed below and can be shared with everyone.
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require_login('admin');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

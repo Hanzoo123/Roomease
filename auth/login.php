@@ -1,6 +1,7 @@
 <?php
 /** Login for landlords and boarders (admins use admin/login.php). */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 // ?preview=1 lets an admin preview the background from Appearance.

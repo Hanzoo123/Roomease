@@ -5,6 +5,7 @@
  * on show and on save, and works once.
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 
 $errors = [];
 $done = false;

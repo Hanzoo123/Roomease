@@ -4,6 +4,7 @@
  * password nobody knows) get an emailed code instead.
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 require_login();

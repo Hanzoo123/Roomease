@@ -7,6 +7,7 @@
  * formulas (CSV injection). A UTF-8 mark keeps ₱ and ñ readable in Excel.
  */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 
 require_login('admin');
 

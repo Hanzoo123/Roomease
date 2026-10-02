@@ -1,6 +1,7 @@
 <?php
 /** My Profile (view only). Changes are made on Edit Profile and Change Password. */
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require __DIR__ . '/../includes/core/google_auth.php';
 
 require_login();
