@@ -220,9 +220,19 @@ configured per role in `includes/layouts/panel.php`. There is exactly one copy o
 ## Adding a page
 
 Every page starts with the same one line, which connects the database, loads
-the helpers and starts the session, in the right order. Then copy the skeleton
-that matches the kind of page (a page in the project root uses
-`/includes/...` instead of `/../includes/...`).
+the helpers and starts the session, in the right order. A page that uses
+`$pdo` adds one more line under it:
+
+```php
+require_once __DIR__ . '/../config/db.php';
+```
+
+That line does nothing when PHP runs: `init.php` has already loaded the file,
+and `require_once` skips it. It is there only so VS Code can see where `$pdo`
+comes from and stops reporting it as undefined. A page that never uses `$pdo`
+does not need it. Then copy the skeleton that matches the kind of page (a page
+in the project root uses `/includes/...` and `/config/...` instead of
+`/../includes/...` and `/../config/...`).
 
 **Public page** (guests and boarders):
 
@@ -260,6 +270,7 @@ it needs `<?= csrf_field() ?>` inside the `<form>`:
 ```php
 <?php
 require __DIR__ . '/../includes/init.php';
+require_once __DIR__ . '/../config/db.php';
 require_login('landlord');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
