@@ -38,11 +38,11 @@
     var y = currentY();
     var height = header.offsetHeight;
 
-    // Until the page has scrolled past the header's own spot, the band is
-    // still behind it, so it keeps its band colour and never hides.
+    // Until the page has scrolled past the header's own height, nothing is
+    // under the bar yet: it casts no shadow and never hides.
     header.classList.toggle('is-floating', y > height);
 
-    // An open sheet is anchored to the tab, so the tab has to stay put: the
+    // An open sheet is anchored to the bar, so the bar has to stay put: the
     // header sliding away under a reaching thumb would take the menu with it.
     if (root.classList.contains('nav-open')) {
       setHidden(false);
@@ -168,7 +168,7 @@
   });
 
   // Turning the phone, or widening the window past the breakpoint, puts the
-  // links back in the tab; an open sheet would be left behind on its own.
+  // links back in the bar; an open sheet would be left behind on its own.
   window.addEventListener('resize', function () {
     if (!collapsed()) closeNav(false);
   });

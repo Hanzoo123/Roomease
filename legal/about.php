@@ -59,8 +59,8 @@ require __DIR__ . '/../includes/layouts/header.php';
   </div>
 </section>
 
-<div class="container seam">
-  <article class="panel panel-pad on-seam about-story">
+<div class="container under-band">
+  <article class="panel panel-pad about-story">
     <div class="about-story-text">
       <h2>Why we built it</h2>
       <p>
@@ -97,7 +97,7 @@ require __DIR__ . '/../includes/layouts/header.php';
   </article>
 </div>
 
-<section class="section section--after-seam">
+<section class="section section--snug">
   <div class="container">
     <div class="about-aims">
       <div>

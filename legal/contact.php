@@ -130,8 +130,8 @@ require __DIR__ . '/../includes/layouts/header.php';
   </div>
 </section>
 
-<div class="container seam">
-  <section class="panel on-seam channels" aria-labelledby="channels-title">
+<div class="container under-band">
+  <section class="panel channels" aria-labelledby="channels-title">
     <h2 id="channels-title" class="channels-title">Ways to reach us</h2>
     <ul class="channels-list">
       <?php if ($contactEmail !== ''): ?>
@@ -176,7 +176,7 @@ require __DIR__ . '/../includes/layouts/header.php';
   </section>
 </div>
 
-<section class="section section--after-seam">
+<section class="section section--snug">
   <div class="container contact-split">
     <div>
       <h2>What to tell us</h2>
@@ -244,7 +244,7 @@ require __DIR__ . '/../includes/layouts/header.php';
             <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
           </div>
 
-          <button type="submit" class="btn btn-accent contact-submit">Send message</button>
+          <button type="submit" class="btn btn-primary contact-submit">Send message</button>
         </form>
       <?php else: ?>
         <p class="contact-form-note">

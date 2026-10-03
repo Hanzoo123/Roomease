@@ -32,7 +32,7 @@ require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
 <?php if (!$listings): ?>
-  <p class="rooms-empty on-seam">
+  <p class="rooms-empty">
     You haven't saved any boarding houses yet.
     <a href="<?= base_url('boarder/browse.php') ?>">Browse rooms</a> and tap the heart on any you like.
   </p>

@@ -152,7 +152,7 @@ $profileBack = ['href' => 'auth/profile.php', 'label' => 'Back to my profile'];
 require __DIR__ . '/../includes/layouts/profile_top.php';
 ?>
 
-<div class="<?= $usePanel ? 'card profile-card' : 'panel panel-pad on-seam profile-card' ?>">
+<div class="<?= $usePanel ? 'card profile-card' : 'panel panel-pad profile-card' ?>">
   <?php if ($usePanel): ?>
     <div class="card-header">
       <h3 class="card-title">Your details</h3>
@@ -271,7 +271,7 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
 
       <div class="profile-form-actions">
         <a href="<?= base_url('auth/profile.php') ?>" class="<?= $cls['btn_quiet'] ?>">Cancel</a>
-        <button type="submit" class="<?= $usePanel ? 'btn btn-primary' : 'btn btn-accent' ?>">Save changes</button>
+        <button type="submit" class="<?= $cls['btn'] ?>">Save changes</button>
       </div>
     </form>
 

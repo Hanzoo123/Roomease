@@ -1,8 +1,9 @@
 <?php
 /**
- * Search form, shared by the home page and browse. Options: 'action', 'anchor',
- * 'id', 'room_types', current values ('q', 'room_type', 'max_rent', 'vacant',
- * 'amenities'), and 'amenity_options'.
+ * The browse page's search form. Options: 'action', 'anchor', 'id',
+ * 'room_types', current values ('q', 'room_type', 'max_rent', 'vacant',
+ * 'amenities'), and 'amenity_options'. The home page has its own one-line
+ * search, which lands here with 'q' filled in.
  */
 function render_search_bar(array $opts)
 {

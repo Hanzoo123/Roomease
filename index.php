@@ -7,7 +7,6 @@
 require __DIR__ . '/includes/init.php';
 require_once __DIR__ . '/config/db.php';
 require __DIR__ . '/includes/components/listing_card.php';
-require __DIR__ . '/includes/components/search_bar.php';
 
 // The header's Home link asks for the home page itself (?view=home), so a
 // landlord or administrator who clicks it sees the site, not their panel.
@@ -39,6 +38,19 @@ $newest = $newestStmt->fetchAll();
 
 $savedIds = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
 
+// The hero's photo, to the right of the forest panel: assets/img/hero.webp,
+// or hero.jpg. The hero.webp there now is a temporary stand-in until the team
+// has a real photo of Baybay City or one of its boarding houses. Replacing the
+// file is all it takes: the diagonal edge is drawn by style.css, not the photo.
+// With no photo at all, the forest panel runs the full width.
+$heroPhoto = null;
+foreach (['assets/img/hero.webp', 'assets/img/hero.jpg'] as $candidate) {
+    if (is_file(__DIR__ . '/' . $candidate)) {
+        $heroPhoto = $candidate;
+        break;
+    }
+}
+
 $pageTitle = 'Rooms for rent in Baybay City';
 $metaDescription = 'Find boarding houses, bedspaces and dorm rooms for rent in Baybay City, Leyte. '
   . 'Compare rooms by price and type, see photos and locations, and contact the landlord yourself.';
@@ -46,28 +58,64 @@ $bleed = true;
 require __DIR__ . '/includes/layouts/header.php';
 ?>
 
-<section class="band band--hero">
-  <div class="container">
-    <h1 class="hero-title">Find your next room <span>in Baybay City</span></h1>
-    <p class="hero-lede">
-      Compare boarding houses by rent, room type, and what's included.
-      <?php if ($stats['rooms_available'] > 0): ?>
-        <strong><?= $stats['rooms_available'] ?> <?= $stats['rooms_available'] === 1 ? 'room' : 'rooms' ?> available</strong>
-        in <?= $liveCount ?> boarding <?= $liveCount === 1 ? 'house' : 'houses' ?> right now.
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <h1 class="hero-title">Find your next room <span>in Baybay City</span></h1>
+      <p class="hero-lede">Compare boarding houses by rent, room type, and what's included.</p>
+      <?php /* One field for what a boarder already knows: a name, a barangay or
+               a street. Room type, rent and amenities are on the browse page,
+               where the results land. */ ?>
+      <form class="hero-search" method="get" action="<?= base_url('boarder/browse.php') ?>#results" role="search">
+        <label for="hero-q">Search by name, barangay, or street</label>
+        <div class="hero-search-field">
+          <input type="text" id="hero-q" name="q" placeholder="e.g. Pangasugan">
+          <button type="submit" class="btn btn-accent"><?= icon('search', 18) ?><span>Search</span></button>
+        </div>
+      </form>
+      <?php if ($liveCount > 0): ?>
+        <a class="hero-browse" href="<?= base_url('boarder/browse.php') ?>">
+          <?= $liveCount > 1 ? 'or browse all ' . $liveCount . ' boarding houses' : 'or browse the boarding house' ?> &rarr;
+        </a>
       <?php endif; ?>
-    </p>
+    </div>
   </div>
+  <?php if ($heroPhoto): ?>
+    <?php /* Atmosphere rather than information, so it is passed over by
+             screen readers. Behind the copy on a wide screen, under it on a
+             narrow one. */ ?>
+    <div class="hero-photo">
+      <img src="<?= base_url($heroPhoto) ?>?v=<?= @filemtime(__DIR__ . '/' . $heroPhoto) ?: 0 ?>" alt="" fetchpriority="high">
+    </div>
+  <?php endif; ?>
 </section>
 
-<div class="container seam">
-  <?php render_search_bar([
-      'action' => base_url('boarder/browse.php'),
-      'anchor' => 'results',
-      'room_types' => room_type_options(),
-  ]); ?>
-</div>
+<?php if ($liveCount > 0): ?>
+  <?php /* What is on offer right now, in figures straight from the database,
+           the rent first. Styles: "Home figures" in style.css. */ ?>
+  <section class="home-figures" aria-label="RoomEase right now">
+    <div class="container">
+      <dl>
+        <?php if ($stats['lowest_rent'] !== null): ?>
+          <div class="home-figure home-figure--rent">
+            <dt>Lowest monthly rent with a free slot</dt>
+            <dd><?= peso_round($stats['lowest_rent']) ?> <span>/ month</span></dd>
+          </div>
+        <?php endif; ?>
+        <div class="home-figure">
+          <dt><?= $stats['rooms_available'] === 1 ? 'Room' : 'Rooms' ?> available now</dt>
+          <dd><?= $stats['rooms_available'] ?></dd>
+        </div>
+        <div class="home-figure">
+          <dt>Boarding <?= $liveCount === 1 ? 'house' : 'houses' ?> listed</dt>
+          <dd><?= $liveCount ?></dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+<?php endif; ?>
 
-<section class="section section--after-seam">
+<section class="section section--snug">
   <div class="container">
     <div class="section-head">
       <h2>Newest boarding houses</h2>
@@ -111,7 +159,7 @@ require __DIR__ . '/includes/layouts/header.php';
 </section>
 
 <section class="section section--white">
-  <div class="container">
+  <div class="container how">
     <h2>How RoomEase works</h2>
     <ol class="steps">
       <li>

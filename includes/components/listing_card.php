@@ -10,6 +10,9 @@
  *   'drop'   remove the card when unsaved (saved page)
  *
  * The whole card is one link, whose label includes the price for screen readers.
+ * The cover photo on top, or the house icon on a green tile while there is
+ * none, then the rent, room types and state, name, street and slots left.
+ * Styles: "Listing cards" in style.css.
  */
 require_once __DIR__ . '/icons.php';
 
@@ -20,6 +23,11 @@ function render_listing_card(array $l, ?array $save = null)
     $saved = $save && !empty($save['saved']);
     $types = (string) ($l['open_room_types'] ?? $l['room_types'] ?? '');
     $photo = !empty($l['cover_photo']) && photo_on_disk($l['cover_photo']);
+
+    // Two room types fit on a phone's card; any more are counted, not named.
+    $typeList = $types !== '' ? explode(', ', $types) : [];
+    $moreTypes = count($typeList) - 2;
+    $typeList = array_slice($typeList, 0, 2);
 
     // The rent to quote: the matching room's when browse filtered by room, the
     // listing's cheapest free room otherwise.
@@ -41,7 +49,13 @@ function render_listing_card(array $l, ?array $save = null)
         ? $slots . ' ' . ($slots === 1 ? 'slot' : 'slots') . ' left'
         : $avail['summary'];
 
+    // Everything the card shows above the name is drawn for the eye and hidden
+    // from screen readers, which hear it in the link's label instead, after
+    // the name, in one sentence.
     $spoken = [];
+    if ($types !== '') {
+        $spoken[] = $types;
+    }
     if ($rent !== null) {
         $spoken[] = ($rentLabel !== '' ? $rentLabel . ' ' : '') . peso_round($rent) . ' a month';
     }
@@ -52,57 +66,62 @@ function render_listing_card(array $l, ?array $save = null)
         <?php if ($photo): ?>
           <img src="<?= h(base_url($l['cover_photo'])) ?>" alt="" loading="lazy">
         <?php else: ?>
-          <?php /* No photo yet: the room type holds the space, quietly, so the
-                   listing's own name still reads first. */ ?>
-          <div class="room-card-placeholder" aria-hidden="true">
-            <?= icon('home', 34) ?>
-            <span><?= h(($l['match_type'] ?? '') ?: ($types !== '' ? explode(', ', $types)[0] : 'Boarding house')) ?></span>
-          </div>
-        <?php endif; ?>
-
-        <span class="pill pill--on-photo <?= h($avail['pill']) ?>" aria-hidden="true"><?= h($avail['label']) ?></span>
-
-        <?php if ($save): ?>
-          <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form"
-            <?= !empty($save['drop']) ? 'data-drop-on-unsave="1"' : '' ?>>
-            <?= csrf_field() ?>
-            <input type="hidden" name="boarding_house_id" value="<?= $id ?>">
-            <input type="hidden" name="action" value="<?= $saved ? 'unsave' : 'save' ?>">
-            <input type="hidden" name="return" value="<?= h($save['return'] ?? 'browse') ?>">
-            <?php foreach (($save['fields'] ?? []) as $name => $value): ?>
-              <?php /* A list, such as the ticked amenities, goes back as name[]. */ ?>
-              <?php foreach ((array) $value as $item): ?>
-                <input type="hidden" name="<?= h($name) . (is_array($value) ? '[]' : '') ?>" value="<?= h($item) ?>">
-              <?php endforeach; ?>
-            <?php endforeach; ?>
-            <button type="submit" class="save-btn <?= $saved ? 'is-saved' : '' ?>" data-name="<?= h($l['name']) ?>"
-              title="<?= $saved ? 'Remove from saved' : 'Save this listing' ?>"
-              aria-label="<?= $saved ? 'Remove ' . h($l['name']) . ' from saved' : 'Save ' . h($l['name']) ?>"
-              aria-pressed="<?= $saved ? 'true' : 'false' ?>">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $saved ? 'currentColor' : 'none' ?>"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-            </button>
-          </form>
+          <?php /* No photo yet: the house icon holds the photo's place, so the
+                   cards in a row still line up. */ ?>
+          <span class="room-card-empty" aria-hidden="true">
+            <?= icon('home', 36) ?>
+            <span>No photo yet</span>
+          </span>
         <?php endif; ?>
       </div>
 
+      <?php if ($save): ?>
+        <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form"
+          <?= !empty($save['drop']) ? 'data-drop-on-unsave="1"' : '' ?>>
+          <?= csrf_field() ?>
+          <input type="hidden" name="boarding_house_id" value="<?= $id ?>">
+          <input type="hidden" name="action" value="<?= $saved ? 'unsave' : 'save' ?>">
+          <input type="hidden" name="return" value="<?= h($save['return'] ?? 'browse') ?>">
+          <?php foreach (($save['fields'] ?? []) as $name => $value): ?>
+            <?php /* A list, such as the ticked amenities, goes back as name[]. */ ?>
+            <?php foreach ((array) $value as $item): ?>
+              <input type="hidden" name="<?= h($name) . (is_array($value) ? '[]' : '') ?>" value="<?= h($item) ?>">
+            <?php endforeach; ?>
+          <?php endforeach; ?>
+          <button type="submit" class="save-btn <?= $saved ? 'is-saved' : '' ?>" data-name="<?= h($l['name']) ?>"
+            title="<?= $saved ? 'Remove from saved' : 'Save this listing' ?>"
+            aria-label="<?= $saved ? 'Remove ' . h($l['name']) . ' from saved' : 'Save ' . h($l['name']) ?>"
+            aria-pressed="<?= $saved ? 'true' : 'false' ?>">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="<?= $saved ? 'currentColor' : 'none' ?>"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </form>
+      <?php endif; ?>
+
       <div class="room-card-body">
+        <?php if ($rent !== null): ?>
+          <p class="room-card-price" aria-hidden="true">
+            <?php if ($rentLabel !== ''): ?><span class="room-card-from<?= $rentLabel !== 'From' ? ' room-card-from--type' : '' ?>"><?= h($rentLabel) ?></span><?php endif; ?>
+            <span class="room-card-rent"><?= peso_round($rent) ?></span> <span class="room-card-per">/ month</span>
+          </p>
+        <?php endif; ?>
+
+        <ul class="room-card-tags" aria-hidden="true">
+          <?php foreach ($typeList as $typeName): ?>
+            <li class="tag"><?= h($typeName) ?></li>
+          <?php endforeach; ?>
+          <?php if ($moreTypes > 0): ?>
+            <li class="tag">+<?= $moreTypes ?> more</li>
+          <?php endif; ?>
+          <li class="pill <?= h($avail['pill']) ?>"><?= h($avail['label']) ?></li>
+        </ul>
+
         <h3 class="room-card-title">
           <a class="room-card-link" href="<?= base_url('boarder/view_listing.php?id=' . $id) ?>"><?= h($l['name']) ?><span class="sr-only">, <?= h(implode(', ', $spoken)) ?></span></a>
         </h3>
         <p class="room-card-addr" title="<?= h($l['address']) ?>"><?= icon('pin', 15) ?><span><?= h(short_address($l['address'])) ?></span></p>
-
-        <?php if ($rent !== null): ?>
-          <p class="room-card-price" aria-hidden="true">
-            <?php if ($rentLabel !== ''): ?><span class="room-card-from"><?= h($rentLabel) ?></span><?php endif; ?>
-            <?= peso_round($rent) ?> <span>/ month</span>
-          </p>
-        <?php endif; ?>
-        <?php if ($types !== ''): ?>
-          <p class="room-card-type"><?= h($types) ?></p>
-        <?php endif; ?>
 
         <div class="room-card-foot" aria-hidden="true">
           <span class="room-card-meta"><?= icon('door', 16) ?><?= h($meta) ?></span>

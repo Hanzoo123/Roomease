@@ -17,11 +17,11 @@ $metaSocial = false;
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#FAF8F3">
+  <meta name="theme-color" content="#F6F7F5">
   <meta name="robots" content="noindex">
   <title><?= h($pageTitle) ?> · RoomEase</title>
   <?php require __DIR__ . '/includes/components/head_meta.php'; ?>
-  <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="<?= base_url('assets/fonts/bricolage-grotesque-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet"
     href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/assets/css/style.css') ?: 0 ?>">
 </head>

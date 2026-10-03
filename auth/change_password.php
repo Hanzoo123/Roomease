@@ -104,7 +104,7 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
 ?>
 
 <div
-  class="<?= $usePanel ? 'card profile-card profile-card--narrow' : 'panel panel-pad on-seam profile-card profile-card--narrow' ?>">
+  class="<?= $usePanel ? 'card profile-card profile-card--narrow' : 'panel panel-pad profile-card profile-card--narrow' ?>">
   <?php if ($usePanel): ?>
     <div class="card-header">
       <h3 class="card-title">Password</h3>
@@ -128,7 +128,7 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
         <input type="hidden" name="action" value="password_code">
         <div class="profile-form-actions">
           <a href="<?= base_url('auth/profile.php') ?>" class="<?= $cls['btn_quiet'] ?>">Cancel</a>
-          <button type="submit" class="<?= $usePanel ? 'btn btn-primary' : 'btn btn-accent' ?>">Email me a code</button>
+          <button type="submit" class="<?= $cls['btn'] ?>">Email me a code</button>
         </div>
       </form>
     <?php else: ?>
@@ -172,7 +172,7 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
 
         <div class="profile-form-actions">
           <a href="<?= base_url('auth/profile.php') ?>" class="<?= $cls['btn_quiet'] ?>">Cancel</a>
-          <button type="submit" class="<?= $usePanel ? 'btn btn-primary' : 'btn btn-accent' ?>">Change password</button>
+          <button type="submit" class="<?= $cls['btn'] ?>">Change password</button>
         </div>
       </form>
 

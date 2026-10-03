@@ -27,7 +27,7 @@ $flash = $authPreview ? null : flash_get();
   <?php if ($authAdmin): ?>
     <meta name="robots" content="noindex, nofollow">
   <?php endif; ?>
-  <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="<?= base_url('assets/fonts/bricolage-grotesque-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet"
     href="<?= base_url('assets/css/style.css') ?>?v=<?= @filemtime(__DIR__ . '/../../assets/css/style.css') ?: 0 ?>">
   <?php if ($flash): ?>

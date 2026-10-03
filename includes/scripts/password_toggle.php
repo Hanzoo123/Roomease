@@ -91,6 +91,11 @@
       if (input.dataset.pwToggle) {
         return;
       }
+      // A page that draws its own Show / Hide for a field (Change Password)
+      // keeps it; a second toggle would sit on top of the first.
+      if (input.id && document.querySelector('[data-password-toggle="' + input.id + '"]')) {
+        return;
+      }
       input.dataset.pwToggle = '1';
 
       var group = input.closest ? input.closest('.input-group') : null;

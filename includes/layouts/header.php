@@ -2,7 +2,7 @@
 /**
  * Header for public pages. All optional:
  *   $pageTitle
- *   $band       green top band: 'title', 'lede', 'back', 'pill', 'notice'
+ *   $band       thin forest title strip: 'title', 'lede', 'back', 'pill', 'notice'
  *   $bleed      true if the page draws its own sections (home page)
  *   $bodyClass  'page-white' for a plain white page (legal pages)
  */
@@ -25,12 +25,12 @@ $navCurrent = function ($path) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <?php /* The phone's browser chrome takes the band's colour, so the page starts
-       at the top of the screen instead of under a grey strip. */ ?>
-  <meta name="theme-color" content="<?= $bodyClass === 'page-white' ? '#FFFFFF' : '#184A3F' ?>">
+  <?php /* The phone's browser chrome takes the header's white, so the bar seems
+       to run on up to the top of the screen. */ ?>
+  <meta name="theme-color" content="#FFFFFF">
   <title><?= h($pageTitle) ?> · RoomEase</title>
   <?php require __DIR__ . '/../components/head_meta.php'; ?>
-  <link rel="preload" href="<?= base_url('assets/fonts/fraunces-soft-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="<?= base_url('assets/fonts/bricolage-grotesque-var-latin.woff2') ?>" as="font" type="font/woff2" crossorigin>
   <?php /* Before the first paint, so the collapsed navigation is only ever drawn
        where the script that opens it is running. With JavaScript off the links
        stay laid out as they always were. */ ?>
@@ -53,11 +53,11 @@ $navCurrent = function ($path) {
 
   <header class="site-header" data-site-header>
     <div class="container">
-      <div class="nav-tab">
+      <div class="header-bar">
         <a href="<?= base_url('index.php') ?>" class="brand"><img class="brand-logo" src="<?= base_url('assets/img/logo-mark-96.png') ?>" alt="" width="30" height="30"> RoomEase</a>
 
         <?php /* Only ever visible on a narrow screen, where the links below drop
-             out of the tab and become a sheet hanging under it. Which icon
+             out of the bar and become a sheet hanging under it. Which icon
              shows follows aria-expanded, so the button has one state to set. */ ?>
         <button type="button" class="nav-toggle" data-nav-toggle
           aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
@@ -105,7 +105,7 @@ $navCurrent = function ($path) {
   </header>
 
   <?php /* Outside the header, which stays on screen as the page scrolls: a
-       message should scroll away with the band it sits in. */ ?>
+       message should scroll away with the top of the page it belongs to. */ ?>
   <?php if ($flash): ?>
     <div class="flash-band"<?= $flash['type'] === 'error' ? '' : ' data-autohide' ?>>
       <div class="container">
@@ -150,5 +150,5 @@ $navCurrent = function ($path) {
     </div>
   </section>
 
-  <main class="container page-body page-body--seam" id="main" tabindex="-1">
+  <main class="container page-body" id="main" tabindex="-1">
 <?php endif; ?>

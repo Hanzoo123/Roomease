@@ -44,11 +44,13 @@
     </div>
 
     <div class="footer-base">
-      &copy; <?= date('Y') ?> RoomEase &middot; A web-based boarding house information and listing system
-      &middot; <a href="<?= base_url('legal/about.php') ?>">About</a>
-      &middot; <a href="<?= base_url('legal/contact.php') ?>">Contact</a>
-      &middot; <a href="<?= base_url('legal/terms.php') ?>">Terms &amp; Conditions</a>
-      &middot; <a href="<?= base_url('legal/privacy.php') ?>">Privacy Policy</a>
+      <p>&copy; <?= date('Y') ?> RoomEase &middot; A web-based boarding house information and listing system</p>
+      <ul class="footer-legal">
+        <li><a href="<?= base_url('legal/about.php') ?>">About</a></li>
+        <li><a href="<?= base_url('legal/contact.php') ?>">Contact</a></li>
+        <li><a href="<?= base_url('legal/terms.php') ?>">Terms &amp; Conditions</a></li>
+        <li><a href="<?= base_url('legal/privacy.php') ?>">Privacy Policy</a></li>
+      </ul>
     </div>
   </div>
 </footer>

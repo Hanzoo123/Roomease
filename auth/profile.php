@@ -67,7 +67,7 @@ $roleBadge = $usePanel
 ?>
 
 <!-- my profile account settings -->
-<div class="<?= $usePanel ? 'card profile-card' : 'panel on-seam profile-card' ?>">
+<div class="<?= $usePanel ? 'card profile-card' : 'panel profile-card' ?>">
   <?php if ($usePanel): ?>
     <div class="card-header">
       <h3 class="card-title">Profile</h3>

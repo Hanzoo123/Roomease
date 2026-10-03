@@ -50,7 +50,7 @@ if (!$listing) {
     'title' => 'Listing not found',
   ];
   require __DIR__ . '/../includes/layouts/header.php';
-  echo '<p class="rooms-empty on-seam">This listing does not exist or has been removed. <a href="'
+  echo '<p class="rooms-empty">This listing does not exist or has been removed. <a href="'
     . base_url('boarder/browse.php') . '">Browse other rooms</a></p>';
   require __DIR__ . '/../includes/layouts/footer.php';
   exit;
@@ -258,10 +258,10 @@ require __DIR__ . '/../includes/layouts/header.php';
   </div>
 </section>
 
-<div class="container listing-layout seam">
+<div class="container listing-layout">
   <div class="listing-main">
     <?php if ($galleryPhotos): ?>
-      <div class="gallery on-seam" data-gallery data-photos="<?= h(json_encode($galleryPhotos)) ?>">
+      <div class="gallery" data-gallery data-photos="<?= h(json_encode($galleryPhotos)) ?>">
         <a class="gallery-stage" href="<?= h($galleryPhotos[0]['src']) ?>"
           aria-label="View photo 1 of <?= count($galleryPhotos) ?> full screen">
           <img class="gallery-main" src="<?= h($galleryPhotos[0]['src']) ?>" alt="<?= h($galleryPhotos[0]['alt']) ?>">
@@ -282,7 +282,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       </div>
     <?php endif; ?>
 
-    <div class="detail-card<?= $galleryPhotos ? '' : ' on-seam' ?>">
+    <div class="detail-card">
       <?php if (!empty($listing['description'])): ?>
         <section class="detail-section">
           <h2>About this place</h2>
@@ -430,19 +430,21 @@ require __DIR__ . '/../includes/layouts/header.php';
         </section>
       <?php endif; ?>
 
-      <section class="detail-section">
-        <h2>What to expect during your stay</h2>
-        <?php /* One term to a row, label on the left and the landlord's answer on
-                 the right: a single term used to fill a whole tile. */ ?>
-        <ul class="term-rows">
-          <?php foreach ($terms as [$termIcon, $termLabel, $termValue]): ?>
-            <li>
-              <span class="term-rows-label"><?= icon($termIcon, 16) ?><?= h($termLabel) ?></span>
-              <strong><?= h($termValue) ?></strong>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      </section>
+      <?php if ($terms): ?>
+        <section class="detail-section">
+          <h2>What to expect during your stay</h2>
+          <?php /* One term to a row, label on the left and the landlord's answer on
+                   the right: a single term used to fill a whole tile. */ ?>
+          <ul class="term-rows">
+            <?php foreach ($terms as [$termIcon, $termLabel, $termValue]): ?>
+              <li>
+                <span class="term-rows-label"><?= icon($termIcon, 16) ?><?= h($termLabel) ?></span>
+                <strong><?= h($termValue) ?></strong>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </section>
+      <?php endif; ?>
 
       <?php if ($houseRules): ?>
         <section class="detail-section">
@@ -484,7 +486,7 @@ require __DIR__ . '/../includes/layouts/header.php';
   </div>
 
   <aside class="listing-side" aria-label="Quick info">
-    <div class="quick-card on-seam">
+    <div class="quick-card">
       <?php if ($avail['rent_from'] !== null): ?>
         <p class="price">
           <?php if (count($rooms) > 1): ?><span class="price-from">From</span><?php endif; ?>

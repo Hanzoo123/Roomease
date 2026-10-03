@@ -234,21 +234,30 @@ function browse_path(array $filters, $fragment = '')
         . ($fragment !== '' ? '#' . $fragment : '');
 }
 
-/** Number of public listings and available rooms, for the home page. */
+/**
+ * Number of public listings, the rooms available in them, and the lowest rent
+ * among those rooms (null when none has a free slot), for the home and About
+ * pages.
+ */
 
 function live_listing_stats()
 {
     global $pdo;
     try {
         $row = $pdo->query(
-            'SELECT COUNT(*) AS listings, COALESCE(SUM(rs.rooms_available), 0) AS rooms_available
+            'SELECT COUNT(*) AS listings, COALESCE(SUM(rs.rooms_available), 0) AS rooms_available,
+                    MIN(rs.rent_from_available) AS lowest_rent
                FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' ' . room_summary_join(true) . '
               WHERE ' . LIVE_STATUS_WHERE
         )->fetch();
-        return ['listings' => (int) $row['listings'], 'rooms_available' => (int) $row['rooms_available']];
+        return [
+            'listings' => (int) $row['listings'],
+            'rooms_available' => (int) $row['rooms_available'],
+            'lowest_rent' => $row['lowest_rent'] !== null ? (float) $row['lowest_rent'] : null,
+        ];
     } catch (PDOException $e) {
         error_log('RoomEase: live listing stats failed - ' . $e->getMessage());
-        return ['listings' => 0, 'rooms_available' => 0];
+        return ['listings' => 0, 'rooms_available' => 0, 'lowest_rent' => null];
     }
 }
 

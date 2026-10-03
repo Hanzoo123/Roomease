@@ -1,10 +1,11 @@
 /* =========================================================
    RoomEase — Design tokens
-   Concept: a forest-green frame, with the thing you came for
-   sitting on its lower edge. Every public page opens with the
-   band; the search box, the listing gallery, or the form sits
-   across the seam where the band meets the paper. That seam is
-   the one bold element. Everything below it stays quiet.
+   Concept: a quiet frame, and the rent as the loudest thing on
+   the page. Boarders choose a room by what it costs, so the
+   monthly rent is set large, in forest green, on every listing
+   card and on the listing page. That figure is the one bold
+   element. The white header, the thin forest title strip and
+   the sections around the rent stay plain.
    ========================================================= */
 
 /* Self-hosted so the site renders identically with no network. The peso sign
@@ -28,67 +29,51 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Fraunces, variable in weight (600-800) and optical size, with the SOFT axis
-   pinned at 100 so the terminals round off. Headings only. */
+/* Bricolage Grotesque, variable in weight (500-800) and optical size (12-96),
+   with the width axis pinned at 100 (SIL Open Font License, from Google
+   Fonts). Headings and the wordmark only. The optical size follows the font
+   size by itself, so a page title is drawn with the tighter display cut and a
+   small heading with the sturdier text cut. Latin alone: a heading has no
+   peso sign to set, and if one ever does it falls through to IBM Plex Sans. */
 @font-face {
-  font-family: 'Fraunces';
+  font-family: 'Bricolage Grotesque';
   font-style: normal;
-  font-weight: 600 800;
+  font-weight: 500 800;
   font-display: swap;
-  src: url('../fonts/fraunces-soft-var-latin.woff2') format('woff2');
+  src: url('../fonts/bricolage-grotesque-var-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-@font-face {
-  font-family: 'Fraunces';
-  font-style: normal;
-  font-weight: 600 800;
-  font-display: swap;
-  src: url('../fonts/fraunces-soft-var-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* Comfortaa, the rounded face of the header's links and buttons only (SIL
-   Open Font License, from @fontsource-variable/comfortaa). Latin alone: the
-   navigation has no peso signs to set. */
-@font-face {
-  font-family: 'Comfortaa';
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url('../fonts/comfortaa-var-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-/* One frame colour (forest), one accent (marigold), one ground (paper).
-   Marigold marks the thing a visitor came for: the hero's second line, the
-   Search button, the Call button, and Sign up in the header. Nothing else.
-   Status colours are functional and only ever appear as pills. */
+/* One frame colour (forest), one accent (marigold), one ground (paper), a
+   cool off-white so the forest reads clean rather than old. Marigold marks the
+   thing a visitor came for: the Search button, the Call button, Sign up in
+   the header, and the Browse rooms button that ends the About, 404 and error
+   pages. Nothing else; forms save in forest. Status colours are functional and only ever
+   appear as pills. */
 :root {
-  --paper: #FAF8F3;
+  --paper: #F6F7F5;
   --panel: #FFFFFF;
-  --line: #E6E1D6;
-  --line-strong: #CFC8B8;
+  --line: #E3E6E2;
+  --line-strong: #C9CFCA;
   /* The edge of a field a boarder types into has to be seen to be found:
-     3.3:1 on white, where --line-strong is a divider at 1.7:1. */
-  --field-line: #948D7F;
+     3.4:1 on white, where --line-strong is a divider at 1.6:1. */
+  --field-line: #848D89;
 
   --forest: #184A3F;
   --forest-deep: #0F3A31;
   --forest-line: #9DB8AE;
-  --on-forest: #F3F1EA;
+  --on-forest: #F3F5F2;
   --on-forest-soft: #B9CBC4;
   --leaf: #E6EFEA;
 
-  --ink: #1F2A28;
-  --ink-soft: #5C6B66;
-  /* The quietest text still reads: 5:1 on white, 4.8:1 on paper. */
+  --ink: #18211F;
+  --ink-soft: #56635F;
+  /* The quietest text still reads: 5:1 on white, 4.7:1 on paper. */
   --ink-faint: #65716D;
 
   --marigold: #F2A93B;
   --marigold-hover: #E39A2A;
   --on-marigold: #2A1E08;
-  --marigold-text: #F5B94A;
 
   --available-bg: #E3F0E7;
   --available-fg: #22613F;
@@ -100,8 +85,9 @@
   --muted-fg: #5E5850;
   --danger: #B3402F;
 
-  /* Soft, not milled. Radii shrink as elements nest. */
-  --r-lg: 18px;
+  /* One rule for corners: 14px for photos, cards and panels, 10px for the
+     fields a boarder types into, fully round for every button and pill. */
+  --r-lg: 14px;
   --r-md: 10px;
   --r-pill: 999px;
 
@@ -114,15 +100,16 @@
   --s6: 52px;
   --s7: 84px;
 
-  /* How far a seam object reaches up into the band above it. */
-  --seam: 56px;
+  /* The space either side of .container's content. The phone's menu sheet
+     reaches back out across it to run the full width of the screen. */
+  --gutter: 24px;
 
-  /* The only elevation in the theme: the nav tab and whatever sits on the seam. */
+  /* The only elevation in the theme: the search form and the listing page's
+     rent card, the two places a boarder acts from. */
   --lift: 0 1px 2px rgba(15, 58, 49, 0.06), 0 18px 40px -20px rgba(15, 58, 49, 0.38);
 
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-display: 'Bricolage Grotesque', 'IBM Plex Sans', 'Segoe UI', sans-serif;
   --font-body: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
-  --font-nav: 'Comfortaa', 'IBM Plex Sans', 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 
@@ -161,11 +148,10 @@ h3,
 h4,
 h5 {
   font-family: var(--font-display);
-  font-variation-settings: 'SOFT' 100;
   font-weight: 700;
   color: var(--forest);
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin: 0 0 0.5em;
 }
 
@@ -228,7 +214,7 @@ main:focus {
 .container {
   max-width: 1140px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--gutter);
 }
 
 .sr-only {
@@ -244,7 +230,7 @@ main:focus {
 }
 
 /* =========================================================
-   Site header: a white tab hanging from the top of the band
+   Site header: a plain white bar across the top
    ========================================================= */
 /* The header stays at the top of the screen. site-header.js slides it away
    while the page scrolls down and brings it back on the way up. */
@@ -252,32 +238,27 @@ main:focus {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: var(--forest);
-  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
-  /* Tucks 1px over whatever follows. On screens that scale by a fraction,
-     two forest blocks that merely touch can show a pale hairline between. */
-  margin-bottom: -1px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease;
 }
 
-/* Past the band, only the white tab shows, hanging from the top edge. The
-   strip around it lets clicks through to the page underneath. */
+/* Once the page has scrolled under it (site-header.js sets .is-floating), a
+   soft shadow says the bar is lying over the page rather than part of it. */
 .site-header.is-floating {
-  background: transparent;
-  pointer-events: none;
+  box-shadow: 0 10px 24px -20px rgba(15, 58, 49, .45);
 }
 
-.site-header.is-floating .nav-tab {
-  pointer-events: auto;
-}
-
-/* Far enough up that the tab's shadow goes too. Leaving takes a little less
-   time than arriving, so it gets out of the way. */
+/* Leaving takes a little less time than arriving, so it gets out of the way. */
 .site-header.is-hidden {
-  transform: translateY(calc(-100% - 40px));
-  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-100%);
+  box-shadow: none;
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms ease;
 }
 
-.nav-tab {
+/* Positioned and stacked so the phone's sheet and the scrim behind it slide
+   under the bar rather than over it. */
+.header-bar {
   position: relative;
   z-index: 3;
   display: flex;
@@ -285,19 +266,16 @@ main:focus {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--s2) var(--s4);
-  background: var(--panel);
-  border-radius: 0 0 20px 20px;
-  box-shadow: var(--lift);
-  padding: 12px 14px 12px 24px;
+  min-height: 68px;
+  padding: 10px 0;
 }
 
 .brand {
   font-family: var(--font-display);
-  font-variation-settings: 'SOFT' 100;
   font-weight: 700;
-  font-size: 23px;
+  font-size: 22px;
   line-height: 1;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   color: var(--forest);
 }
 
@@ -345,15 +323,14 @@ main:focus {
   gap: 2px;
 }
 
-/* The links are set in Comfortaa, forest green. Under the pointer, under
-   keyboard focus, and under the page being viewed, a 3px forest line runs the
-   width of the words, far enough below to clear "y" and "g". It is an
-   underline rather than a drawn bar, so it always matches the text's width,
-   in the tab and in the phone's sheet alike. */
+/* The links are forest green. Under the pointer, under keyboard focus, and
+   under the page being viewed, a 3px forest line runs the width of the words,
+   far enough below to clear "y" and "g". It is an underline rather than a
+   drawn bar, so it always matches the text's width, in the bar and in the
+   phone's sheet alike. */
 .nav a {
-  font-family: var(--font-nav);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   color: var(--forest);
   padding: 8px 11px;
   border-radius: var(--r-md);
@@ -379,8 +356,8 @@ main:focus {
   text-decoration: none;
 }
 
-/* Shown in the phone's sheet only: across the tab, beside eight links, it was
-   the one thing that pushed a landlord's header onto a second row. */
+/* Shown in the phone's sheet only: across the bar, beside eight links, it
+   was the one thing that pushed a landlord's header onto a second row. */
 .role-tag {
   display: none;
   font-size: 12.5px;
@@ -391,19 +368,19 @@ main:focus {
   margin: 0 6px;
 }
 
-/* Log in is solid forest; Sign up, and a landlord.s Dashboard, are the
+/* Log in is solid forest; Sign up, and a landlord's Dashboard, are the
    marigold, with the same dark ink as Search and Call, since white on
    marigold would not read. */
 .nav .btn-nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 10px 20px;
+  min-height: 42px;
+  padding: 9px 20px;
   margin-left: 8px;
   border: 1px solid transparent;
-  border-radius: var(--r-md);
-  font-weight: 700;
+  border-radius: var(--r-pill);
+  font-weight: 600;
 }
 
 .nav .btn-nav + .btn-nav {
@@ -441,12 +418,13 @@ main:focus {
 }
 
 /* =========================================================
-   The same header on a phone: the tab stays one line
+   The same header on a narrow screen: the bar stays one line
    ---------------------------------------------------------
-   Under 1120px the links leave the tab — where they would wrap onto a
-   second row; the widest header, a landlord's, needs 1100px — and become a
-   sheet that hangs under it, opened by the button beside the wordmark. The sheet is plain on purpose: the page's
-   one bold element is the seam below, not the navigation.
+   Under 960px the links leave the bar, where they would wrap onto a second
+   row (the widest header, a guest's with Log in and Sign up, needs about
+   930px), and become a sheet that hangs under it, opened by the button beside the wordmark. The
+   sheet is plain on purpose: the page's one bold element is the rent, not
+   the navigation.
 
    Everything here is gated on html.js, which header.php sets before the first
    paint. With JavaScript off, nothing would open the sheet, so the links stay
@@ -491,36 +469,46 @@ main:focus {
   touch-action: none;
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 960px) {
   html.js .nav-toggle {
     display: inline-flex;
   }
 
-  html.js .nav-tab {
+  html.js .header-bar {
     flex-wrap: nowrap;
-    padding: 8px 10px 8px 20px;
+    min-height: 60px;
+    padding: 8px 0;
   }
 
-  /* Hangs from the tab's lower edge and overlaps it by the tab's own corner
-     radius, so the two read as one piece of paper rather than two. */
+  /* The bar's white is drawn on a layer above the scrim, so the bar stays
+     bright while the page under the open sheet dims. At these widths the
+     container is the full width of the screen. */
+  html.js .site-header > .container {
+    position: relative;
+    z-index: 2;
+    background: var(--panel);
+  }
+
+  /* Hangs from the bar's lower edge. It sits inside .container, so it reaches
+     back out across the gutter on both sides to span the whole screen. */
   html.js .nav {
     position: absolute;
-    top: calc(100% - 16px);
-    left: 0;
-    right: 0;
+    top: 100%;
+    left: calc(-1 * var(--gutter));
+    right: calc(-1 * var(--gutter));
     z-index: 2;
     display: none;
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    padding: 22px 16px 16px;
+    padding: 8px var(--gutter) 20px;
     background: var(--panel);
-    border-radius: 0 0 20px 20px;
-    box-shadow: var(--lift);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 24px 40px -28px rgba(15, 58, 49, .5);
     /* A long menu scrolls inside itself rather than off the screen. dvh, where
        it is understood, discounts the phone's own address bar. */
-    max-height: calc(100vh - 76px);
-    max-height: calc(100dvh - 76px);
+    max-height: calc(100vh - 60px);
+    max-height: calc(100dvh - 60px);
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -530,9 +518,9 @@ main:focus {
   }
 
   html.js .nav a {
-    padding: 13px 10px;
+    padding: 13px 4px;
     font-size: 16px;
-    border-radius: var(--r-md);
+    border-radius: 0;
   }
 
   html.js .nav a + a,
@@ -540,7 +528,7 @@ main:focus {
     border-top: 1px solid var(--line);
   }
 
-  /* There is room for it here, unlike in the tab. */
+  /* There is room for it here, unlike in the bar. */
   html.js .nav .nav-extra {
     display: block;
   }
@@ -548,13 +536,14 @@ main:focus {
   html.js .role-tag {
     display: inline-block;
     align-self: flex-start;
-    margin: 4px 10px 8px;
+    margin: 4px 4px 8px;
   }
 
   /* The buttons close the sheet, full width, one under the other. */
   html.js .nav .btn-nav {
     margin: 8px 0 0;
-    padding: 13px 10px;
+    padding: 12px 10px;
+    border-radius: var(--r-pill);
     text-align: center;
   }
 
@@ -574,24 +563,16 @@ main:focus {
   html.nav-open body {
     overflow: hidden;
   }
-
-  /* While the sheet is open the tab is the only part of the header that takes
-     a tap; .is-floating otherwise passes taps through to the page. */
-  html.nav-open .site-header.is-floating {
-    pointer-events: auto;
-  }
 }
 
-/* Flash messages sit in the band, just under the tab, so they need no script. */
+/* Flash messages sit just under the header, so they need no script. */
 .flash-band {
   position: relative;
   z-index: 1;
-  background: var(--forest);
-  margin-bottom: -1px; /* no hairline against the band; see .site-header */
 }
 
 .flash-slot {
-  padding-top: var(--s4);
+  padding: var(--s4) 0;
 }
 
 .flash-slot .alert {
@@ -599,18 +580,23 @@ main:focus {
 }
 
 /* =========================================================
-   The band and its seam
+   The title strip
+   ---------------------------------------------------------
+   Inner pages open on a thin forest strip that carries the page's title,
+   the line under it and, where there is one, the way back. It is a frame,
+   not a feature: whatever the page is for starts a step below its lower
+   edge, on the paper.
    ========================================================= */
 .band {
   background: var(--forest);
   color: var(--on-forest);
-  padding: var(--s6) 0 calc(var(--seam) + var(--s5));
+  padding: var(--s5) 0;
 }
 
-/* Pages with nothing to title (the auth forms) keep just enough band for the
-   form to sit on its edge. */
+/* A page with nothing to title keeps a sliver of strip, so the page still
+   starts the way every other one does. */
 .band--short {
-  padding: var(--s5) 0 calc(var(--seam) + var(--s3));
+  padding: var(--s3) 0;
 }
 
 .band a {
@@ -639,17 +625,17 @@ main:focus {
 
 .band-title {
   color: #fff;
-  font-size: clamp(2rem, 1.4rem + 2.2vw, 3rem);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.75rem, 1.35rem + 1.5vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   margin: 0;
   text-wrap: balance;
 }
 
 .band-lede {
   color: var(--on-forest-soft);
-  max-width: 60ch;
+  max-width: 62ch;
   margin: var(--s2) 0 0;
 }
 
@@ -667,54 +653,227 @@ main:focus {
 }
 
 .page-body {
+  padding-top: var(--s5);
   padding-bottom: var(--s7);
 }
 
-/* The first thing on the page reaches up across the seam. */
-.page-body--seam,
-.seam {
-  position: relative;
-  z-index: 2;
-  margin-top: calc(-1 * var(--seam));
+/* The first block of a page that draws its own strip (About, Contact) starts
+   the same step below it as .page-body does. */
+.under-band {
+  padding-top: var(--s5);
 }
 
 /* =========================================================
    Home hero
+   ---------------------------------------------------------
+   A forest panel holding the headline, one line on what the site does and
+   the search form, with the hero photo to its right, cut on a diagonal.
+
+   The photo sits in a box as tall as the hero and in the photo's own
+   proportions, pinned to the right edge, and the diagonal is clipped in that
+   box's terms. It therefore lands on the same spot of the photo at any screen
+   width, and the section's forest shows wherever the box does not reach. The
+   edge is drawn here rather than taken from the photo, so a replacement photo
+   gets the same cut. Below 960px the panel runs the full width and the photo
+   follows it as a band.
    ========================================================= */
-.band--hero {
-  padding: var(--s7) 0 calc(var(--seam) + var(--s7));
-  text-align: center;
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--forest);
+  color: var(--on-forest);
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  /* No taller than the screen under the header, so the search form is in view
+     before anything scrolls; no shorter than the copy needs. */
+  min-height: clamp(500px, calc(100vh - 68px), 640px);
+  min-height: clamp(500px, calc(100dvh - 68px), 640px);
+  padding-top: var(--s6);
+  padding-bottom: var(--s6);
+}
+
+.hero-copy {
+  width: 100%;
+  max-width: 520px;
 }
 
 .hero-title {
   color: #fff;
-  /* The floor is set by the phone, not the laptop: at 2.5rem the heading ran
-     to three lines on a 375px screen and pushed the search box off it. */
-  font-size: clamp(2.05rem, 1.1rem + 5.2vw, 4.25rem);
+  /* The floor is set by the phone, not the laptop: any larger and the
+     heading ran to three lines on a 375px screen. */
+  font-size: clamp(2.2rem, 1.2rem + 2.6vw, 3.25rem);
   font-weight: 800;
   line-height: 1.02;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
   margin: 0;
   text-wrap: balance;
 }
 
+/* The place starts a line of its own, so the heading breaks where it is
+   read rather than wherever the width runs out. */
 .hero-title span {
   display: block;
-  color: var(--marigold-text);
 }
 
 .hero-lede {
   color: var(--on-forest-soft);
-  font-size: 1.075rem;
+  font-size: 1.125rem;
   max-width: 34rem;
-  margin: var(--s4) auto 0;
-  text-wrap: balance;
+  margin: var(--s3) 0 var(--s5);
+  text-wrap: pretty;
 }
 
-.hero-lede strong {
+/* The one-line search: a single white field with the marigold Search button
+   inside it, and the way to every listing under it. The ring for keyboard
+   focus goes round the whole field, which is what reads as the input. */
+.hero-search {
+  max-width: 480px;
+}
+
+.hero-search label {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--on-forest-soft);
+}
+
+.hero-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--r-pill);
+  background: var(--panel);
+  box-shadow: var(--lift);
+}
+
+.hero-search-field:focus-within {
+  outline: 2px solid var(--marigold);
+  outline-offset: 3px;
+}
+
+.hero-search-field input[type=text] {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 8px 0 18px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font-size: 16px;
+}
+
+.hero-search-field input[type=text]:focus {
+  outline: none;
+}
+
+.hero-search-field .btn {
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 0 24px;
+}
+
+.hero-browse {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: var(--s2);
+  font-size: 15px;
+  font-weight: 500;
   color: var(--on-forest);
+}
+
+.hero-browse:hover {
+  color: #fff;
+}
+
+/* The box keeps the proportions of the current photo (1376 x 768), and the
+   diagonal runs from 43% across its top to 62% across its bottom, along the
+   edge already in that photo. A replacement photo is cropped to the box. */
+.hero-photo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  aspect-ratio: 1376 / 768;
+  clip-path: polygon(43% 0, 100% 0, 100% 100%, 62% 100%);
+}
+
+.hero-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* =========================================================
+   Home figures
+   ---------------------------------------------------------
+   Under the hero, what is on offer right now, in figures straight from the
+   database: the lowest rent with a free slot first (in forest, like every
+   rent on the site), then the rooms available and the boarding houses
+   listed. Plain type on white, divided by hairlines, not cards.
+   ========================================================= */
+.home-figures {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.home-figures dl {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+}
+
+/* The figure is drawn above its label, while the label still comes first for
+   a screen reader, which reads "Rooms available now: 25". */
+.home-figure {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: var(--s5) var(--s5);
+}
+
+.home-figure:first-child {
+  padding-left: 0;
+}
+
+.home-figure + .home-figure {
+  border-left: 1px solid var(--line);
+}
+
+.home-figure dt {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.home-figure dd {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.3rem + 1.2vw, 2.4rem);
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-figure--rent dd {
+  color: var(--forest);
+}
+
+.home-figure dd span {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-soft);
 }
 
 /* =========================================================
@@ -729,16 +888,21 @@ main:focus {
   font-weight: 600;
   font-size: 15px;
   line-height: 1.2;
-  padding: 11px 20px;
-  border-radius: var(--r-md);
+  padding: 11px 22px;
+  border-radius: var(--r-pill);
   border: 1px solid transparent;
   cursor: pointer;
   text-align: center;
-  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
 }
 
 .btn:hover {
   text-decoration: none;
+}
+
+/* A pressed button gives a pixel, like a real one. */
+.btn:active {
+  transform: translateY(1px);
 }
 
 /* The accent. Search and Call. */
@@ -816,11 +980,6 @@ main:focus {
 .panel-stack h3,
 .contact-card h3 {
   font-size: 1.2rem;
-}
-
-/* Anything sitting on the seam carries the theme's one elevation. */
-.on-seam {
-  box-shadow: var(--lift);
 }
 
 /* Terms & Conditions and Privacy Policy: one readable column of prose. */
@@ -1190,7 +1349,6 @@ input[type=checkbox] {
 
 .auth-brand {
   font-family: var(--font-display);
-  font-variation-settings: 'SOFT' 100;
   font-weight: 800;
   font-size: clamp(2.1rem, 1.7rem + 1.6vw, 2.75rem);
   line-height: 1;
@@ -1216,7 +1374,6 @@ input[type=checkbox] {
 
 .auth-heading {
   font-family: var(--font-body);
-  font-variation-settings: normal;
   font-size: 17px;
   font-weight: 400;
   letter-spacing: 0;
@@ -1447,17 +1604,18 @@ input[type=checkbox] {
 }
 
 /* =========================================================
-   Search bar — sits on the seam on the home and browse pages
+   Search bar — the browse page's full search, under its strip
    ========================================================= */
 .search-bar {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
   align-items: end;
-  gap: var(--s2);
+  gap: var(--s2) var(--s3);
   background: var(--panel);
+  border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--lift);
-  padding: var(--s3) var(--s3) var(--s3) var(--s4);
+  padding: var(--s4);
 }
 
 .search-bar label {
@@ -1675,11 +1833,11 @@ html.js .amenity-options:not(.show-all) .is-extra {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--s2) var(--s3);
-  margin: var(--s5) 0 var(--s3);
+  margin: var(--s5) 0 var(--s4);
 }
 
 .section-head h2 {
-  font-size: clamp(1.4rem, 1.2rem + .8vw, 1.75rem);
+  font-size: clamp(1.45rem, 1.2rem + .9vw, 1.85rem);
   margin: 0;
 }
 
@@ -1690,7 +1848,7 @@ html.js .amenity-options:not(.show-all) .is-extra {
 
 .section-link {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .empty-state {
@@ -1703,8 +1861,10 @@ html.js .amenity-options:not(.show-all) .is-extra {
   padding: var(--s7) 0;
 }
 
-.section--after-seam {
-  padding-top: var(--s6);
+/* Directly under the hero or a page's opening panel, which already end in
+   space of their own. */
+.section--snug {
+  padding-top: var(--s5);
 }
 
 .section .section-head:first-child {
@@ -1736,7 +1896,7 @@ html.js .amenity-options:not(.show-all) .is-extra {
 }
 
 .type-index-wrap h2 {
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   margin: 0;
 }
 
@@ -1747,7 +1907,7 @@ html.js .amenity-options:not(.show-all) .is-extra {
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 16.5px;
+  font-size: 16px;
 }
 
 .type-index a,
@@ -1774,14 +1934,27 @@ html.js .amenity-options:not(.show-all) .is-extra {
   color: var(--ink-faint);
 }
 
-/* How it works: three stops on one rule. */
+/* How it works: the heading on the left, and the three steps in one row on
+   the right, three stops on one rule. */
+.how {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+  gap: var(--s5) var(--s6);
+  align-items: start;
+}
+
+.how h2 {
+  margin: 0;
+  max-width: 9em;
+}
+
 .steps {
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s5);
   list-style: none;
-  margin: var(--s5) 0 0;
+  margin: 0;
   padding: 0;
 }
 
@@ -1789,8 +1962,8 @@ html.js .amenity-options:not(.show-all) .is-extra {
 .steps::before {
   content: '';
   position: absolute;
-  top: 18px;
-  left: 18px;
+  top: 16px;
+  left: 16px;
   width: calc((100% - 2 * var(--s5)) / 3 * 2 + 2 * var(--s5));
   height: 1px;
   background: var(--line-strong);
@@ -1800,34 +1973,38 @@ html.js .amenity-options:not(.show-all) .is-extra {
   position: relative;
 }
 
+/* An outlined stop; the ring of white keeps the rule from running through
+   the number. */
 .step-no {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--forest);
   border-radius: 50%;
-  background: var(--forest);
-  color: #fff;
-  font-family: var(--font-display);
-  font-variation-settings: 'SOFT' 100;
-  font-weight: 700;
-  font-size: 17px;
+  background: var(--panel);
+  color: var(--forest);
+  font-weight: 600;
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
   box-shadow: 0 0 0 6px var(--panel);
 }
 
 .steps h3 {
   margin: var(--s3) 0 4px;
+  font-size: 1.15rem;
 }
 
 .steps p {
   margin: 0;
   color: var(--ink-soft);
-  max-width: 32ch;
+  max-width: 30ch;
 }
 
-/* Landlord section: copy beside the three review states a listing moves through. */
+/* Landlord section: copy beside the three states a listing moves through,
+   drawn as a timeline from submitted to live. */
 .split {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
@@ -1844,27 +2021,44 @@ html.js .amenity-options:not(.show-all) .is-extra {
 .review-states {
   list-style: none;
   margin: 0;
-  padding: 0 var(--s4);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  padding: 0;
 }
 
 .review-states li {
-  display: grid;
-  grid-template-columns: 124px minmax(0, 1fr);
-  align-items: baseline;
-  gap: var(--s3);
-  padding: var(--s4) 0;
-  border-bottom: 1px solid var(--line);
+  position: relative;
+  padding: 0 0 var(--s4) 32px;
 }
 
 .review-states li:last-child {
-  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* The stop on the line, level with the pill beside it. */
+.review-states li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--forest);
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+/* The line down to the next stop. */
+.review-states li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 22px;
+  bottom: 2px;
+  width: 1px;
+  background: var(--line-strong);
 }
 
 .review-states .pill {
-  justify-self: start;
+  margin-bottom: 6px;
 }
 
 .review-states p {
@@ -1876,38 +2070,36 @@ html.js .amenity-options:not(.show-all) .is-extra {
 /* =========================================================
    Listing cards — home, browse, and saved
    ---------------------------------------------------------
-   One photo card per listing: three across on a laptop, two on a phone.
+   Every card is a picture with the words under it, on the paper, and no box
+   round it: the picture carries the card's edge. The words read the same
+   way down: the rent, set large, then the room types and the listing's
+   state, then its name and street, then how many slots are left. Three
+   across on a laptop, two on a phone.
+
+   A listing with no photo yet shows the house icon on a soft green tile in
+   the photo's place, so a row of cards always lines up.
+
    The title link is stretched over the whole card, so each card is a single
-   link and one large target; the heart sits above that link. Without a photo
-   the room type holds the photo's space.
+   link and one large target; the heart sits above that link.
    ========================================================= */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 28px 24px;
 }
 
 /* Browse renders each "Show more" group as its own grid; the gap between
    grids matches the gap inside them so the groups read as one grid. */
 .card-chunk + .card-chunk {
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
 .room-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: var(--panel);
-  border: 1px solid var(--line);
+  min-width: 0;
   border-radius: var(--r-lg);
-  overflow: hidden;
-  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
-}
-
-.room-card:hover {
-  border-color: var(--forest-line);
-  box-shadow: var(--lift);
-  transform: translateY(-3px);
 }
 
 .room-card-link::after {
@@ -1930,12 +2122,13 @@ html.js .amenity-options:not(.show-all) .is-extra {
 
 .room-card:has(.room-card-link:focus-visible) {
   outline: 2px solid var(--forest);
-  outline-offset: 3px;
+  outline-offset: 4px;
 }
 
 .room-card-media {
   position: relative;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--r-lg);
   background: var(--leaf);
   overflow: hidden;
 }
@@ -1949,10 +2142,12 @@ html.js .amenity-options:not(.show-all) .is-extra {
 }
 
 .room-card:hover .room-card-media img {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 
-.room-card-placeholder {
+/* No photo yet: the house icon in the photo's place, on two greens split on
+   the same lean as the home page's hero. */
+.room-card-empty {
   position: absolute;
   inset: 0;
   display: flex;
@@ -1960,33 +2155,31 @@ html.js .amenity-options:not(.show-all) .is-extra {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  background: linear-gradient(115deg, var(--leaf) 0 58%, #DCE9E2 58% 100%);
   color: var(--forest);
 }
 
-.room-card-placeholder .icon {
+.room-card-empty .icon {
   stroke-width: 1.5;
-  opacity: .45;
+  opacity: .5;
+  transition: opacity .2s ease;
 }
 
-/* Quieter than the listing's own name below it, which is what a boarder
-   reads the card by. */
-.room-card-placeholder span {
-  font-size: 14px;
+.room-card:hover .room-card-empty .icon {
+  opacity: .75;
+}
+
+.room-card-empty span {
+  font-size: 13px;
   font-weight: 500;
   color: var(--ink-soft);
 }
 
-.pill--on-photo {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  box-shadow: 0 1px 3px rgba(15, 58, 49, .14);
-}
-
+/* Over the picture's top corner, above the stretched link. */
 .room-card .save-form {
   position: absolute;
   top: 10px;
-  left: 10px;
+  right: 10px;
   z-index: 2;
   margin: 0;
 }
@@ -2000,18 +2193,79 @@ html.js .amenity-options:not(.show-all) .is-extra {
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 16px 18px 18px;
+  padding: 14px 2px 0;
+}
+
+/* The one bold thing on the card. */
+.room-card-price {
+  margin: 0;
+  line-height: 1.1;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+}
+
+.room-card-rent {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.room-card-per {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+/* "From" runs in front of the figure rather than over it, so the rents of
+   a row of cards share one line. The room type browse matched ("Double
+   Sharing from") is too long for that and sits over the figure instead;
+   every card in a filtered search has one, so they still line up. */
+.room-card-from {
+  margin-right: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.room-card-from--type {
+  display: block;
+  margin: 0 0 3px;
+}
+
+.price .price-from {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: 3px;
+}
+
+/* The room types as small outlined tags, with the listing's state, the one
+   filled pill, at the end of the row. */
+.room-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.room-card-tags .tag {
+  font-size: 12.5px;
+  line-height: 1.3;
+  padding: 2px 9px;
 }
 
 .room-card-title {
   font-family: var(--font-body);
-  font-variation-settings: normal;
-  font-size: 17px;
+  font-size: 16.5px;
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: 0;
   color: var(--ink);
-  margin: 0;
+  margin: 12px 0 0;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -2026,7 +2280,7 @@ html.js .amenity-options:not(.show-all) .is-extra {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 14px;
   color: var(--ink-soft);
 }
@@ -2043,50 +2297,21 @@ html.js .amenity-options:not(.show-all) .is-extra {
   overflow: hidden;
 }
 
-.room-card-price {
-  margin: 14px 0 0;
-  font-size: 21px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: var(--forest);
-  font-variant-numeric: tabular-nums;
-}
-
-.room-card-price span {
-  font-size: 14px;
-  font-weight: 400;
+/* A listing with nowhere to move into is quieter than one with space: its
+   rent steps back to grey, and its photo, or its tile, loses its colour. */
+.room-card--full .room-card-price,
+.room-card--closed .room-card-price {
   color: var(--ink-soft);
 }
 
-.room-card-type {
-  margin: 4px 0 0;
-  font-size: 14px;
-  color: var(--ink-soft);
-}
-
-.room-card-price .room-card-from,
-.price .price-from {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--ink-soft);
-  margin-bottom: 1px;
-}
-
-/* A listing with nowhere to move into is quieter than one with space, with
-   a photo or without one. */
 .room-card--full .room-card-media img,
 .room-card--closed .room-card-media img {
   filter: grayscale(.55);
 }
 
-.room-card--full .room-card-media,
-.room-card--closed .room-card-media {
+.room-card--full .room-card-empty,
+.room-card--closed .room-card-empty {
   background: var(--muted-bg);
-}
-
-.room-card--full .room-card-placeholder,
-.room-card--closed .room-card-placeholder {
   color: var(--muted-fg);
 }
 
@@ -2095,19 +2320,18 @@ html.js .amenity-options:not(.show-all) .is-extra {
   color: var(--ink-faint);
 }
 
-/* Pinned to the bottom so the buttons line up across a row of cards. */
+/* Pinned to the bottom so the feet line up across a row of cards. */
 .room-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   margin-top: auto;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
+  padding-top: 12px;
 }
 
 .room-card-body > :nth-last-child(2) {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .room-card-meta {
@@ -2299,14 +2523,15 @@ html.js .amenity-options:not(.show-all) .is-extra {
 /* =========================================================
    Listing detail
    ---------------------------------------------------------
-   The band carries the name, address and tags. Below it, a main column of
-   sections (photos, what's included, living here, what to expect, house
-   rules, the map) beside a Quick Info card with the price and the landlord.
-   The Quick Info card and the first thing in the main column both sit on
-   the seam.
+   The strip carries the name, address and tags. Below it, a main column of
+   sections (photos, rooms, what's included, living here, what to expect,
+   house rules, the map) laid straight on the paper, beside the rent card:
+   the listing's rent, set larger than anywhere else on the site, with Save,
+   the landlord and Call. The rent card is the only thing on the page that is
+   lifted off the paper.
    ========================================================= */
 .band--listing {
-  padding: var(--s5) 0 calc(var(--seam) + var(--s5));
+  padding: var(--s5) 0;
 }
 
 .listing-addr {
@@ -2342,31 +2567,29 @@ html.js .amenity-options:not(.show-all) .is-extra {
 
 .listing-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: var(--s5);
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: var(--s5) var(--s6);
   align-items: start;
+  padding-top: var(--s5);
   padding-bottom: var(--s7);
 }
 
-/* Photos */
+/* Photos: the main column's full width, with no frame of its own. */
 .gallery {
-  background: var(--panel);
-  border-radius: var(--r-lg);
-  padding: 8px;
-  margin-bottom: var(--s4);
+  margin-bottom: var(--s2);
 }
 
 .gallery-stage {
   position: relative;
   display: block;
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   overflow: hidden;
 }
 
 .gallery-main {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 3 / 2;
   object-fit: cover;
   background: var(--leaf);
 }
@@ -2398,7 +2621,7 @@ html.js .amenity-options:not(.show-all) .is-extra {
 .gallery-thumb {
   display: block;
   border: 2px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   overflow: hidden;
   opacity: .7;
   transition: opacity .15s ease, border-color .15s ease;
@@ -2420,25 +2643,23 @@ html.js .amenity-options:not(.show-all) .is-extra {
   border-color: var(--forest);
 }
 
-/* Sections */
-.detail-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  padding: 0 var(--s5);
-}
-
+/* Sections, one under the other on the paper, with a hairline between. */
 .detail-section {
   padding: var(--s5) 0;
   border-top: 1px solid var(--line);
 }
 
 .detail-section:first-child {
+  padding-top: var(--s2);
   border-top: 0;
 }
 
+.detail-section:last-child {
+  padding-bottom: 0;
+}
+
 .detail-section h2 {
-  font-size: 1.35rem;
+  font-size: 1.4rem;
   margin: 0 0 var(--s3);
 }
 
@@ -2450,7 +2671,6 @@ html.js .amenity-options:not(.show-all) .is-extra {
 
 .detail-subhead {
   font-family: var(--font-body);
-  font-variation-settings: normal;
   font-size: 14.5px;
   font-weight: 600;
   letter-spacing: 0;
@@ -2474,7 +2694,7 @@ html.js .amenity-options:not(.show-all) .is-extra {
   gap: 12px;
   padding: 14px;
   border: 1px solid;
-  border-radius: 12px;
+  border-radius: var(--r-lg);
 }
 
 .util-icon {
@@ -2655,7 +2875,7 @@ html.js .amenity-options:not(.show-all) .is-extra {
   justify-content: center;
   height: 340px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   background: var(--leaf);
   color: var(--ink-soft);
   font-size: 14px;
@@ -2681,26 +2901,30 @@ html.js .amenity-options:not(.show-all) .is-extra {
   margin: var(--s2) 0 0;
 }
 
-/* Quick Info */
+/* The rent card (aside.listing-side, "Quick info"): the theme's one
+   elevation, and the listing's rent set larger than anywhere else. */
 .quick-card {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  padding: var(--s4);
+  box-shadow: var(--lift);
+  padding: var(--s5) var(--s4) var(--s4);
 }
 
 .price {
   font-weight: 600;
-  font-size: 32px;
-  line-height: 1.1;
+  font-size: 2.6rem;
+  line-height: 1;
+  letter-spacing: -0.025em;
   color: var(--forest);
   font-variant-numeric: tabular-nums;
   margin: 0 0 var(--s3);
 }
 
 .price span {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 400;
+  letter-spacing: 0;
   color: var(--ink-soft);
 }
 
@@ -2725,7 +2949,6 @@ html.js .amenity-options:not(.show-all) .is-extra {
   background: var(--forest);
   color: #fff;
   font-family: var(--font-display);
-  font-variation-settings: 'SOFT' 100;
   font-weight: 700;
   font-size: 18px;
   letter-spacing: .02em;
@@ -3004,6 +3227,12 @@ img.avatar {
   font-weight: 500;
 }
 
+/* A room's state, over the corner of its photo. */
+.pill--on-photo {
+  position: absolute;
+  box-shadow: 0 1px 3px rgba(15, 58, 49, .14);
+}
+
 .room-tile .pill--on-photo {
   top: 10px;
   right: 10px;
@@ -3015,7 +3244,6 @@ img.avatar {
 
 .room-tile-body h3 {
   font-family: var(--font-body);
-  font-variation-settings: normal;
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0;
@@ -3128,7 +3356,6 @@ img.avatar {
 
 .room-row h3 {
   font-family: var(--font-body);
-  font-variation-settings: normal;
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0;
@@ -3285,13 +3512,18 @@ img.avatar {
 }
 
 /* =========================================================
-   Footer — quiet, so the band stays the only bold thing
+   Footer — quiet, so the rent stays the only bold thing
    ========================================================= */
 .site-footer {
+  background: var(--forest);
   border-top: 1px solid var(--line);
   padding: var(--s6) 0 var(--s4);
-  color: var(--ink-soft);
+  color: var(--on-forest-soft);
   font-size: 15px;
+}
+
+.site-footer .brand {
+  color: var(--on-forest);
 }
 
 .footer-inner {
@@ -3313,11 +3545,10 @@ img.avatar {
 
 .footer-links h2 {
   font-family: var(--font-body);
-  font-variation-settings: normal;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0;
-  color: var(--ink);
+  color: var(--on-forest);
   margin: 0 0 var(--s2);
 }
 
@@ -3332,18 +3563,46 @@ img.avatar {
 }
 
 .footer-links a {
-  color: var(--ink-soft);
+  color: var(--on-forest-soft);
 }
 
 .footer-links a:hover {
-  color: var(--forest);
+  color: var(--on-forest);
 }
 
+/* The line of small print: who made it on the left, the legal pages on the
+   right, with space rather than dots between them. */
 .footer-base {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2) var(--s4);
   margin-top: var(--s5);
   padding-top: var(--s4);
   border-top: 1px solid var(--line);
   font-size: 13.5px;
+}
+
+.footer-base p {
+  margin: 0;
+}
+
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--s4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.footer-legal a {
+  color: var(--on-forest-soft);
+}
+
+.footer-legal a:hover {
+  color: var(--on-forest);
 }
 
 /* =========================================================
@@ -3353,12 +3612,6 @@ img.avatar {
    to the links.
    ========================================================= */
 body.page-white {
-  background: var(--panel);
-}
-
-/* The strip the menu tab hangs from takes the page's white instead of the
-   band's forest. The tab keeps its shadow, so it still reads as the header. */
-.page-white .site-header {
   background: var(--panel);
 }
 
@@ -3687,9 +3940,9 @@ body.page-white {
 
 /* =========================================================
    About and contact
-   Both open on the band like every other page. What sits on the seam is the
-   story (About) or the ways to reach us (Contact); below it, ruled lists
-   rather than rows of identical cards.
+   Both open on the title strip like every other page. The first panel under
+   it is the story (About) or the ways to reach us (Contact); below it, ruled
+   lists rather than rows of identical cards.
    ========================================================= */
 .arrow-link {
   font-weight: 600;
@@ -3859,7 +4112,7 @@ body.page-white {
   margin-top: var(--s4);
 }
 
-/* Contact: one row per way to reach the team, on the seam. */
+/* Contact: one row per way to reach the team, in the panel under the strip. */
 .channels {
   padding: var(--s4) var(--s5) var(--s2);
 }
@@ -4137,13 +4390,53 @@ body.page-white {
 /* =========================================================
    Breakpoints
    ========================================================= */
+@media (max-width: 1199px) and (min-width: 961px) {
+  /* On a narrower laptop the photo's box slides a little further right, past
+     the edge of the screen, so the panel keeps room for the copy and the
+     house and its sign stay in view. */
+  .hero-photo {
+    transform: translateX(15%);
+  }
+}
+
+@media (max-width: 960px) {
+  .hero-inner {
+    min-height: 0;
+    padding-top: var(--s5);
+    padding-bottom: var(--s5);
+  }
+
+  .hero-copy {
+    max-width: 560px;
+  }
+
+  /* The photo follows the copy as a band across the full width, its top edge
+     cut on the same lean as the wide screen's diagonal, and framed on the
+     house and its sign. */
+  .hero-photo {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    max-height: 420px;
+    clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .hero-photo img {
+    object-position: 80% center;
+  }
+}
+
 @media (max-width: 980px) {
   .listing-layout,
-  .split {
+  .split,
+  .how {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* One column: price and the landlord's number come before the long read. */
+  /* One column: the rent and the landlord's number come before the long read. */
   .listing-layout {
     gap: var(--s4);
   }
@@ -4158,8 +4451,8 @@ body.page-white {
 }
 
 @media (min-width: 981px) {
-  /* Quick Info stays in view while the sections scroll, so the price and the
-     landlord's number are never more than a glance away. */
+  /* The rent card stays in view while the sections scroll, so the price and
+     the landlord's number are never more than a glance away. */
   .listing-side {
     position: sticky;
     /* Clear of the header while it is showing; site-header.js keeps the
@@ -4173,19 +4466,16 @@ body.page-white {
     max-height: calc(100vh - var(--header-offset, 0px) - var(--s4) * 2);
     overflow-y: auto;
     overscroll-behavior: contain;
-    /* Room for the scrollbar so it rides beside the card, not over its edge. */
-    padding-right: 4px;
-    margin-right: -4px;
+    /* Room for the scrollbar, and for the card's shadow, so neither is cut
+       off at the edge of the scrolling box. */
+    padding: 0 6px 24px;
+    margin: 0 -6px -24px;
   }
 }
 
 @media (max-width: 720px) {
   :root {
-    --seam: 40px;
-  }
-
-  .container {
-    padding: 0 16px;
+    --gutter: 16px;
   }
 
   .auth-shell {
@@ -4202,31 +4492,18 @@ body.page-white {
     border-radius: 18px;
   }
 
-  .nav-tab {
-    padding: 10px 10px 10px 16px;
-    border-radius: 0 0 16px 16px;
-  }
-
-  /* The sheet carries the tab's corner, whatever it is at this width. */
-  html.js .nav-tab {
-    padding: 8px 8px 8px 16px;
-  }
-
-  html.js .nav {
-    border-radius: 0 0 16px 16px;
-  }
-
   .nav a {
     font-size: 14.5px;
     padding: 6px 9px;
   }
 
   .band {
-    padding: var(--s5) 0 calc(var(--seam) + var(--s4));
+    padding: var(--s4) 0;
   }
 
-  .band--hero {
-    padding: var(--s6) 0 calc(var(--seam) + var(--s6));
+  .hero-lede {
+    font-size: 1.05rem;
+    margin-bottom: var(--s4);
   }
 
   .section {
@@ -4316,14 +4593,14 @@ body.page-white {
   }
 
   .steps li {
-    padding-left: 56px;
+    padding-left: 52px;
   }
 
   .steps li:not(:last-child)::before {
     content: '';
     position: absolute;
-    left: 17.5px;
-    top: 36px;
+    left: 15.5px;
+    top: 32px;
     bottom: calc(-1 * var(--s4));
     width: 1px;
     background: var(--line-strong);
@@ -4339,21 +4616,16 @@ body.page-white {
     margin-top: 4px;
   }
 
-  .review-states li {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
-
   .footer-links {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .detail-card {
-    padding: 0 var(--s4);
-  }
-
   .listing-map {
     height: 260px;
+  }
+
+  .price {
+    font-size: 2.25rem;
   }
 
   .lightbox-inner {
@@ -4394,8 +4666,8 @@ body.page-white {
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
     /* Bleeds to both edges so a half-visible chip says there is more. */
-    margin-inline: calc(-1 * var(--s4));
-    padding-inline: var(--s4);
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
     padding-bottom: 4px;
   }
 
@@ -4422,49 +4694,78 @@ body.page-white {
      One card per row meant two listings to a screenful and a lot of scrolling
      to compare rents. Two columns puts four in view. A card is then about
      165px wide on a 375px screen, so everything inside it steps down a size
-     and the foot stacks: the room count over a full-width "View details".
+     and the foot stacks: the slots left over "View details".
      ========================================================= */
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 20px 12px;
   }
 
   .card-chunk + .card-chunk {
-    margin-top: 12px;
+    margin-top: 20px;
   }
 
   .room-card-body {
-    padding: 12px 12px 14px;
+    padding: 10px 0 0;
   }
 
-  .room-card-title {
-    font-size: 15px;
+  /* The tile's icon and words step down with the card. */
+  .room-card-empty {
+    gap: 6px;
   }
 
-  .room-card-addr {
-    margin-top: 4px;
-    font-size: 12.5px;
-    gap: 4px;
+  .room-card-empty .icon {
+    width: 28px;
+    height: 28px;
   }
 
-  .room-card-price {
-    margin-top: 10px;
-    font-size: 19px;
+  .room-card-empty span {
+    font-size: 11.5px;
   }
 
-  .room-card-price span,
-  .room-card-type,
+  .room-card-rent {
+    font-size: 1.3rem;
+  }
+
+  .room-card-per,
   .room-card-meta {
     font-size: 12.5px;
   }
 
-  /* One line each: three room types would otherwise push the foot down on one
-     card and not its neighbour, and the row would stop lining up. */
-  .room-card-type {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
-    overflow: hidden;
+  /* "/ month" takes a line under the figure: beside it, with "From" in front,
+     a rent ran wider than the card and wrapped on some cards and not others. */
+  .room-card-per {
+    display: block;
+    margin-top: 1px;
+  }
+
+  /* One room type, and the state only where it is not "Available", which the
+     slots left at the foot already say. Two tags side by side are wider than
+     the card, and a row that wrapped on one card and not its neighbour would
+     stop the row of cards lining up. */
+  .room-card-tags {
+    margin-top: 8px;
+  }
+
+  .room-card-tags .tag + .tag,
+  .room-card--available .room-card-tags .pill {
+    display: none;
+  }
+
+  .room-card-tags .tag,
+  .room-card-tags .pill {
+    font-size: 11.5px;
+  }
+
+  .room-card-title {
+    font-size: 14.5px;
+    margin-top: 8px;
+  }
+
+  .room-card-addr {
+    margin-top: 2px;
+    font-size: 12.5px;
+    gap: 4px;
   }
 
   .room-card-foot {
@@ -4479,20 +4780,12 @@ body.page-white {
   }
 
   .room-card-body > :nth-last-child(2) {
-    margin-bottom: 12px;
-  }
-
-  /* The photo's furniture shrinks with the photo. */
-  .room-card .pill--on-photo {
-    top: 8px;
-    right: 8px;
-    font-size: 11.5px;
-    padding: 4px 8px;
+    margin-bottom: 10px;
   }
 
   .room-card .save-form {
     top: 8px;
-    left: 8px;
+    right: 8px;
   }
 
   /* Drawn a size smaller on a 165px card; the tap area stays 44px. */
@@ -4507,20 +4800,24 @@ body.page-white {
     inset: -2px;
   }
 
-  /* A 165px picture box already holds the heart and the pill; the house
-     drawing would sit on top of them. The room type alone holds the space. */
-  .room-card-placeholder .icon {
-    display: none;
+  /* The home page's three figures stay side by side, a size smaller, with
+     "/ month" under the rent. */
+  .home-figure {
+    padding: var(--s4) var(--s3);
   }
 
-  .room-card-placeholder {
-    padding-top: 28px;
+  .home-figure dt {
+    font-size: 12.5px;
   }
 
-  .room-card-placeholder span {
-    font-size: 13.5px;
-    padding: 0 8px;
-    text-align: center;
+  .home-figure dd {
+    font-size: 1.35rem;
+  }
+
+  .home-figure dd span {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
   }
 
   /* The rooms inside one listing follow the same two-up rhythm. */
@@ -4566,22 +4863,18 @@ body.page-white {
     font-size: 20px;
   }
 
-  /* Two cards still fit here, but the rent has to: at 19px a four-figure rent
-     pushed "/ month" onto a line of its own. */
+  /* Two cards still fit here, but the rent has to: any larger and a
+     four-figure rent pushed "/ month" onto a line of its own. */
   .card-grid {
-    gap: 10px;
+    gap: 18px 10px;
   }
 
-  .room-card-price {
-    font-size: 17px;
+  .room-card-rent {
+    font-size: 1.15rem;
   }
 
-  .room-card-price span {
+  .room-card-per {
     font-size: 12px;
-  }
-
-  .room-card-body {
-    padding: 11px 11px 13px;
   }
 }
 
@@ -4606,8 +4899,8 @@ body.page-white {
     transition: none;
   }
 
-  .room-card:hover,
-  .room-card:hover .room-card-media img {
+  .room-card:hover .room-card-media img,
+  .btn:active {
     transform: none;
   }
 }

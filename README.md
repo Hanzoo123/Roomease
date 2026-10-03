@@ -204,7 +204,10 @@ roomease/
 │                                toggle, save heart, copy number, show more, room buttons
 ├── assets/css/style.css       Public theme styling
 ├── assets/img/                The RoomEase logo, the favicons cut from it,
-│                              and og-default.png for link previews
+│                              and og-default.png for link previews. hero.webp
+│                              (or hero.jpg) is the home page's photo, cut on a
+│                              diagonal beside the headline. The one there now is a
+│                              temporary stand-in for a real photo of Baybay City.
 ├── assets/adminlte/           AdminLTE theme for the management panel
 ├── assets/uploads/            Uploaded photos: listings (a folder each),
 │                              profile photos in avatars/, site/ for the
