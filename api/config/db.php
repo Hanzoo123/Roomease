@@ -15,7 +15,7 @@ if (is_file($autoload)) {
 unset($autoload);
 
 $pdo = (static function (): PDO {
-    $host     = env_value('ROOMEASE_DB_HOST', 'localhost');
+    $host     = env_value('ROOMEASE_DB_HOST', '127.0.0.1');
     $dbname   = env_value('ROOMEASE_DB_NAME', 'roomease');
     $username = env_value('ROOMEASE_DB_USER', 'root');
     $password = env_value('ROOMEASE_DB_PASS', '');
