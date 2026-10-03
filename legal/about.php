@@ -48,7 +48,8 @@ $bleed = true;
 require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
-<section class="band">
+<section class="band band--photo">
+  <img class="band-photo" src="<?= base_url('assets/img/pages/about-header.webp') ?>" alt="">
   <div class="container">
     <div class="band-head">
       <div>
@@ -59,8 +60,20 @@ require __DIR__ . '/../includes/layouts/header.php';
   </div>
 </section>
 
-<div class="container under-band">
-  <article class="panel panel-pad about-story">
+<section class="section about-story">
+  <div class="container about-story-inner">
+    <?php /* Two photos laid over each other, with the survey's headline figure
+             on a card across them. Atmosphere only, so the photos are passed
+             over by screen readers; the figure is read as text. */ ?>
+    <div class="about-collage">
+      <img class="about-collage-back" src="<?= base_url('assets/img/pages/about-story-1.webp') ?>" alt="" loading="lazy">
+      <img class="about-collage-front" src="<?= base_url('assets/img/pages/about-story-2.webp') ?>" alt="" loading="lazy">
+      <p class="about-collage-stat">
+        <strong>16 of 19</strong>
+        <span>had visited or called a boarding house only to find no room free</span>
+      </p>
+    </div>
+
     <div class="about-story-text">
       <h2>Why we built it</h2>
       <p>
@@ -73,72 +86,65 @@ require __DIR__ . '/../includes/layouts/header.php';
         RoomEase puts that information in one place: what a room costs, what it includes, where it
         is, whether a slot is free, and how to reach the person who owns it.
       </p>
-    </div>
 
-    <dl class="about-figures">
-      <div>
-        <dt>16 of 19</dt>
-        <dd>had visited or called a boarding house only to find no room free</dd>
-      </div>
-      <div>
-        <dt>11 of 19</dt>
-        <dd>found the rent missing or unclear in the post</dd>
-      </div>
-      <?php if ($stats['rooms_available'] > 0): ?>
+      <dl class="about-figures">
         <div>
-          <dt><?= $stats['rooms_available'] ?></dt>
-          <dd>
-            <?= $stats['rooms_available'] === 1 ? 'room' : 'rooms' ?> available on RoomEase right now,
-            in <?= $stats['listings'] ?> boarding <?= $stats['listings'] === 1 ? 'house' : 'houses' ?>
-          </dd>
+          <dt>11 of 19</dt>
+          <dd>found the rent missing or unclear in the post</dd>
         </div>
-      <?php endif; ?>
-    </dl>
-  </article>
-</div>
+        <?php if ($stats['rooms_available'] > 0): ?>
+          <div>
+            <dt><?= $stats['rooms_available'] ?></dt>
+            <dd>
+              <?= $stats['rooms_available'] === 1 ? 'room' : 'rooms' ?> available on RoomEase right now,
+              in <?= $stats['listings'] ?> boarding <?= $stats['listings'] === 1 ? 'house' : 'houses' ?>
+            </dd>
+          </div>
+        <?php endif; ?>
+      </dl>
+    </div>
+  </div>
+</section>
 
-<section class="section section--snug">
+<section class="section section--snug about-aims">
   <div class="container">
-    <div class="about-aims">
-      <div>
-        <h2>Our mission</h2>
-        <p>
-          To move the search for a boarding house in Baybay City out of scattered posts and word of
-          mouth, into one place where landlords keep their listings current and boarders can see the
-          rent, the rooms, the rules and the landlord's number before they make the trip.
-        </p>
+    <h2>Our mission</h2>
+    <p class="about-mission">
+      To move the search for a boarding house in Baybay City out of scattered posts and word of
+      mouth, into one place where landlords keep their listings current and boarders can see the
+      rent, the rooms, the rules and the landlord's number before they make the trip.
+    </p>
+
+    <div class="about-aims-cards">
+      <div class="about-card">
+        <h3>What we stand for</h3>
+        <ol class="about-values">
+          <?php foreach ($values as $i => $value): ?>
+            <li>
+              <span class="about-values-no" aria-hidden="true"><?= str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) ?></span>
+              <div>
+                <h4><?= h($value['title']) ?></h4>
+                <p><?= h($value['text']) ?></p>
+              </div>
+            </li>
+          <?php endforeach; ?>
+        </ol>
       </div>
-      <div>
-        <h2>Our vision</h2>
-        <p>
-          A Baybay City where no one walks to a boarding house only to learn the rooms are gone:
-          where boarders can compare rooms honestly, and landlords can fill them without the
-          guesswork.
-        </p>
+
+      <div class="about-card">
+        <h3>Our vision</h3>
+        <blockquote class="about-vision">
+          <p>&ldquo;A Baybay City where no one walks to a boarding house only to learn the rooms are gone.&rdquo;</p>
+        </blockquote>
+        <p class="about-vision-more">Where boarders can compare rooms honestly, and landlords can fill them without the guesswork.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section section--white">
+<section class="section section--white about-team">
   <div class="container">
-    <h2>What we stand for</h2>
-    <p class="section-intro">Four things the site does on purpose, so a listing can be trusted more than a post in a group chat.</p>
-
-    <ul class="about-values">
-      <?php foreach ($values as $value): ?>
-        <li>
-          <h3><?= h($value['title']) ?></h3>
-          <p><?= h($value['text']) ?></p>
-        </li>
-      <?php endforeach; ?>
-    </ul>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container about-team">
-    <div>
+    <div class="about-team-head">
       <h2>Who built it</h2>
       <p>
         RoomEase is a capstone project by five students of the College of Information Technology,
@@ -147,24 +153,29 @@ require __DIR__ . '/../includes/layouts/header.php';
     </div>
     <ul class="about-team-list">
       <?php foreach ($team as $name): ?>
-        <li><?= h($name) ?></li>
+        <?php
+        // First and last name, so "David Kristoff Corpuz" is DC.
+        $nameWords = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY);
+        $initials = mb_strtoupper(mb_substr($nameWords[0], 0, 1) . mb_substr(end($nameWords), 0, 1));
+        ?>
+        <li>
+          <span class="about-team-initials" aria-hidden="true"><?= h($initials) ?></span>
+          <span class="about-team-name"><?= h($name) ?></span>
+        </li>
       <?php endforeach; ?>
     </ul>
   </div>
 </section>
 
-<section class="section section--white about-cta">
+<section class="section about-cta">
   <div class="container">
-    <h2>Find a room in Baybay City</h2>
-    <p class="section-intro">Search by barangay, room type and budget, and see what is free before you go.</p>
-    <div class="about-cta-actions">
-      <a class="btn btn-accent" href="<?= base_url('boarder/browse.php') ?>">Browse rooms</a>
-      <?php if (!is_logged_in()): ?>
-        <a class="arrow-link" href="<?= base_url('auth/register.php?role=landlord') ?>">List a property &rarr;</a>
-      <?php elseif (current_role() === 'landlord'): ?>
-        <a class="arrow-link" href="<?= base_url('landlord/add_listing.php') ?>">Add a listing &rarr;</a>
-      <?php endif; ?>
-      <a class="arrow-link" href="<?= base_url('legal/contact.php') ?>">Contact us &rarr;</a>
+    <div class="about-cta-box">
+      <img class="about-cta-photo" src="<?= base_url('assets/img/pages/about-cta.webp') ?>" alt="" loading="lazy">
+      <div class="about-cta-content">
+        <h2>Find a room in Baybay City</h2>
+        <p>Search by barangay, room type and budget, and see what is free before you go.</p>
+        <a class="btn btn-accent" href="<?= base_url('boarder/browse.php') ?>">Browse rooms</a>
+      </div>
     </div>
   </div>
 </section>

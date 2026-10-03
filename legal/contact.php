@@ -119,7 +119,8 @@ $bleed = true;
 require __DIR__ . '/../includes/layouts/header.php';
 ?>
 
-<section class="band">
+<section class="band band--photo">
+  <img class="band-photo" src="<?= base_url('assets/img/pages/contact-header.webp') ?>" alt="">
   <div class="container">
     <div class="band-head">
       <div>
@@ -130,82 +131,9 @@ require __DIR__ . '/../includes/layouts/header.php';
   </div>
 </section>
 
-<div class="container under-band">
-  <section class="panel channels" aria-labelledby="channels-title">
-    <h2 id="channels-title" class="channels-title">Ways to reach us</h2>
-    <ul class="channels-list">
-      <?php if ($contactEmail !== ''): ?>
-        <li>
-          <span class="channel-icon"><?= icon('mail', 20) ?></span>
-          <div>
-            <h3>Email</h3>
-            <p>For your account, a listing, or anything about the site. We answer ourselves, usually within a few days.</p>
-          </div>
-          <a class="arrow-link" href="mailto:<?= h($contactEmail) ?>"><?= h($contactEmail) ?></a>
-        </li>
-      <?php endif; ?>
-      <?php if ($messengerUrl !== ''): ?>
-        <li>
-          <span class="channel-icon"><?= icon('message', 20) ?></span>
-          <div>
-            <h3>Messenger</h3>
-            <p>A quick question for the team, in a chat.</p>
-          </div>
-          <a class="arrow-link" href="<?= h($messengerUrl) ?>" rel="noopener" target="_blank">Send a message &rarr;</a>
-        </li>
-      <?php endif; ?>
-      <?php if ($facebookUrl !== ''): ?>
-        <li>
-          <span class="channel-icon"><?= icon('facebook', 20) ?></span>
-          <div>
-            <h3>Facebook</h3>
-            <p>News about RoomEase and the boarding houses on it.</p>
-          </div>
-          <a class="arrow-link" href="<?= h($facebookUrl) ?>" rel="noopener" target="_blank">Visit the page &rarr;</a>
-        </li>
-      <?php endif; ?>
-      <li>
-        <span class="channel-icon"><?= icon('phone', 20) ?></span>
-        <div>
-          <h3>A question about a room</h3>
-          <p>The landlord's number is on every listing. For the rent, a visit or a free slot, they will answer faster than we can.</p>
-        </div>
-        <a class="arrow-link" href="<?= base_url('boarder/browse.php') ?>">Browse rooms &rarr;</a>
-      </li>
-    </ul>
-  </section>
-</div>
-
-<section class="section section--snug">
+<section class="section contact-main">
   <div class="container contact-split">
-    <div>
-      <h2>What to tell us</h2>
-      <ul class="contact-topics">
-        <li>
-          <span class="channel-icon"><?= icon('home', 18) ?></span>
-          <div>
-            <h3>A listing that is wrong or gone</h3>
-            <p>Send the link, and what is out of date.</p>
-          </div>
-        </li>
-        <li>
-          <span class="channel-icon"><?= icon('key', 18) ?></span>
-          <div>
-            <h3>An account problem</h3>
-            <p>The email address on the account is enough. Never send us your password; we will never ask for it.</p>
-          </div>
-        </li>
-        <li>
-          <span class="channel-icon"><?= icon('door', 18) ?></span>
-          <div>
-            <h3>A landlord who wants to list</h3>
-            <p>You can <a href="<?= base_url('auth/register.php?role=landlord') ?>">sign up yourself</a>, and we will review the listing within a few days.</p>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <div class="panel panel-pad contact-form" id="send">
+    <div class="contact-card contact-form" id="send">
       <h2>Send a message</h2>
       <?php if ($canSend): ?>
         <p class="contact-form-note">It goes straight to the team, and we reply to the address you give.</p>
@@ -225,17 +153,19 @@ require __DIR__ . '/../includes/layouts/header.php';
           <div class="field-row">
             <div>
               <label for="name">Your name</label>
-              <input type="text" id="name" name="name" value="<?= h($old['name']) ?>" autocomplete="name" required>
+              <input type="text" id="name" name="name" value="<?= h($old['name']) ?>" autocomplete="name"
+                placeholder="Juan Dela Cruz" required>
             </div>
             <div>
               <label for="email">Your email</label>
               <input type="email" id="email" name="email" value="<?= h($old['email']) ?>"
-                autocomplete="email" required>
+                autocomplete="email" placeholder="you@example.com" required>
             </div>
           </div>
 
           <label for="message">Message</label>
-          <textarea id="message" name="message" rows="6" required><?= h($old['message']) ?></textarea>
+          <textarea id="message" name="message" rows="5" required
+            placeholder="A listing that is out of date, a question about your account, or anything else"><?= h($old['message']) ?></textarea>
 
           <?php /* The trap: off-screen rather than display:none, which some scripts
                check for, and never announced to a screen reader. */ ?>
@@ -268,19 +198,97 @@ require __DIR__ . '/../includes/layouts/header.php';
         <?php endif; ?>
       <?php endif; ?>
     </div>
+
+    <div class="contact-ways">
+      <h2>Ways to reach us</h2>
+      <p class="contact-ways-intro">
+        Pick whichever suits you. For anything about one particular room, the landlord on that listing
+        will answer faster than we can.
+      </p>
+      <ul class="channels-list">
+        <?php if ($contactEmail !== ''): ?>
+          <li>
+            <span class="channel-icon"><?= icon('mail', 20) ?></span>
+            <div>
+              <h3>Email</h3>
+              <p>For your account, a listing, or anything about the site. We answer ourselves, usually within a few days.</p>
+              <a class="channel-link" href="mailto:<?= h($contactEmail) ?>"><?= h($contactEmail) ?></a>
+            </div>
+          </li>
+        <?php endif; ?>
+        <?php if ($messengerUrl !== ''): ?>
+          <li>
+            <span class="channel-icon"><?= icon('message', 20) ?></span>
+            <div>
+              <h3>Messenger</h3>
+              <p>A quick question for the team, in a chat.</p>
+              <a class="channel-link" href="<?= h($messengerUrl) ?>" rel="noopener" target="_blank">Send a message &rarr;</a>
+            </div>
+          </li>
+        <?php endif; ?>
+        <?php if ($facebookUrl !== ''): ?>
+          <li>
+            <span class="channel-icon"><?= icon('facebook', 20) ?></span>
+            <div>
+              <h3>Facebook</h3>
+              <p>News about RoomEase and the boarding houses on it.</p>
+              <a class="channel-link" href="<?= h($facebookUrl) ?>" rel="noopener" target="_blank">Visit the page &rarr;</a>
+            </div>
+          </li>
+        <?php endif; ?>
+        <li>
+          <span class="channel-icon"><?= icon('phone', 20) ?></span>
+          <div>
+            <h3>A question about a room</h3>
+            <p>The landlord's number is on every listing. For the rent, a visit or a free slot, they will answer faster than we can.</p>
+            <a class="channel-link" href="<?= base_url('boarder/browse.php') ?>">Browse rooms &rarr;</a>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 </section>
 
-<section class="section section--white">
-  <div class="container faq">
-    <h2>Questions people ask</h2>
-    <div class="faq-list">
-      <?php foreach ($faqs as $faq): ?>
-        <details>
-          <summary><?= h($faq['q']) ?></summary>
-          <p><?= h($faq['a']) ?></p>
-        </details>
-      <?php endforeach; ?>
+<section class="section section--white contact-help">
+  <div class="container contact-help-inner">
+    <div class="contact-topics-wrap">
+      <h2>What to tell us</h2>
+      <ul class="contact-topics">
+        <li>
+          <span class="channel-icon"><?= icon('home', 18) ?></span>
+          <div>
+            <h3>A listing that is wrong or gone</h3>
+            <p>Send the link, and what is out of date.</p>
+          </div>
+        </li>
+        <li>
+          <span class="channel-icon"><?= icon('key', 18) ?></span>
+          <div>
+            <h3>An account problem</h3>
+            <p>The email address on the account is enough. Never send us your password; we will never ask for it.</p>
+          </div>
+        </li>
+        <li>
+          <span class="channel-icon"><?= icon('door', 18) ?></span>
+          <div>
+            <h3>A landlord who wants to list</h3>
+            <p>You can <a href="<?= base_url('auth/register.php?role=landlord') ?>">sign up yourself</a>, and we will review the listing within a few days.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="faq">
+      <h2>Questions people ask</h2>
+      <?php /* Every answer shown, not folded: there are six, and they are short. */ ?>
+      <dl class="faq-list">
+        <?php foreach ($faqs as $faq): ?>
+          <div>
+            <dt><?= h($faq['q']) ?></dt>
+            <dd><?= h($faq['a']) ?></dd>
+          </div>
+        <?php endforeach; ?>
+      </dl>
     </div>
   </div>
 </section>

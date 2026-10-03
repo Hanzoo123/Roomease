@@ -261,6 +261,19 @@ function live_listing_stats()
     }
 }
 
+/**
+ * The photo for a room type's tile on the home page: assets/img/room-types/
+ * <room type>.webp, for example bed-spacer.webp for "Bed Spacer". Null when
+ * there is none, as for a type an administrator added later.
+ */
+
+function room_type_photo($roomTypeName)
+{
+    $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower((string) $roomTypeName)), '-');
+    $path = 'assets/img/room-types/' . $slug . '.webp';
+    return $slug !== '' && is_file(__DIR__ . '/../../' . $path) ? $path : null;
+}
+
 /** Each room type with how many public listings have an open room of that type (0 included). */
 
 function room_type_counts()

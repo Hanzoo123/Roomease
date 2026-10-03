@@ -208,6 +208,10 @@ roomease/
 │                              (or hero.jpg) is the home page's photo, cut on a
 │                              diagonal beside the headline. The one there now is a
 │                              temporary stand-in for a real photo of Baybay City.
+│                              room-types/ holds one photo per room type for the
+│                              home page's tiles, named after the type
+│                              (bed-spacer.webp); pages/ holds the About and Contact
+│                              photos. Both sets come from the RoomEase Figma file.
 ├── assets/adminlte/           AdminLTE theme for the management panel
 ├── assets/uploads/            Uploaded photos: listings (a folder each),
 │                              profile photos in avatars/, site/ for the

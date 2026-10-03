@@ -23,6 +23,15 @@ $stats = live_listing_stats();
 $liveCount = $stats['listings'];
 $typeCounts = room_type_counts();
 
+// The room type tiles follow the design's order, which sets the wide tile
+// and the photos to their places; a type added later goes at the end.
+$tileOrder = ['Single Room', 'Double Sharing', 'Private Room', 'Bed Spacer', 'Dormitory'];
+usort($typeCounts, function ($a, $b) use ($tileOrder) {
+    $ia = array_search($a['room_type_name'], $tileOrder, true);
+    $ib = array_search($b['room_type_name'], $tileOrder, true);
+    return ($ia === false ? PHP_INT_MAX : $ia) <=> ($ib === false ? PHP_INT_MAX : $ib);
+});
+
 // Newest listings that have a room available, so the home page leads with
 // places a boarder can actually move into.
 $newestStmt = $pdo->query(
@@ -136,27 +145,41 @@ require __DIR__ . '/includes/layouts/header.php';
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
-
-    <?php if ($typeCounts): ?>
-      <div class="type-index-wrap">
-        <h2>By room type</h2>
-        <ul class="type-index">
-          <?php foreach ($typeCounts as $type): ?>
-            <li>
-              <?php if ((int) $type['listings'] > 0): ?>
-                <a href="<?= base_url('boarder/browse.php?room_type=' . (int) $type['room_type_id'] . '#results') ?>">
-                  <?= h($type['room_type_name']) ?><span class="type-count"><?= (int) $type['listings'] ?></span>
-                </a>
-              <?php else: ?>
-                <span class="is-empty"><?= h($type['room_type_name']) ?><span class="type-count">0</span></span>
-              <?php endif; ?>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    <?php endif; ?>
   </div>
 </section>
+
+<?php if ($typeCounts): ?>
+  <?php /* A photo tile per room type, each opening browse filtered to it. The
+           counts are live; the photos are in assets/img/room-types. Styles:
+           "By room type" in style.css. */ ?>
+  <section class="section section--snug room-types-section">
+    <div class="container">
+      <h2 class="room-types-title">By room type</h2>
+      <ul class="room-types">
+        <?php foreach ($typeCounts as $type): ?>
+          <?php
+          $typeListings = (int) $type['listings'];
+          $typePhoto = room_type_photo($type['room_type_name']);
+          ?>
+          <li class="room-type<?= $typeListings > 0 ? '' : ' room-type--empty' ?>">
+            <?php /* The whole tile is the link; a type no listing has yet is shown
+                     the same way, but leads nowhere. */ ?>
+            <<?= $typeListings > 0 ? 'a href="' . base_url('boarder/browse.php?room_type=' . (int) $type['room_type_id'] . '#results') . '"' : 'div' ?> class="room-type-tile">
+              <?php if ($typePhoto): ?>
+                <img src="<?= base_url($typePhoto) ?>" alt="" loading="lazy">
+              <?php endif; ?>
+              <span class="room-type-name"><?= h($type['room_type_name']) ?></span>
+              <span class="room-type-count">
+                <?= $typeListings > 0 ? $typeListings . ' boarding ' . ($typeListings === 1 ? 'house' : 'houses') : 'No listings yet' ?>
+              </span>
+            </<?= $typeListings > 0 ? 'a' : 'div' ?>>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+      <a class="room-types-all" href="<?= base_url('boarder/browse.php') ?>">Browse all rooms <?= icon('arrow-right', 20) ?></a>
+    </div>
+  </section>
+<?php endif; ?>
 
 <section class="section section--white">
   <div class="container how">
