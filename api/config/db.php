@@ -36,9 +36,9 @@ $pdo = (static function (): PDO {
             . "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
         return $pdo;
     } catch (PDOException $e) {
-        // The error names the host and user, so it is logged, not shown.
-        error_log('RoomEase: database connection failed - ' . $e->getMessage());
-        http_response_code(503);
-        die('The site is temporarily unavailable. Please try again shortly.');
-    }
+    http_response_code(503);
+    // Temporarily show the raw error to find out why it's failing:
+    die('Database Error: ' . $e->getMessage()); 
+}
+
 })();
