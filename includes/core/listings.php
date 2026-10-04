@@ -179,16 +179,25 @@ function filter_amenity_options()
     return $options;
 }
 
-/** The orders browse can show its results in, as value => label. '' is the default. */
+/**
+ * The orders browse can show its results in, as value => label. '' is the
+ * default. Nearest is only there while "Find places near me" is on.
+ */
 
-function browse_sort_options()
+function browse_sort_options($near = false)
 {
-    return ['' => 'Available first', 'rent' => 'Lowest rent', 'newest' => 'Newest'];
+    return ($near ? ['nearest' => 'Nearest'] : [])
+        + ['' => 'Available first', 'rent' => 'Lowest rent', 'newest' => 'Newest'];
 }
+
+/** The distances, in kilometres, that "Find places near me" can be narrowed to. */
+
+const NEAR_RADII_KM = [1, 2, 5];
 
 /**
  * The valid filters from $_GET or $_POST: q, room_type, min_rent, max_rent,
- * vacant, amenities, sort, page.
+ * vacant, amenities, near, within, sort, page. near=1 only asks for Near me;
+ * browse turns it on when the session has the visitor's location.
  */
 
 function browse_filters(array $src, array $roomTypes)
@@ -236,9 +245,18 @@ function browse_filters(array $src, array $roomTypes)
         $filters['amenities'] = array_slice($ticked, 0, 30);
     }
 
+    // Near me, and how far to look: one of NEAR_RADII_KM, and only with near.
+    if (($src['near'] ?? '') === '1') {
+        $filters['near'] = 1;
+        $within = is_scalar($src['within'] ?? null) ? (int) $src['within'] : 0;
+        if (in_array($within, NEAR_RADII_KM, true)) {
+            $filters['within'] = $within;
+        }
+    }
+
     // An unknown order is the default one.
     $sort = is_string($src['sort'] ?? null) ? $src['sort'] : '';
-    if ($sort !== '' && isset(browse_sort_options()[$sort])) {
+    if ($sort !== '' && isset(browse_sort_options(isset($filters['near']))[$sort])) {
         $filters['sort'] = $sort;
     }
 
@@ -256,6 +274,71 @@ function browse_path(array $filters, $fragment = '')
 {
     return 'boarder/browse.php' . ($filters ? '?' . http_build_query($filters) : '')
         . ($fragment !== '' ? '#' . $fragment : '');
+}
+
+/* ---------------------------------------------------------------------------
+ * Find places near me. The browser gives the visitor's location, rounded to
+ * about 100 m, and it stays in their session for NEAR_LOCATION_MINUTES, only
+ * to sort browse by distance. It is never saved in the database or put in a
+ * link, and browse forgets it as soon as Near me is turned off.
+ * ------------------------------------------------------------------------ */
+
+/** How long a location is used before the visitor is asked again. */
+
+const NEAR_LOCATION_MINUTES = 30;
+
+function remember_near_location($lat, $lng)
+{
+    $_SESSION['near'] = ['lat' => round($lat, 3), 'lng' => round($lng, 3), 'at' => time()];
+}
+
+function forget_near_location()
+{
+    unset($_SESSION['near']);
+}
+
+/** The visitor's location as ['lat', 'lng'], or null when there is none or it is too old. */
+
+function near_location()
+{
+    $near = $_SESSION['near'] ?? null;
+    if (!is_array($near) || time() - (int) ($near['at'] ?? 0) > NEAR_LOCATION_MINUTES * 60) {
+        return null;
+    }
+    return ['lat' => (float) $near['lat'], 'lng' => (float) $near['lng']];
+}
+
+/**
+ * SQL for the distance in kilometres from a point to a listing's map pin, by
+ * the haversine formula, which MySQL and MariaDB both run. NULL for a listing
+ * without a pin. Returns [$sql, $params]; the listing must be aliased bh.
+ */
+
+function distance_km_sql($lat, $lng)
+{
+    // LEAST(1, …) keeps rounding from pushing ASIN past its domain.
+    return [
+        '(6371 * 2 * ASIN(LEAST(1, SQRT(
+            POWER(SIN(RADIANS(bh.latitude - ?) / 2), 2)
+            + COS(RADIANS(?)) * COS(RADIANS(bh.latitude)) * POWER(SIN(RADIANS(bh.longitude - ?) / 2), 2)
+         ))))',
+        [$lat, $lat, $lng],
+    ];
+}
+
+/**
+ * A distance in words, no finer than the rounded location allows: "400 m
+ * away" to the nearest 100 m, then "1.2 km away", then "12 km away".
+ */
+
+function distance_label($km)
+{
+    $metres = (int) round($km * 10) * 100;
+    if ($metres < 1000) {
+        return max($metres, 100) . ' m away';
+    }
+    $tenths = round($km, 1);
+    return ($tenths < 10 ? number_format($tenths, 1) : number_format($km)) . ' km away';
 }
 
 /**

@@ -301,8 +301,10 @@ New helper functions go in the `includes/core/` file that matches their topic
   each listing's moderation state.
 - Boarder: browse and page through approved listings, search by name or
   address, filter by room type, rent range, free slots and amenities in a
-  panel beside the results, sort by availability, lowest rent or newest,
-  view full listing details, and save listings to a shortlist.
+  panel beside the results, find places near them with the phone's GPS
+  (nearest first, each card saying how far, optionally within 1, 2 or
+  5 km), sort by availability, lowest rent or newest, view full listing
+  details, and save listings to a shortlist.
 - Admin: view platform stats, approve or reject listings with a reason,
   activate/deactivate user accounts, archive and restore them, and remove
   and restore listings (removal archives, it never deletes). Every decision
@@ -322,6 +324,14 @@ Search matches the listing name and the address as a single string. There is
 no separate city or barangay filter, because `address` is stored as one text
 field; splitting it is item C1 in the improvement plan. Room type is a
 foreign key onto `room_types`, so the filter and the form can never disagree.
+
+Find places near me asks the browser for the visitor's location only when
+they tap it. The location is rounded to about 100 m in the browser, posted
+to `boarder/near_action.php`, and kept in the visitor's session for 30
+minutes, only to measure each listing's distance from them (the haversine
+formula, in SQL). It is never saved in the database or put in a link, and
+browse forgets it as soon as Near me is turned off. Listings without a map
+pin come last, marked "No map pin yet".
 
 ## Security
 

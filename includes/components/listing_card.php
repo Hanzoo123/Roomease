@@ -2,7 +2,8 @@
 /**
  * A listing card, used by the home, browse and saved pages.
  *
- * $l: listing row with cover_photo and room totals (plus match_* from browse).
+ * $l: listing row with cover_photo and room totals (plus match_* from browse,
+ *     and distance_km while browse's "Find places near me" is on).
  * $save: null if the user can't save, else:
  *   'saved'  already saved?
  *   'return' where to go back to without JavaScript
@@ -11,8 +12,8 @@
  *
  * The whole card is one link, whose label includes the price for screen readers.
  * The cover photo on top, or the house icon on a green tile while there is
- * none, then the rent, room types and state, name, street and slots left.
- * Styles: "Listing cards" in style.css.
+ * none, then the rent, room types and state, name, street (and how far away,
+ * with Near me on) and slots left. Styles: "Listing cards" in style.css.
  */
 require_once __DIR__ . '/icons.php';
 
@@ -49,6 +50,11 @@ function render_listing_card(array $l, ?array $save = null)
         ? $slots . ' ' . ($slots === 1 ? 'slot' : 'slots') . ' left'
         : $avail['summary'];
 
+    // With Near me on: how far away the listing is, or that it has no map pin
+    // to measure from.
+    $hasDistance = array_key_exists('distance_km', $l);
+    $distance = $hasDistance && $l['distance_km'] !== null ? distance_label((float) $l['distance_km']) : null;
+
     // Everything the card shows above the name is drawn for the eye and hidden
     // from screen readers, which hear it in the link's label instead, after
     // the name, in one sentence.
@@ -60,6 +66,9 @@ function render_listing_card(array $l, ?array $save = null)
         $spoken[] = ($rentLabel !== '' ? $rentLabel . ' ' : '') . peso_round($rent) . ' a month';
     }
     $spoken[] = $meta;
+    if ($distance !== null) {
+        $spoken[] = $distance;
+    }
     ?>
     <article class="room-card room-card--<?= h($avail['key']) ?>">
       <div class="room-card-media">
@@ -82,12 +91,7 @@ function render_listing_card(array $l, ?array $save = null)
           <input type="hidden" name="boarding_house_id" value="<?= $id ?>">
           <input type="hidden" name="action" value="<?= $saved ? 'unsave' : 'save' ?>">
           <input type="hidden" name="return" value="<?= h($save['return'] ?? 'browse') ?>">
-          <?php foreach (($save['fields'] ?? []) as $name => $value): ?>
-            <?php /* A list, such as the ticked amenities, goes back as name[]. */ ?>
-            <?php foreach ((array) $value as $item): ?>
-              <input type="hidden" name="<?= h($name) . (is_array($value) ? '[]' : '') ?>" value="<?= h($item) ?>">
-            <?php endforeach; ?>
-          <?php endforeach; ?>
+          <?= hidden_fields($save['fields'] ?? []) ?>
           <button type="submit" class="save-btn <?= $saved ? 'is-saved' : '' ?>" data-name="<?= h($l['name']) ?>"
             title="<?= $saved ? 'Remove from saved' : 'Save this listing' ?>"
             aria-label="<?= $saved ? 'Remove ' . h($l['name']) . ' from saved' : 'Save ' . h($l['name']) ?>"
@@ -122,6 +126,9 @@ function render_listing_card(array $l, ?array $save = null)
           <a class="room-card-link" href="<?= base_url('boarder/view_listing.php?id=' . $id) ?>"><?= h($l['name']) ?><span class="sr-only">, <?= h(implode(', ', $spoken)) ?></span></a>
         </h3>
         <p class="room-card-addr" title="<?= h($l['address']) ?>"><?= icon('pin', 15) ?><span><?= h(short_address($l['address'])) ?></span></p>
+        <?php if ($hasDistance): ?>
+          <p class="room-card-distance<?= $distance === null ? ' is-unknown' : '' ?>"><?= icon('locate', 15) ?><span><?= h($distance ?? 'No map pin yet') ?></span></p>
+        <?php endif; ?>
 
         <div class="room-card-foot" aria-hidden="true">
           <span class="room-card-meta"><?= icon('door', 16) ?><?= h($meta) ?></span>

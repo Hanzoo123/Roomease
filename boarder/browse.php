@@ -8,6 +8,28 @@ require __DIR__ . '/../includes/components/filter_panel.php';
 // budget of nothing is simply no filter, never "no results".
 $roomTypes = room_type_options();
 $filters = browse_filters($_GET, $roomTypes);
+
+// Find places near me is on while the link says near=1 and the session still
+// has the visitor's location. If it has run out, the page says so and shows
+// the usual order. Any page without near=1 forgets the location, so turning
+// Near me off (its chip, or Turn off) also forgets where the visitor is.
+$near = null;
+$nearExpired = false;
+if (isset($filters['near'])) {
+  $near = near_location();
+  if (!$near) {
+    $nearExpired = true;
+    unset($filters['near'], $filters['within']);
+    if (($filters['sort'] ?? '') === 'nearest') {
+      unset($filters['sort']);
+    }
+  }
+} else {
+  forget_near_location();
+}
+[$distanceSql, $distanceParams] = $near ? distance_km_sql($near['lat'], $near['lng']) : [null, []];
+$within = $filters['within'] ?? '';
+
 $q = $filters['q'] ?? '';
 $roomType = $filters['room_type'] ?? '';
 $minRent = $filters['min_rent'] ?? '';
@@ -17,16 +39,18 @@ $amenityOptions = filter_amenity_options();
 $amenityIds = $filters['amenities'] ?? [];
 $sort = $filters['sort'] ?? '';
 // The search as the boarder set it, kept by every link on the page: the
-// filters and the order. Sorting on its own is not filtering.
+// filters, Near me and the order. Sorting is not filtering, and neither is
+// Near me on its own: it measures every listing, until a distance is chosen.
 $searchFilters = array_diff_key($filters, ['page' => 1]);
-$filtered = (bool) array_diff_key($searchFilters, ['sort' => 1]);
+$filtered = (bool) array_diff_key($searchFilters, ['sort' => 1, 'near' => 1]);
 
 /**
  * WHERE clause + parameters for a set of filters (also used to count the
  * "try instead" suggestions). Room type, rent range and free slot must all
- * match the same open room. The listing must have every amenity ticked.
+ * match the same open room. The listing must have every amenity ticked, and
+ * with a distance chosen, a map pin that close to the visitor.
  */
-$whereFor = function (array $f) use ($amenityOptions) {
+$whereFor = function (array $f) use ($amenityOptions, $distanceSql, $distanceParams) {
   // LIVE_LISTING_WHERE also requires at least one room.
   $where = [LIVE_LISTING_WHERE];
   $params = [];
@@ -62,6 +86,10 @@ $whereFor = function (array $f) use ($amenityOptions) {
                           JOIN amenities a ON a.amenity_id = fa.amenity_id
                          WHERE fa.boarding_house_id = bh.boarding_house_id AND a.amenity_name = ?)';
     $params[] = $amenityOptions[$amenityId]['name'];
+  }
+  if (isset($f['within']) && $distanceSql !== null) {
+    $where[] = 'bh.latitude IS NOT NULL AND ' . $distanceSql . ' <= ?';
+    $params = array_merge($params, $distanceParams, [$f['within']]);
   }
   return [implode(' AND ', $where), $params];
 };
@@ -117,18 +145,23 @@ if ($matchConds) {
     ) m ON m.boarding_house_id = bh.boarding_house_id';
 }
 
+// With Near me on, each listing's distance from the visitor, for the cards
+// and for Nearest (listings without a pin last).
+$distanceSelect = $distanceSql !== null ? ', ' . $distanceSql . ' AS distance_km' : '';
+
 // The order (Sort by). By default, listings with a room available first, then
 // fully occupied ones, newest first within each. "Lowest rent" goes by the
 // rent each card quotes. Every order ends on the id, so "Show more" never
 // repeats or skips a listing.
 $quotedRent = $matchConds ? 'm.match_rent' : 'COALESCE(rs.rent_from_available, rs.rent_from_all)';
 $orderBy = [
+  'nearest' => 'distance_km IS NULL, distance_km ASC, bh.created_at DESC',
   'rent' => $quotedRent . ' ASC, bh.created_at DESC',
   'newest' => 'bh.created_at DESC',
 ][$sort] ?? 'rs.rooms_available > 0 DESC, bh.created_at DESC';
 
 [$where, $whereParams] = $whereFor($searchFilters);
-$sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ", " . COVER_PHOTO_SELECT . $matchSelect . "
+$sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ", " . COVER_PHOTO_SELECT . $matchSelect . $distanceSelect . "
         FROM boarding_houses bh
         " . LIVE_LANDLORD_JOIN . "
         " . room_summary_join(true) . "
@@ -137,7 +170,8 @@ $sql = "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ", " . COVER_PHOTO_SELECT . $mat
         ORDER BY " . $orderBy . ", bh.boarding_house_id DESC
         LIMIT " . (int) ($perPage * $page);
 $stmt = $pdo->prepare($sql);
-$stmt->execute(array_merge($matchParams, $whereParams));
+// In the order of the ?s: the distance in the SELECT, the room match join, the WHERE.
+$stmt->execute(array_merge($distanceSelect !== '' ? $distanceParams : [], $matchParams, $whereParams));
 $listings = $stmt->fetchAll();
 if ($roomType !== '') {
   foreach ($listings as &$row) {
@@ -163,7 +197,19 @@ $without = function ($key, $amenityId = null) use ($searchFilters) {
   return $rest ? ['amenities' => $rest] + $searchFilters : array_diff_key($searchFilters, ['amenities' => 1]);
 };
 
+// Turning Near me off also drops its distance and its order.
+$offNear = array_diff_key($searchFilters, ['near' => 1, 'within' => 1]);
+if ($sort === 'nearest') {
+  unset($offNear['sort']);
+}
+
 $chips = [];
+if ($near) {
+  $chips[] = ['label' => 'Near you', 'without' => $offNear];
+}
+if ($within !== '') {
+  $chips[] = ['label' => 'Within ' . $within . ' km', 'without' => $without('within')];
+}
 if ($q !== '') {
   $chips[] = ['label' => '“' . $q . '”', 'without' => $without('q')];
 }
@@ -217,12 +263,35 @@ if (!$listings && $filtered) {
     $wants = $amenityPhrase !== '' ? 'offers ' . $amenityPhrase : '';
   }
 
+  // "within 2 km of you", once a distance is chosen.
+  $nearPhrase = $within !== '' ? ' within ' . $within . ' km of you' : '';
   if ($q !== '' && $wants !== '') {
-    $emptyMessage = 'No boarding house matching “' . $q . '” ' . $wants . '.';
+    $emptyMessage = 'No boarding house matching “' . $q . '”' . $nearPhrase . ' ' . $wants . '.';
   } elseif ($q !== '') {
-    $emptyMessage = 'No boarding house name or address matches “' . $q . '”.';
+    $emptyMessage = $nearPhrase !== ''
+      ? 'No boarding house matching “' . $q . '”' . $nearPhrase . '.'
+      : 'No boarding house name or address matches “' . $q . '”.';
   } else {
-    $emptyMessage = 'No boarding house ' . $wants . ' right now.';
+    $emptyMessage = 'No boarding house' . $nearPhrase . ($wants !== '' ? ' ' . $wants : '') . ' right now.';
+  }
+
+  // Too close: a wider circle that has something, then no limit at all.
+  if ($within !== '') {
+    foreach (NEAR_RADII_KM as $km) {
+      if ($km > $within) {
+        $wider = ['within' => $km] + $searchFilters;
+        $n = $countFor($wider);
+        if ($n > 0) {
+          $suggestions[] = ['href' => browse_path($wider, 'results'), 'label' => 'Within ' . $km . ' km', 'note' => '', 'count' => $n];
+          break;
+        }
+      }
+    }
+    $anyDistance = $without('within');
+    $n = $countFor($anyDistance);
+    if ($n > 0) {
+      $suggestions[] = ['href' => browse_path($anyDistance, 'results'), 'label' => 'Any distance', 'note' => '', 'count' => $n];
+    }
   }
 
   // The lowest rent that would match everything else the boarder asked for.
@@ -309,7 +378,6 @@ $band = [
   'lede' => 'Every boarding house here is approved. Filter by name, room type, budget, free slots, or the amenities you need.',
 ];
 require __DIR__ . '/../includes/layouts/header.php';
-
 ?>
 
 <div class="browse-layout">
@@ -318,13 +386,9 @@ require __DIR__ . '/../includes/layouts/header.php';
     'action' => base_url('boarder/browse.php') . '#results',
     'room_types' => $roomTypes,
     'amenity_options' => $amenityOptions,
-    'q' => $q,
-    'room_type' => $roomType,
-    'min_rent' => $minRent,
-    'max_rent' => $maxRent,
-    'vacant' => $vacant,
-    'amenities' => $amenityIds,
-    'sort' => $sort,
+    'filters' => $searchFilters,
+    'near_off' => $offNear,
+    'near_outside' => $near && !in_baybay($near['lat'], $near['lng']),
   ]); ?>
 
   <div class="browse-results">
@@ -342,7 +406,7 @@ require __DIR__ . '/../includes/layouts/header.php';
         <div class="results-sort">
           <label for="sort">Sort by</label>
           <select id="sort" name="sort" form="browse-filters" data-auto-submit>
-            <?php foreach (browse_sort_options() as $sortValue => $sortLabel): ?>
+            <?php foreach (browse_sort_options((bool) $near) as $sortValue => $sortLabel): ?>
               <option value="<?= h($sortValue) ?>" <?= $sort === $sortValue ? 'selected' : '' ?>><?= h($sortLabel) ?></option>
             <?php endforeach; ?>
           </select>
@@ -353,6 +417,13 @@ require __DIR__ . '/../includes/layouts/header.php';
         <input type="hidden" name="sort" value="<?= h($sort) ?>" form="browse-filters">
       <?php endif; ?>
     </div>
+
+    <?php if ($nearExpired): ?>
+      <p class="results-note">
+        RoomEase no longer has the location you shared, so this is the usual order. Use Find places near me to
+        see distances again.
+      </p>
+    <?php endif; ?>
 
     <?php if ($chips): ?>
       <ul class="filter-summary" aria-label="Your search">

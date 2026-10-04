@@ -1,40 +1,79 @@
 <?php
 /**
  * The browse page's filter panel: a card beside the results on a laptop, and
- * on top of them on a phone, where everything after the search box folds
+ * on top of them on a phone, where everything between Near me and Apply folds
  * under "More filters". It is the page's one search form; the Sort by menu
  * above the results joins it with form="browse-filters".
  *
- * Options: 'action', 'room_types', 'amenity_options', and the current values
- * 'q', 'room_type', 'min_rent', 'max_rent', 'vacant', 'amenities' and 'sort'.
- * Styles: "Browse" in style.css.
+ * Options: 'action', 'room_types', 'amenity_options', 'filters' (the search
+ * as browse has it, without the page), 'near_off' (the same search with Near
+ * me turned off, for its Turn off link) and 'near_outside' (the visitor seems
+ * to be outside Baybay City). Styles: "Browse" in style.css.
  */
 require_once __DIR__ . '/icons.php';
 
 function render_filter_panel(array $opts)
 {
-    $q = $opts['q'] ?? '';
-    $roomType = $opts['room_type'] ?? '';
-    $minRent = $opts['min_rent'] ?? '';
-    $maxRent = $opts['max_rent'] ?? '';
-    $vacant = !empty($opts['vacant']);
+    $f = $opts['filters'] ?? [];
+    $q = $f['q'] ?? '';
+    $roomType = $f['room_type'] ?? '';
+    $minRent = $f['min_rent'] ?? '';
+    $maxRent = $f['max_rent'] ?? '';
+    $vacant = !empty($f['vacant']);
+    $ticked = array_flip($f['amenities'] ?? []);
+    $near = isset($f['near']);
+    $within = $f['within'] ?? '';
     $amenityOptions = $opts['amenity_options'] ?? filter_amenity_options();
-    $ticked = array_flip($opts['amenities'] ?? []);
 
     // On phones, "More filters" starts open when a field under it is in use,
     // and says how many are.
     $moreSet = ($roomType !== '' ? 1 : 0) + ($minRent !== '' ? 1 : 0) + ($maxRent !== '' ? 1 : 0)
         + ($vacant ? 1 : 0) + count($ticked);
-    $anySet = $moreSet > 0 || $q !== '' || ($opts['sort'] ?? '') !== '';
+    $anySet = $moreSet > 0 || $q !== '' || $near || isset($f['sort']);
 
     // Landlords' own amenities wait behind "+ N more", unless one of them is
     // ticked, in which case the whole list is shown so it can be seen.
     $extraCount = count(array_filter($amenityOptions, fn($a) => $a['extra']));
     $extraTicked = (bool) array_filter(array_intersect_key($amenityOptions, $ticked), fn($a) => $a['extra']);
+
+    // Under Near me: what happens to the location, or why the distances are long.
+    if (!$near) {
+        $nearNote = 'Your location only sorts this list. It is never saved.';
+    } elseif (!empty($opts['near_outside'])) {
+        $nearNote = 'You seem to be outside Baybay City, so every place is far from you.';
+    } else {
+        $nearNote = 'Your location is rounded to about 100 m, and forgotten when you turn this off.';
+    }
     ?>
     <form method="get" action="<?= h($opts['action'] ?? '') ?>" class="filter-panel" id="browse-filters"
       role="search" aria-label="Filter boarding houses">
       <div class="filter-body">
+        <?php /* Find places near me needs the browser's location, so it only
+                 shows where the script below runs (html.js). The location goes
+                 to the server in the small form after this one. */ ?>
+        <div class="near-me<?= $near ? ' is-on' : '' ?>" data-near>
+          <?php if ($near): ?>
+            <p class="near-me-state"><?= icon('locate', 16) ?><span>Showing how far each place is from you</span></p>
+            <div>
+              <label for="within">Distance</label>
+              <select id="within" name="within">
+                <option value="">Any distance</option>
+                <?php foreach (NEAR_RADII_KM as $km): ?>
+                  <option value="<?= $km ?>" <?= $within === $km ? 'selected' : '' ?>>Within <?= $km ?> km</option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <input type="hidden" name="near" value="1">
+            <p class="near-me-actions">
+              <button type="button" class="near-me-update" data-near-me>Update my location</button>
+              <a href="<?= h(base_url(browse_path($opts['near_off'] ?? [], 'results'))) ?>">Turn off</a>
+            </p>
+          <?php else: ?>
+            <button type="button" class="btn btn-near" data-near-me><?= icon('locate', 18) ?><span>Find places near me</span></button>
+          <?php endif; ?>
+          <p class="near-me-note" data-near-status role="status" aria-live="polite"><?= h($nearNote) ?></p>
+        </div>
+
         <div>
           <label for="q">Search</label>
           <input type="text" id="q" name="q" value="<?= h($q) ?>" placeholder="Name, barangay, or street">
@@ -103,12 +142,23 @@ function render_filter_panel(array $opts)
         <?php endif; ?>
       </div>
     </form>
+
+    <?php /* Sends the location that Find places near me found (see the script),
+             with the search as it is now. A form of its own, because it posts,
+             and the filter form above is a GET search. */ ?>
+    <form method="post" action="<?= h(base_url('boarder/near_action.php')) ?>" id="near-form" hidden>
+      <?= csrf_field() ?>
+      <input type="hidden" name="lat" value="">
+      <input type="hidden" name="lng" value="">
+      <?= hidden_fields($f) ?>
+    </form>
+
     <script>
       (function () {
         var form = document.getElementById('browse-filters');
         if (!form) return;
 
-        // Phones: everything after the search box folds under "More filters".
+        // Phones: everything between Near me and Apply folds under "More filters".
         var toggle = form.querySelector('[data-filter-toggle]');
         var fields = document.getElementById(toggle.getAttribute('aria-controls'));
         toggle.addEventListener('click', function () {
@@ -140,6 +190,40 @@ function render_filter_panel(array $opts)
               form.submit();
             }
           }
+        });
+
+        // Find places near me: on a tap, ask the browser where the visitor is,
+        // then post it, rounded to about 100 m, with the search as it is.
+        var near = form.querySelector('[data-near]');
+        var nearStatus = near.querySelector('[data-near-status]');
+        var NEAR_ERRORS = {
+          1: 'Location is blocked for this site. Allow it in your browser settings, or search by name or barangay instead.',
+          2: 'Your location could not be found. Try again, or search by name or barangay instead.',
+          3: 'Finding your location took too long. Please try again.'
+        };
+        if (!navigator.geolocation) {
+          near.hidden = true; // nothing to offer without it
+          return;
+        }
+        near.querySelectorAll('[data-near-me]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            // Browsers only share a location with https pages and localhost.
+            if (!window.isSecureContext) {
+              nearStatus.textContent = 'Your browser only shares your location over a secure (https) connection.';
+              return;
+            }
+            button.disabled = true;
+            nearStatus.textContent = 'Finding your location…';
+            navigator.geolocation.getCurrentPosition(function (pos) {
+              var send = document.getElementById('near-form');
+              send.elements.lat.value = pos.coords.latitude.toFixed(3);
+              send.elements.lng.value = pos.coords.longitude.toFixed(3);
+              send.submit();
+            }, function (err) {
+              button.disabled = false;
+              nearStatus.textContent = NEAR_ERRORS[err.code] || NEAR_ERRORS[2];
+            }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+          });
         });
       })();
     </script>

@@ -1815,6 +1815,93 @@ input[type=checkbox] {
   border: 0;
 }
 
+/* Find places near me, first in the panel. It needs the browser's location,
+   so it only shows where the script runs. */
+.near-me {
+  display: none;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+html.js .near-me {
+  display: grid;
+}
+
+html.js .near-me[hidden] {
+  display: none;
+}
+
+.btn-near {
+  width: 100%;
+  min-height: 44px;
+  border-color: var(--forest-line);
+  background: var(--leaf);
+  color: var(--forest);
+}
+
+.btn-near:hover {
+  background: #D6E6DD;
+  color: var(--forest);
+}
+
+.btn-near:disabled {
+  cursor: progress;
+  opacity: .7;
+}
+
+.near-me-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--forest);
+}
+
+.near-me-state .icon {
+  flex: none;
+}
+
+.near-me-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.near-me-update,
+.near-me-actions a {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--forest);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.near-me-actions a {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.near-me-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+.near-me-note:empty {
+  display: none;
+}
+
 /* One column in the sidebar and on a phone; side by side wherever the panel
    is wide, as above the results on a tablet. */
 .filter-fields {
@@ -1977,6 +2064,14 @@ html.js .results-sort-apply {
   scroll-margin-top: calc(var(--header-offset, 0px) + var(--s4));
 }
 
+/* Under the results heading when a shared location has expired. */
+.results-note {
+  margin: calc(-1 * var(--s1)) 0 var(--s4);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
 @media (min-width: 981px) {
   .browse-layout {
     grid-template-columns: 272px minmax(0, 1fr);
@@ -2019,6 +2114,16 @@ html.js .results-sort-apply {
   .filter-fields > .filter-check {
     align-self: end;
     min-height: 46px;
+  }
+
+  /* Near me keeps the width of a field instead of the whole panel's. */
+  .btn-near {
+    justify-self: start;
+    width: auto;
+  }
+
+  .near-me > div {
+    max-width: 280px;
   }
 
   .filter-actions {
@@ -2091,6 +2196,14 @@ html.js .results-sort-apply {
   }
 
   .results-sort select {
+    min-height: 44px;
+  }
+
+  /* Big enough to tap, like the chips. */
+  .near-me-update,
+  .near-me-actions a {
+    display: inline-flex;
+    align-items: center;
     min-height: 44px;
   }
 }
@@ -2548,7 +2661,8 @@ html.js .results-sort-apply {
   color: var(--forest);
 }
 
-.room-card-addr {
+.room-card-addr,
+.room-card-distance {
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -2557,9 +2671,21 @@ html.js .results-sort-apply {
   color: var(--ink-soft);
 }
 
-.room-card-addr .icon {
+.room-card-addr .icon,
+.room-card-distance .icon {
   flex: 0 0 auto;
   margin-top: 3px;
+}
+
+/* With Near me on: how far away, in forest; grey when there is no pin. */
+.room-card-distance {
+  font-weight: 500;
+  color: var(--forest);
+}
+
+.room-card-distance.is-unknown {
+  font-weight: 400;
+  color: var(--ink-faint);
 }
 
 .room-card-addr span {
@@ -5189,7 +5315,8 @@ body.page-white {
     margin-top: 8px;
   }
 
-  .room-card-addr {
+  .room-card-addr,
+  .room-card-distance {
     margin-top: 2px;
     font-size: 12.5px;
     gap: 4px;

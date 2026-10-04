@@ -10,6 +10,22 @@ function h($value)
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * Hidden inputs that send $fields (name => value) with a form, such as the
+ * browse filters. A list, such as the ticked amenities, goes as name[].
+ */
+
+function hidden_fields(array $fields)
+{
+    $html = '';
+    foreach ($fields as $name => $value) {
+        foreach ((array) $value as $item) {
+            $html .= '<input type="hidden" name="' . h($name) . (is_array($value) ? '[]' : '') . '" value="' . h($item) . '">';
+        }
+    }
+    return $html;
+}
+
 /** Redirect to a given path relative to the app root and stop execution. */
 
 function redirect($path)
