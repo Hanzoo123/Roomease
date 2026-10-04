@@ -197,7 +197,7 @@ roomease/
 │   │   ├── auth_header.php / auth_footer.php  Sign-in pages
 │   │   └── panel*.php                         AdminLTE panel shell (admin and landlord)
 │   ├── components/              Pieces placed inside pages: listing card,
-│   │                            search bar, listing form, room rows, icons,
+│   │                            browse filter panel, listing form, room rows, icons,
 │   │                            avatar (one renderer for every profile photo),
 │   │                            head_meta (icons and link-preview tags)
 │   └── scripts/                 PHP files that print a <script> block: password
@@ -298,8 +298,9 @@ New helper functions go in the `includes/core/` file that matches their topic
   amenities, house rules, contact info, and photos; choose which photo is
   the cover; see each listing's moderation state.
 - Boarder: browse and page through approved listings, search by name or
-  address, filter by room type and maximum rent, view full listing details,
-  and save listings to a shortlist.
+  address, filter by room type, rent range, free slots and amenities in a
+  panel beside the results, sort by availability, lowest rent or newest,
+  view full listing details, and save listings to a shortlist.
 - Admin: view platform stats, approve or reject listings with a reason,
   activate/deactivate user accounts, archive and restore them, and remove
   and restore listings (removal archives, it never deletes). Every decision

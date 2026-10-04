@@ -1766,179 +1766,333 @@ input[type=checkbox] {
 }
 
 /* =========================================================
-   Search bar — the browse page's full search, under its strip
+   Browse: the filter panel beside the results
+   ---------------------------------------------------------
+   The browse page's one search form (includes/components/filter_panel.php).
+   On a laptop it is a card on the left that stays in view while the results
+   scroll, with Apply pinned to its foot. Below 981px it sits on top of the
+   results with its fields side by side, and on a phone everything after the
+   search box folds under "More filters". Sort by, above the results, belongs
+   to the same form.
    ========================================================= */
-.search-bar {
+.browse-layout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: end;
-  gap: var(--s2) var(--s3);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--lift);
-  padding: var(--s4);
+  gap: var(--s5);
+  align-items: start;
 }
 
-.search-bar label {
+.filter-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+}
+
+.filter-body {
+  display: grid;
+  gap: 16px;
+  padding: var(--s4) var(--s4) 18px;
+}
+
+.filter-panel label,
+.filter-panel legend {
+  margin: 0 0 6px 2px;
+  padding: 0;
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-soft);
-  margin: 0 0 4px 2px;
 }
 
-.search-bar input,
-.search-bar select {
+.filter-panel input[type=text],
+.filter-panel input[type=number],
+.filter-panel select {
   margin-bottom: 0;
 }
 
-/* The button carries a magnifying glass beside its label, so the two are laid
-   out in a row here, the way .btn-google does it, rather than sitting on the
-   text baseline with a gap that depends on the space between the tags. */
-.search-bar .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 0 28px;
-}
-
-/* Filter disclosure, small screens only, and only where its script runs.
-   `display: contents` keeps both fields as direct children of the grid on
-   desktop. */
-.filter-fields {
-  display: contents;
-}
-
-.filter-toggle {
-  display: none;
-}
-
-/* The Search button keeps its place at the end of the first row; the free
-   slot box and the amenities take a full-width row of their own under it. */
-.search-bar > .btn {
-  grid-column: 4;
-  grid-row: 1;
-}
-
-.filter-extras,
-.amenity-options {
-  grid-column: 1 / -1;
-}
-
-.filter-extras {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s2) var(--s4);
-}
-
-.search-bar .vacant-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  margin: 0;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.vacant-check input,
-.amenity-pill input {
-  margin: 0;
-}
-
-/* Ticked amenities read as chosen at a glance: the same leaf and forest as
-   the chips under the results heading. */
-.amenity-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.filter-panel fieldset {
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
-.search-bar .amenity-pill {
-  display: inline-flex;
+/* One column in the sidebar and on a phone; side by side wherever the panel
+   is wide, as above the results on a tablet. */
+.filter-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.filter-rent {
+  display: flex;
   align-items: center;
-  gap: 7px;
-  min-height: 36px;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.filter-rent input {
+  min-width: 0;
+}
+
+/* Has a free slot, and each amenity: the box, then its words. */
+.filter-panel .filter-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
   margin: 0;
-  padding: 6px 13px 6px 11px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  background: var(--panel);
   font-size: 14px;
   font-weight: 400;
   color: var(--ink);
   cursor: pointer;
 }
 
-.search-bar .amenity-pill:has(input:checked) {
-  border-color: var(--forest-line);
-  background: var(--leaf);
-  color: var(--forest);
-  font-weight: 500;
+.filter-check input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
-/* Where the script runs, the amenities fold under their button and the
-   landlords' own wait behind "+ N more". Without it, all are shown. */
-.amenity-toggle,
+.filter-amenities {
+  grid-column: 1 / -1;
+}
+
+.filter-amenity-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  column-gap: 16px;
+}
+
+/* Where the script runs, the landlords' own amenities wait behind
+   "+ N more". Without it, all are shown. */
 .amenity-more {
   display: none;
 }
 
-html.js .amenity-toggle,
 html.js .amenity-more {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 6px 14px;
-  border: 1px solid var(--field-line);
-  border-radius: var(--r-pill);
-  background: var(--panel);
+  min-height: 34px;
+  margin-top: 2px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
   color: var(--forest);
   font: inherit;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 }
 
-html.js .amenity-toggle::after {
-  content: '+';
-  font-size: 16px;
-  line-height: 1;
+html.js .amenity-more:hover {
+  text-decoration: underline;
 }
 
-html.js .amenity-toggle[aria-expanded="true"]::after {
-  content: '−';
-}
-
-html.js .amenity-more {
-  border-style: dashed;
-}
-
-html.js .amenity-options {
+html.js .filter-amenities:not(.show-all) .is-extra {
   display: none;
 }
 
-html.js .amenity-options.is-open {
+/* "More filters" is for phones only; see the 720px rules below. */
+.filter-toggle {
+  display: none;
+}
+
+.filter-actions {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 0 var(--s4) var(--s4);
+}
+
+.filter-actions .btn {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
 }
 
-html.js .amenity-options:not(.show-all) .is-extra {
+.filter-reset {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.filter-reset:hover {
+  color: var(--forest);
+}
+
+/* The results' heading: what is shown and how many, with Sort by across
+   from them. */
+.browse-results .results-head {
+  align-items: center;
+  margin-top: 0;
+}
+
+.results-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s3);
+}
+
+.results-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.results-sort label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.results-sort select {
+  width: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 6px 36px 6px 12px;
+  font-size: 14px;
+}
+
+/* Only where JavaScript is off: with it, a new order applies at once. */
+.results-sort-apply {
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+html.js .results-sort-apply {
   display: none;
 }
 
-#listings,
 #results {
   scroll-margin-top: calc(var(--header-offset, 0px) + var(--s4));
+}
+
+@media (min-width: 981px) {
+  .browse-layout {
+    grid-template-columns: 272px minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  /* Like the listing page's rent card: clear of the header while it is
+     showing (site-header.js keeps --header-offset), and scrolling inside
+     itself only when it is taller than the screen. */
+  .filter-panel {
+    position: sticky;
+    top: calc(var(--header-offset, 0px) + var(--s4));
+    max-height: calc(100vh - var(--header-offset, 0px) - var(--s4) * 2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+    transition: top 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Apply stays at the panel's foot while the fields above it scroll. */
+  .filter-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+  }
+
+  /* Three cards across beside the panel on a wide screen, two on a laptop. */
+  .browse-results .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+}
+
+/* Above the results on a tablet, Apply sits beside Clear filters instead of
+   stretching across the panel. */
+@media (min-width: 721px) and (max-width: 980px) {
+  /* Has a free slot lines up with the boxes beside it, not their labels. */
+  .filter-fields > .filter-check {
+    align-self: end;
+    min-height: 46px;
+  }
+
+  .filter-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s4);
+  }
+
+  .filter-actions .btn {
+    width: auto;
+    padding: 0 28px;
+  }
+}
+
+@media (max-width: 720px) {
+  .browse-layout {
+    gap: var(--s4);
+  }
+
+  .filter-body {
+    gap: 12px;
+    padding: var(--s3) var(--s3) 14px;
+  }
+
+  .filter-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .filter-actions {
+    padding: 0 var(--s3) var(--s3);
+  }
+
+  /* With the script, everything after the search box folds under a real
+     button, open already when the search used one of those fields. */
+  html.js .filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--field-line);
+    border-radius: var(--r-md);
+    background: var(--panel);
+    color: var(--forest);
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  html.js .filter-toggle::after {
+    content: '+';
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  html.js .filter-toggle[aria-expanded="true"]::after {
+    content: '−';
+  }
+
+  html.js .filter-fields {
+    display: none;
+  }
+
+  html.js .filter-fields.is-open {
+    display: grid;
+  }
+
+  .results-sort select {
+    min-height: 44px;
+  }
 }
 
 /* The search in words, under the results heading. Each part is a link that
@@ -4850,64 +5004,6 @@ body.page-white {
     gap: 0;
   }
 
-  .search-bar {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-    padding: var(--s3);
-  }
-
-  .search-bar .btn {
-    width: 100%;
-  }
-
-  .search-bar > .btn {
-    grid-column: auto;
-    grid-row: auto;
-  }
-
-  /* Without the script the two fields are simply shown; with it they fold
-     under a real button, open already when the search used them. */
-  .filter-fields {
-    display: grid;
-    gap: 10px;
-  }
-
-  html.js .filter-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border: 1px solid var(--field-line);
-    border-radius: var(--r-md);
-    background: var(--panel);
-    color: var(--forest);
-    font: inherit;
-    font-size: 14.5px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  html.js .filter-toggle::after {
-    content: '+';
-    font-size: 17px;
-    line-height: 1;
-  }
-
-  html.js .filter-toggle[aria-expanded="true"]::after {
-    content: '−';
-  }
-
-  html.js .filter-fields {
-    display: none;
-  }
-
-  html.js .filter-fields.is-open {
-    display: grid;
-  }
-
   .filter-chip,
   .filter-clear {
     min-height: 44px;
@@ -5227,7 +5323,8 @@ body.page-white {
   .btn,
   .site-header,
   .site-header.is-hidden,
-  .listing-side {
+  .listing-side,
+  .filter-panel {
     transition: none;
   }
 

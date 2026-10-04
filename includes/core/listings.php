@@ -179,7 +179,17 @@ function filter_amenity_options()
     return $options;
 }
 
-/** The valid filters from $_GET or $_POST: q, room_type, max_rent, vacant, amenities, page. */
+/** The orders browse can show its results in, as value => label. '' is the default. */
+
+function browse_sort_options()
+{
+    return ['' => 'Available first', 'rent' => 'Lowest rent', 'newest' => 'Newest'];
+}
+
+/**
+ * The valid filters from $_GET or $_POST: q, room_type, min_rent, max_rent,
+ * vacant, amenities, sort, page.
+ */
 
 function browse_filters(array $src, array $roomTypes)
 {
@@ -197,10 +207,18 @@ function browse_filters(array $src, array $roomTypes)
         $filters['room_type'] = $type;
     }
 
-    // Zero or negative means no budget.
+    // The rent range, in whole pesos. Zero or negative means no limit, and a
+    // range typed the wrong way round is turned the right way.
+    $min = $src['min_rent'] ?? '';
+    if (is_numeric($min) && (float) $min > 0) {
+        $filters['min_rent'] = (int) floor(min((float) $min, 1000000));
+    }
     $rent = $src['max_rent'] ?? '';
     if (is_numeric($rent) && (float) $rent > 0) {
-        $filters['max_rent'] = (int) ceil((float) $rent);
+        $filters['max_rent'] = (int) ceil(min((float) $rent, 1000000));
+    }
+    if (isset($filters['min_rent'], $filters['max_rent']) && $filters['min_rent'] > $filters['max_rent']) {
+        [$filters['min_rent'], $filters['max_rent']] = [$filters['max_rent'], $filters['min_rent']];
     }
 
     // Only listings with a free slot.
@@ -216,6 +234,12 @@ function browse_filters(array $src, array $roomTypes)
     if ($ticked) {
         sort($ticked);
         $filters['amenities'] = array_slice($ticked, 0, 30);
+    }
+
+    // An unknown order is the default one.
+    $sort = is_string($src['sort'] ?? null) ? $src['sort'] : '';
+    if ($sort !== '' && isset(browse_sort_options()[$sort])) {
+        $filters['sort'] = $sort;
     }
 
     $page = (int) ($src['page'] ?? 1);
