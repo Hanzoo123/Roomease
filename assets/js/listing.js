@@ -1,5 +1,6 @@
 /**
- * Listing page: photo gallery, full-screen viewer, room filter, map.
+ * Listing page: photo gallery, full-screen viewer, room filter, map, and the
+ * visitor's own position on the map ("Show my location").
  * Without JavaScript the page still works (photos are plain links).
  */
 (function () {
@@ -201,6 +202,9 @@
    * Map
    * ------------------------------------------------------------------- */
   var mapEl = document.getElementById('listing-map');
+  var locateButton = document.querySelector('[data-map-locate]');
+  var map = null;
+  var house = null;
 
   if (mapEl && window.L) {
     var lat = parseFloat(mapEl.getAttribute('data-lat'));
@@ -208,8 +212,9 @@
 
     if (isFinite(lat) && isFinite(lng)) {
       mapEl.textContent = '';
+      house = L.latLng(lat, lng);
 
-      var map = L.map(mapEl, { scrollWheelZoom: false }).setView([lat, lng], 16);
+      map = L.map(mapEl, { scrollWheelZoom: false }).setView(house, 16);
       var mapTiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -230,5 +235,97 @@
         if (note) note.hidden = false;
       });
     }
+  }
+
+  /* ---------------------------------------------------------------------
+   * Show my location: the visitor's own position on the map, followed as
+   * they move, with how far they are from the house in a straight line. It
+   * stays in the browser; nothing is sent to RoomEase. It stops when tapped
+   * again, or when the visitor leaves the page.
+   * ------------------------------------------------------------------- */
+  if (locateButton && (!map || !navigator.geolocation)) {
+    locateButton.hidden = true;
+  } else if (locateButton) {
+    var mapStatus = document.querySelector('[data-map-status]');
+    var buttonLabel = locateButton.querySelector('span');
+    var forest = getComputedStyle(document.documentElement).getPropertyValue('--forest').trim() || '#184A3F';
+    var LOCATE_ERRORS = {
+      1: 'Location is blocked for this site. Allow it in your browser settings to see where you are.',
+      2: 'Your location could not be found. Please try again.',
+      3: 'Finding your location took too long. Please try again.'
+    };
+    var watchId = null;
+    var you = null;       // the dot where the visitor is
+    var youArea = null;   // how sure the browser is of it
+
+    // "850 m away", "1.2 km away", "12 km away".
+    var distanceWords = function (metres) {
+      if (metres < 30) return 'less than 30 m away';
+      if (metres < 1000) return Math.round(metres / 10) * 10 + ' m away';
+      return (metres < 9950 ? (metres / 1000).toFixed(1) : Math.round(metres / 1000)) + ' km away';
+    };
+
+    var stopLocating = function (message) {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      if (you) {
+        map.removeLayer(you);
+        map.removeLayer(youArea);
+        you = youArea = null;
+      }
+      locateButton.setAttribute('aria-pressed', 'false');
+      buttonLabel.textContent = 'Show my location';
+      mapStatus.textContent = message || '';
+    };
+
+    var showPosition = function (pos, first) {
+      var here = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      var accuracy = Math.round(pos.coords.accuracy);
+      if (!you) {
+        youArea = L.circle(here, {
+          radius: accuracy, color: forest, weight: 1, opacity: 0.4, fillColor: forest, fillOpacity: 0.1, interactive: false
+        }).addTo(map);
+        you = L.circleMarker(here, {
+          radius: 8, color: '#FFFFFF', weight: 3, fillColor: forest, fillOpacity: 1
+        }).addTo(map).bindTooltip('You are here');
+      } else {
+        you.setLatLng(here);
+        youArea.setLatLng(here).setRadius(accuracy);
+      }
+      // The first fix brings the visitor and the house into view together.
+      if (first) {
+        map.fitBounds(L.latLngBounds([here, house]), { padding: [40, 40], maxZoom: 17 });
+      }
+      mapStatus.textContent = 'You are ' + distanceWords(here.distanceTo(house)) + ', in a straight line.'
+        + (accuracy > 50 ? ' Your position is accurate to about ' + accuracy + ' m.' : '');
+    };
+
+    locateButton.addEventListener('click', function () {
+      if (watchId !== null) {
+        stopLocating();
+        return;
+      }
+      // Browsers only share a location with https pages and localhost.
+      if (!window.isSecureContext) {
+        mapStatus.textContent = 'Your browser only shares your location over a secure (https) connection.';
+        return;
+      }
+      var first = true;
+      locateButton.setAttribute('aria-pressed', 'true');
+      buttonLabel.textContent = 'Stop showing my location';
+      mapStatus.textContent = 'Finding your location…';
+      watchId = navigator.geolocation.watchPosition(function (pos) {
+        showPosition(pos, first);
+        first = false;
+      }, function (err) {
+        stopLocating(LOCATE_ERRORS[err.code] || LOCATE_ERRORS[2]);
+      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+    });
+
+    window.addEventListener('pagehide', function () {
+      stopLocating();
+    });
   }
 })();

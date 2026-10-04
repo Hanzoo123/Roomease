@@ -304,7 +304,8 @@ New helper functions go in the `includes/core/` file that matches their topic
   panel beside the results, find places near them with the phone's GPS
   (nearest first, each card saying how far, optionally within 1, 2 or
   5 km), sort by availability, lowest rent or newest, view full listing
-  details, and save listings to a shortlist.
+  details, get directions to a listing in Google Maps and follow their own
+  position on its map, and save listings to a shortlist.
 - Admin: view platform stats, approve or reject listings with a reason,
   activate/deactivate user accounts, archive and restore them, and remove
   and restore listings (removal archives, it never deletes). Every decision
@@ -332,6 +333,14 @@ minutes, only to measure each listing's distance from them (the haversine
 formula, in SQL). It is never saved in the database or put in a link, and
 browse forgets it as soon as Near me is turned off. Listings without a map
 pin come last, marked "No map pin yet".
+
+On a listing with a map pin, Get directions opens Google Maps with the
+house as the destination (on a phone, the Google Maps app with
+turn-by-turn directions). Show my location puts the visitor on the
+listing's map as a dot that follows them as they walk, with how far they
+are from the house in a straight line. RoomEase never receives that
+location (the map pictures around it come from OpenStreetMap, as for any
+map), and following stops when they tap Stop or leave the page.
 
 ## Security
 

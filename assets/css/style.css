@@ -3296,6 +3296,55 @@ html.js .results-sort-apply {
   gap: 4px;
 }
 
+/* Getting there, under the map: directions in Google Maps, and the
+   visitor's own position on the map, which needs listing.js. */
+.map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: var(--s3);
+}
+
+.map-actions .btn {
+  min-height: 44px;
+}
+
+.map-locate {
+  display: none;
+}
+
+html.js .map-locate {
+  display: inline-flex;
+}
+
+html.js .map-locate[hidden] {
+  display: none;
+}
+
+.map-locate[aria-pressed="true"] {
+  border-color: var(--forest);
+  background: var(--leaf);
+}
+
+.map-status {
+  margin: var(--s2) 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--forest);
+}
+
+.map-status:empty {
+  display: none;
+}
+
+/* On a phone the two don't fit side by side, so each takes the full width. */
+@media (max-width: 720px) {
+  .map-actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
 .map-offline {
   margin: var(--s2) 0 0;
 }

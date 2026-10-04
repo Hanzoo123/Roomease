@@ -164,6 +164,9 @@ if ($hasMap) {
   $lat = (float) $listing['latitude'];
   $lng = (float) $listing['longitude'];
   $osmUrl = 'https://www.openstreetmap.org/?mlat=' . $lat . '&mlon=' . $lng . '#map=17/' . $lat . '/' . $lng;
+  // Google Maps from wherever the visitor is to the pin; on a phone it opens
+  // the Google Maps app, with turn-by-turn directions.
+  $directionsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' . $lat . ',' . $lng;
 }
 
 /* The number the boarder should actually use: the one the landlord put on
@@ -467,6 +470,19 @@ require __DIR__ . '/../includes/layouts/header.php';
           <p class="alert alert-error alert-note map-offline" data-map-offline hidden>
             The map could not load. It needs an internet connection.
           </p>
+          <?php /* Getting there. Show my location puts the visitor on the map and
+                   follows them as they walk; it needs the browser's location,
+                   so it only shows where listing.js runs, and the location
+                   stays in the browser. */ ?>
+          <div class="map-actions">
+            <a class="btn btn-primary" href="<?= h($directionsUrl) ?>" target="_blank" rel="noopener">
+              <?= icon('navigation', 18) ?><span>Get directions</span>
+            </a>
+            <button type="button" class="btn btn-ghost map-locate" data-map-locate aria-pressed="false">
+              <?= icon('locate', 18) ?><span>Show my location</span>
+            </button>
+          </div>
+          <p class="map-status" data-map-status role="status" aria-live="polite"></p>
           <p class="map-note">
             <span>Map data from OpenStreetMap.</span>
             <a href="<?= h($osmUrl) ?>" target="_blank" rel="noopener">Open in OpenStreetMap <?= icon('external', 14) ?></a>
