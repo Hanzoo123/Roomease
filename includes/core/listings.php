@@ -290,22 +290,57 @@ function room_type_counts()
     );
 }
 
-/** A landlord's listings, newest first, with room totals and photo counts. */
+/**
+ * A landlord's listings, newest first, with room totals and photo counts.
+ * $status ('approved', 'pending' or 'rejected') keeps only that approval status.
+ */
 
-function landlord_listings($landlordId)
+function landlord_listings($landlordId, $status = '')
 {
     global $pdo;
+    $params = [(int) $landlordId];
+    $statusWhere = '';
+    if ($status !== '') {
+        $statusWhere = ' AND bh.moderation_status = ?';
+        $params[] = $status;
+    }
     $stmt = $pdo->prepare(
         'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ',
                 (SELECT COUNT(*) FROM images img
                    WHERE img.boarding_house_id = bh.boarding_house_id) AS photo_count
            FROM boarding_houses bh
            ' . room_summary_join() . '
-          WHERE bh.landlord_id = ? AND bh.deleted_at IS NULL
+          WHERE bh.landlord_id = ? AND bh.deleted_at IS NULL' . $statusWhere . '
           ORDER BY bh.created_at DESC'
     );
-    $stmt->execute([(int) $landlordId]);
+    $stmt->execute($params);
     return $stmt->fetchAll();
+}
+
+/**
+ * How many listings a landlord has: total, approved, pending and rejected.
+ * For the dashboard's tiles, the filter on My Boarding Houses and the
+ * sidebar's Needs Changes.
+ */
+
+function landlord_listing_counts($landlordId)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(*) AS total,
+                    COALESCE(SUM(moderation_status = 'approved'), 0) AS approved,
+                    COALESCE(SUM(moderation_status = 'pending'), 0)  AS pending,
+                    COALESCE(SUM(moderation_status = 'rejected'), 0) AS rejected
+               FROM boarding_houses
+              WHERE landlord_id = ? AND deleted_at IS NULL"
+        );
+        $stmt->execute([(int) $landlordId]);
+        return array_map('intval', $stmt->fetch());
+    } catch (PDOException $e) {
+        error_log('RoomEase: landlord listing counts failed - ' . $e->getMessage());
+        return ['total' => 0, 'approved' => 0, 'pending' => 0, 'rejected' => 0];
+    }
 }
 
 /** Number of pending listings (not counting those whose landlord is deactivated or removed). */

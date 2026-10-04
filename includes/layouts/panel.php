@@ -51,17 +51,25 @@ function panel_config()
         ];
     }
 
+    // Listings an administrator sent back, counted beside Needs Changes.
+    $listingCounts = landlord_listing_counts($_SESSION['user_id'] ?? 0);
+
     return [
         'name'  => 'Landlord',
         'badge' => ['label' => 'Landlord'],
         'home'   => 'landlord/dashboard.php',
         'menu'  => [
-            ['url' => 'landlord/dashboard.php',   'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
-            // Editing a listing or one of its rooms stays under this item.
-            ['url' => 'landlord/listings.php',    'icon' => 'fa-home',           'label' => 'My Boarding Houses',
-             'also' => ['edit_listing.php', 'room_form.php']],
-            ['url' => 'landlord/add_listing.php', 'icon' => 'fa-plus-square',    'label' => 'Add Listing'],
-            ['url' => 'landlord/extras.php',      'icon' => 'fa-bolt',           'label' => 'Utilities & Amenities'],
+            ['url' => 'landlord/dashboard.php', 'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
+            // Everything a landlord does with their listings, in one group.
+            ['icon' => 'fa-home', 'label' => 'Manage Listings', 'children' => [
+                // Editing a listing or one of its rooms stays under this item.
+                ['url' => 'landlord/listings.php',    'icon' => 'fa-list-ul',     'label' => 'My Boarding Houses',
+                 'also' => ['edit_listing.php', 'room_form.php']],
+                ['url' => 'landlord/add_listing.php', 'icon' => 'fa-plus-square', 'label' => 'Add Listing'],
+                ['url' => 'landlord/listings.php?status=rejected', 'icon' => 'fa-exclamation-triangle', 'label' => 'Needs Changes',
+                 'count' => $listingCounts['rejected']],
+                ['url' => 'landlord/extras.php',      'icon' => 'fa-bolt',        'label' => 'Utilities & Amenities'],
+            ]],
         ],
     ];
 }

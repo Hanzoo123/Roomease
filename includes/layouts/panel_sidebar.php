@@ -83,7 +83,12 @@ $activeItem = $activeItem === null ? null : (string) $activeItem;
 
         <?php foreach ($panel['menu'] as $idx => $item): ?>
           <?php if (!empty($item['children'])): ?>
-            <?php $groupOpen = $activeItem !== null && strpos($activeItem, $idx . '-') === 0; ?>
+            <?php
+            $groupOpen = $activeItem !== null && strpos($activeItem, $idx . '-') === 0;
+            // The counts of the pages under it, added up for the heading.
+            // panel.css shows the total only while the group is closed.
+            $groupCount = array_sum(array_map('intval', array_column($item['children'], 'count')));
+            ?>
             <?php /* AdminLTE's treeview: the heading opens and closes the pages
                      under it, and starts open on one of those pages. */ ?>
             <li class="nav-item has-treeview<?= $groupOpen ? ' menu-open' : '' ?>">
@@ -93,6 +98,9 @@ $activeItem = $activeItem === null ? null : (string) $activeItem;
                 <p>
                   <?= h($item['label']) ?>
                   <i class="right fas fa-angle-left"></i>
+                  <?php if ($groupCount > 0): ?>
+                    <span class="right nav-count nav-count--group"><?= $groupCount ?></span>
+                  <?php endif; ?>
                 </p>
               </a>
               <ul class="nav nav-treeview">
@@ -101,7 +109,12 @@ $activeItem = $activeItem === null ? null : (string) $activeItem;
                     <a href="<?= base_url($child['url']) ?>"
                       class="nav-link <?= $activeItem === $idx . '-' . $childIdx ? 'active' : '' ?>">
                       <i class="nav-icon fas <?= h($child['icon']) ?>"></i>
-                      <p><?= h($child['label']) ?></p>
+                      <p>
+                        <?= h($child['label']) ?>
+                        <?php if (!empty($child['count'])): ?>
+                          <span class="right nav-count"><?= (int) $child['count'] ?></span>
+                        <?php endif; ?>
+                      </p>
                     </a>
                   </li>
                 <?php endforeach; ?>

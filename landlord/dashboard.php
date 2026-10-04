@@ -1,22 +1,12 @@
 <?php
 /** Landlord dashboard. Uses the same panel layout as admin (includes/layouts/panel.php). */
 require __DIR__ . '/../includes/init.php';
-require_once __DIR__ . '/../config/db.php';
 require_login('landlord');
 
 $landlordId = $_SESSION['user_id'];
 
 // Summary figures for this landlord only.
-$countStmt = $pdo->prepare(
-  "SELECT COUNT(*) AS total,
-          SUM(moderation_status = 'approved')      AS approved,
-          SUM(moderation_status = 'pending')       AS pending,
-          SUM(moderation_status = 'rejected')      AS rejected
-     FROM boarding_houses
-    WHERE landlord_id = ? AND deleted_at IS NULL"
-);
-$countStmt->execute([$landlordId]);
-$counts = $countStmt->fetch();
+$counts = landlord_listing_counts($landlordId);
 
 $listings = landlord_listings($landlordId);
 
@@ -57,19 +47,20 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <span class="stat-label">My boarding houses</span>
           <span class="stat-more">View all <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
-        <a class="stat stat--filled stat--green" href="#myListings">
+        <?php /* The other three open My Boarding Houses filtered to their status. */ ?>
+        <a class="stat stat--filled stat--green" href="<?= base_url('landlord/listings.php?status=approved') ?>">
           <i class="fas fa-check-circle stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['approved'] ?></span>
           <span class="stat-label">Approved &amp; listed</span>
           <span class="stat-more">Visible to boarders <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
-        <a class="stat stat--filled stat--attention" href="#myListings">
+        <a class="stat stat--filled stat--attention" href="<?= base_url('landlord/listings.php?status=pending') ?>">
           <i class="fas fa-clock stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['pending'] ?></span>
           <span class="stat-label">Awaiting approval</span>
           <span class="stat-more">Under admin review <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
-        <a class="stat stat--filled <?= (int) $counts['rejected'] > 0 ? 'stat--danger' : 'stat--terracotta' ?>" href="#myListings">
+        <a class="stat stat--filled <?= (int) $counts['rejected'] > 0 ? 'stat--danger' : 'stat--terracotta' ?>" href="<?= base_url('landlord/listings.php?status=rejected') ?>">
           <i class="fas fa-exclamation-triangle stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['rejected'] ?></span>
           <span class="stat-label">Needs fixing</span>

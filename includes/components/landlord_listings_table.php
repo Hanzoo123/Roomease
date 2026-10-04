@@ -1,19 +1,25 @@
 <?php
 /**
  * "My Boarding Houses" table (dashboard and listings page).
- * Expects $listings from landlord_listings().
+ * Expects $listings from landlord_listings(). The listings page also sets
+ * $listingsFilter (its filter buttons, HTML) and $listingsEmpty (title, text
+ * and icon for a filter that matches no listing).
  */
 $listings = $listings ?? [];
+$listingsFilter = $listingsFilter ?? '';
+$listingsEmpty = $listingsEmpty ?? null;
 ?>
 <div class="card card-primary card-outline shadow-sm" id="myListings">
   <?php panel_card_header(
     'My boarding houses',
     'Each listing, its rooms, and whether boarders can see it yet.',
-    
+    $listingsFilter
   ); ?>
 
   <div class="card-body<?= $listings ? '' : ' p-0' ?>">
-    <?php if (!$listings): ?>
+    <?php if (!$listings && $listingsEmpty): ?>
+      <?= re_empty($listingsEmpty['title'], $listingsEmpty['text'], $listingsEmpty['icon']) ?>
+    <?php elseif (!$listings): ?>
       <?= re_empty(
         'No boarding houses yet',
         'Post your first listing and an administrator will review it before boarders can see it.',

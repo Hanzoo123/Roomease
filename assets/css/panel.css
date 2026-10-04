@@ -1017,6 +1017,13 @@ html[data-theme="dark"] .main-sidebar .brand-mark {
   border-radius: 999px;
 }
 
+/* A group's heading carries the total of the counts under it, but only while
+   the group is closed: once it opens, each page shows its own. */
+.main-sidebar .nav-item.menu-open > .nav-group .nav-count--group,
+.main-sidebar .nav-item.menu-is-opening > .nav-group .nav-count--group {
+  display: none;
+}
+
 .nav-divider {
   margin: .5rem;
   border-top: 1px solid var(--re-sidebar-line);
