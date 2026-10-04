@@ -425,6 +425,22 @@ const STAY_TERM_COLUMNS = [
     'visitors_allowed', 'pets_allowed', 'cooking_allowed', 'latitude', 'longitude',
 ];
 
+/**
+ * The box Baybay City fits in, as [south, west, north, east]: its
+ * OpenStreetMap boundary with about a kilometre to spare. Every listing is in
+ * Baybay City, so a map pin outside the box is refused.
+ */
+
+const BAYBAY_BOUNDS = [10.54, 124.64, 10.88, 124.94];
+
+/** True when a point lies inside BAYBAY_BOUNDS. */
+
+function in_baybay($lat, $lng)
+{
+    [$south, $west, $north, $east] = BAYBAY_BOUNDS;
+    return $lat >= $south && $lat <= $north && $lng >= $west && $lng <= $east;
+}
+
 /** Payment methods, as stored value => label. */
 
 function payment_method_options()
@@ -524,6 +540,8 @@ function stay_terms_from_post(array $post)
     if ($lat !== '' || $lng !== '') {
         if (!is_numeric($lat) || !is_numeric($lng) || abs((float) $lat) > 90 || abs((float) $lng) > 180) {
             $errors[] = 'Place the map pin by clicking the map, or clear the location.';
+        } elseif (!in_baybay((float) $lat, (float) $lng)) {
+            $errors[] = 'The map pin is outside Baybay City. Move it onto the boarding house, or clear the location.';
         } else {
             $values['latitude'] = round((float) $lat, 6);
             $values['longitude'] = round((float) $lng, 6);

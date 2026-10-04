@@ -67,6 +67,9 @@ function configure_session_security()
  * Security headers sent with every page. The Content-Security-Policy only
  * allows files from this site, plus OpenStreetMap map tiles as images.
  * Inline scripts are allowed because AdminLTE and our pages use them.
+ * The browser may ask for the visitor's location on RoomEase's own pages
+ * (the landlord's "Use my current location"), never inside a frame from
+ * another site; camera, microphone and payment stay off.
  */
 function send_security_headers()
 {
@@ -78,7 +81,7 @@ function send_security_headers()
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    header('Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()');
+    header('Permissions-Policy: geolocation=(self), microphone=(), camera=(), payment=()');
     header(
         'Content-Security-Policy: '
         . "default-src 'self'; "

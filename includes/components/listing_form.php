@@ -264,9 +264,17 @@ $houseRuleFlags = [
   <i class="fas fa-map-marker-alt mr-1"></i> Location on Map
 </h5>
 <p class="text-muted small mb-3">
-  Click the map to drop a pin on the boarding house, then drag the pin to adjust it. Boarders see this pin on
-  your listing. The map needs an internet connection; without one, you can type the coordinates instead.
+  Click the map to drop a pin on the boarding house, then drag the pin to adjust it. If you are at the house,
+  <strong>Use my current location</strong> places the pin with your phone's GPS. Boarders see this pin on your
+  listing. The map needs an internet connection; without one, you can type the coordinates instead.
 </p>
+
+<div class="d-flex flex-wrap align-items-center mb-2" style="gap: 6px 12px;">
+  <button type="button" class="btn btn-sm btn-outline-primary" id="location-gps">
+    <i class="fas fa-location-arrow mr-1"></i> Use my current location
+  </button>
+  <small class="text-muted" id="location-gps-status" role="status" aria-live="polite"></small>
+</div>
 
 <link rel="stylesheet" href="<?= base_url('assets/vendor/leaflet/leaflet.css') ?>">
 <div id="location-picker" class="rounded border mb-2" style="height: 320px;"></div>
@@ -298,15 +306,21 @@ $houseRuleFlags = [
     var offline = document.getElementById('location-picker-offline');
     var latIn = document.getElementById('latitude');
     var lngIn = document.getElementById('longitude');
+    var gps = document.getElementById('location-gps');
+    var gpsStatus = document.getElementById('location-gps-status');
     if (!el || !latIn || !lngIn) return;
     if (!window.L) {
       el.classList.add('d-none');
+      gps.classList.add('d-none');
       offline.classList.remove('d-none');
       return;
     }
 
-    // Centre of Baybay City, used until the landlord drops a pin.
+    // Centre of Baybay City, used until the landlord drops a pin, and the box
+    // the city fits in, [south, west, north, east] (BAYBAY_BOUNDS in
+    // includes/core/listings.php, which also checks it when the form is saved).
     var BAYBAY = [10.6781, 124.8003];
+    var BOUNDS = <?= json_encode(BAYBAY_BOUNDS) ?>;
 
     function readInputs() {
       var lat = parseFloat(latIn.value);
@@ -359,6 +373,46 @@ $houseRuleFlags = [
         map.removeLayer(marker);
         marker = null;
       }
+    });
+
+    // "Use my current location": the phone's GPS, for a landlord standing at
+    // the house. The pin only moves for a position inside Baybay City.
+    if (!navigator.geolocation) {
+      gps.classList.add('d-none');
+      return;
+    }
+    var GPS_ERRORS = {
+      1: 'Location is blocked for this site. Allow it in your browser settings, or click the map instead.',
+      2: 'Your location could not be found. Click the map instead.',
+      3: 'Finding your location took too long. Try again, or click the map instead.'
+    };
+
+    gps.addEventListener('click', function () {
+      // Browsers only share a location with https pages and localhost.
+      if (!window.isSecureContext) {
+        gpsStatus.textContent = 'Your browser only shares your location over a secure (https) connection. Click the map instead.';
+        return;
+      }
+      gps.disabled = true;
+      gpsStatus.textContent = 'Finding your location…';
+
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        gps.disabled = false;
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        if (lat < BOUNDS[0] || lat > BOUNDS[2] || lng < BOUNDS[1] || lng > BOUNDS[3]) {
+          gpsStatus.textContent = 'You are outside Baybay City, so the pin was not moved. Try again at the boarding house, or click the map.';
+          return;
+        }
+        place([lat, lng], false);
+        map.setView([lat, lng], 18);
+        var metres = Math.round(pos.coords.accuracy);
+        gpsStatus.textContent = 'Pin placed where you are, accurate to about ' + metres + ' m.'
+          + (metres > 50 ? ' Drag it onto the house if it is a little off.' : '');
+      }, function (err) {
+        gps.disabled = false;
+        gpsStatus.textContent = GPS_ERRORS[err.code] || GPS_ERRORS[2];
+      }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     });
   })();
 </script>

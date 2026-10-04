@@ -296,7 +296,9 @@ New helper functions go in the `includes/core/` file that matches their topic
 - Landlord: create, view, update, delete boarding house listings with
   name, address, rent, reservation fee, room type, capacity, utilities,
   amenities, house rules, contact info, and photos; choose which photo is
-  the cover; see each listing's moderation state.
+  the cover; pin the house on a map by clicking it or, standing at the
+  house, with the phone's GPS (a pin outside Baybay City is refused); see
+  each listing's moderation state.
 - Boarder: browse and page through approved listings, search by name or
   address, filter by room type, rent range, free slots and amenities in a
   panel beside the results, sort by availability, lowest rent or newest,
@@ -387,7 +389,10 @@ ask for it:
 
 - `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy` and `Permissions-Policy` on every response, plus HSTS
-  over HTTPS.
+  over HTTPS. The Permissions-Policy lets RoomEase's own pages ask for the
+  visitor's location (never a frame from another site) and keeps the
+  camera, microphone and payment off. Browsers only share a location with
+  pages on HTTPS or on localhost.
 - `config/`, `database/`, `includes/` and `storage/` are unreachable over
   HTTP, as are `.git` directories, `.sql` and `.log` files, and dotfiles.
 - A failed database connection logs the driver message and shows the visitor
