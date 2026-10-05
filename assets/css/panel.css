@@ -55,7 +55,7 @@ body,
    white text on it passes WCAG AA for normal text.
    ========================================================= */
 :root {
-  --re-paper: #FAF8F3;
+  --re-paper: #F4F5F6;         /* light grey: row hover, card footers, quiet fills */
   --re-panel: #FFFFFF;
   --re-line: #E6E1D6;
   --re-line-strong: #CFC8B8;
@@ -104,7 +104,7 @@ body,
   --re-sidebar-text: #5C6B66;
   --re-sidebar-bright: #1F2A28;
   --re-sidebar-line: #E6E1D6;
-  --re-sidebar-hover: #FAF8F3;
+  --re-sidebar-hover: #F4F5F6;
   --re-sidebar-active-bg: #E6EFEA;
 }
 
@@ -810,7 +810,7 @@ a:hover {
 /*Background for Dashboard */
 .content-wrapper,
 .main-footer {
-  background-color: var(--re-panel);
+  background-color: var(--re-paper);
 }
 
 .main-footer {
