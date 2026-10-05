@@ -84,6 +84,8 @@ body,
   --re-red: #C0392B;
   --re-red-deep: #A33024;
   --re-amber-text: #8A5A00;
+  --re-waiting-bg: #FDF1DC;      /* a figure that waits for someone */
+  --re-problem-text: #C0392B;    /* a figure that is a problem */
   --re-slate: #3A4543;
   --re-gray: #66706D;
 
@@ -255,6 +257,106 @@ body,
 @media (min-width: 1500px) {
   .stat-row--six {
     grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* ---- Figures ----
+   The row of numbers at the top of a dashboard (panel_figures() in
+   includes/components/panel_page_header.php). Quieter than the coloured
+   stat tiles: one white card, a number and its label per cell, no icons.
+   Colour means something: marigold for a figure that waits for someone,
+   red for one that is a problem, and both only while it is above 0. */
+.figure-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 1rem;
+  border: 1px solid var(--re-line);
+  border-radius: 12px;
+  background: var(--re-panel);
+  overflow: hidden;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 16px 20px;
+  border-left: 1px solid var(--re-line);
+  color: var(--re-ink);
+}
+
+.figure:first-child {
+  border-left: 0;
+}
+
+.figure:hover,
+.figure:focus {
+  background: var(--re-sidebar-hover);
+  color: var(--re-ink);
+  text-decoration: none;
+}
+
+.figure-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.figure-of {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--re-ink-soft);
+}
+
+.figure-label {
+  font-size: .8125rem;
+  color: var(--re-ink-soft);
+}
+
+.figure-note {
+  font-size: .75rem;
+  color: var(--re-ink-faint);
+}
+
+.figure--waiting,
+.figure--waiting:hover,
+.figure--waiting:focus {
+  background: var(--re-waiting-bg);
+}
+
+.figure--waiting .figure-value,
+.figure--waiting .figure-label {
+  color: var(--re-amber-text);
+}
+
+.figure--problem .figure-value {
+  color: var(--re-problem-text);
+}
+
+/* Two by two below a laptop, the lines between the cells following along. */
+@media (max-width: 991.98px) {
+  .figure-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .figure:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .figure:nth-child(n + 3) {
+    border-top: 1px solid var(--re-line);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .figure {
+    padding: 12px 14px;
+  }
+
+  .figure-value {
+    font-size: 1.5rem;
   }
 }
 
@@ -1088,13 +1190,32 @@ html[data-theme="dark"] .main-sidebar .brand-mark {
   flex-wrap: wrap;
 }
 
+/* AdminLTE clears its floats with an empty ::after on every card header. In
+   this flex row it would be a third item, and space-between would push the
+   tools in from the right edge. */
+.card-header--split::after {
+  content: none;
+}
+
+/* The title block gives way (its subtitle wraps) so the tools stay on its
+   first line, at the right; if they ever do drop to a line of their own,
+   they keep to the right there too. */
+.card-header--split > :first-child {
+  flex: 1 1 0%;
+}
+
+.card-header--split > .card-tools,
+.card-header--split > .card-actions {
+  flex: none;
+}
+
 .card-header--split .card-tools,
 .card-header--split .card-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   float: none;
-  margin: 0;
+  margin: 0 0 0 auto;
 }
 
 .card-footer {
@@ -2281,6 +2402,8 @@ html[data-theme="dark"] {
   --re-ink-label: #8E8E96;
   --re-muted-bg: #242427;
   --re-amber-text: #EDBB63;
+  --re-waiting-bg: #2B2416;
+  --re-problem-text: #F08A7E;
 
   --re-sidebar-bg: #18181A;
   --re-sidebar-text: #A9A9B0;
