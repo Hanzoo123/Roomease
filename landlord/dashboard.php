@@ -50,9 +50,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         <?php /* The other three open My Boarding Houses filtered to their status. */ ?>
         <a class="stat stat--filled stat--green" href="<?= base_url('landlord/listings.php?status=approved') ?>">
           <i class="fas fa-check-circle stat-icon" aria-hidden="true"></i>
-          <span class="stat-value"><?= (int) $counts['approved'] ?></span>
-          <span class="stat-label">Approved &amp; listed</span>
-          <span class="stat-more">Visible to boarders <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
+          <?php /* Only what boarders can see: approved, with at least one room. */ ?>
+          <span class="stat-value"><?= (int) $counts['live'] ?></span>
+          <span class="stat-label">Visible to boarders</span>
+          <span class="stat-more">
+            <?= $counts['approved'] > $counts['live'] ? ($counts['approved'] - $counts['live']) . ' approved need a room' : 'Approved &amp; listed' ?>
+            <i class="fas fa-arrow-circle-right" aria-hidden="true"></i>
+          </span>
         </a>
         <a class="stat stat--filled stat--attention" href="<?= base_url('landlord/listings.php?status=pending') ?>">
           <i class="fas fa-clock stat-icon" aria-hidden="true"></i>

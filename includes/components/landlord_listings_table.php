@@ -94,8 +94,13 @@ $listingsEmpty = $listingsEmpty ?? null;
                 <?php endif; ?>
               </td>
               <td>
-                <?php if ($l['moderation_status'] === 'approved'): ?>
+                <?php /* Boarders only see an approved listing that has a room. */ ?>
+                <?php if ($l['moderation_status'] === 'approved' && $avail['room_count'] > 0): ?>
                   <span class="badge badge-success px-2 py-1"><i class="fas fa-eye mr-1"></i> Shown</span>
+                <?php elseif ($l['moderation_status'] === 'approved'): ?>
+                  <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i>
+                    Hidden</span>
+                  <br><small class="text-muted">Add a room to show it</small>
                 <?php else: ?>
                   <span class="badge badge-secondary px-2 py-1"><i class="fas fa-eye-slash mr-1"></i>
                     Hidden</span>

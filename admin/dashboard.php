@@ -8,13 +8,21 @@ require_once __DIR__ . '/../config/db.php';
 
 require_login('admin');
 
+// Accounts include deactivated ones (the tiles say how many), and listings
+// include those of deactivated landlords. Pending listings of a deactivated
+// landlord are left out of the queue, so they are counted on their own.
 $counts = $pdo->query(
   "SELECT
         (SELECT COUNT(*) FROM users WHERE role = 'landlord' AND deleted_at IS NULL) AS landlords,
+        (SELECT COUNT(*) FROM users WHERE role = 'landlord' AND deleted_at IS NULL AND is_active = 0) AS landlords_off,
         (SELECT COUNT(*) FROM users WHERE role = 'boarder' AND deleted_at IS NULL) AS boarders,
+        (SELECT COUNT(*) FROM users WHERE role = 'boarder' AND deleted_at IS NULL AND is_active = 0) AS boarders_off,
         (SELECT COUNT(*) FROM boarding_houses bh
            JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL
-          WHERE bh.deleted_at IS NULL) AS listings"
+          WHERE bh.deleted_at IS NULL) AS listings,
+        (SELECT COUNT(*) FROM boarding_houses bh
+           JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL AND u.is_active = 0
+          WHERE bh.deleted_at IS NULL AND bh.moderation_status = 'pending') AS pending_hidden"
 )->fetch();
 $counts['pending'] = pending_listing_count();
 $live = live_listing_stats();
@@ -34,7 +42,8 @@ $needsReview = $pdo->query(
 )->fetchAll();
 
 // The last 30 days, one bucket per day, oldest first. Days are counted on the
-// database's clock, which is the one created_at was written with.
+// database's clock, which is the one created_at was written with. Like the
+// tiles, it leaves out removed accounts and listings.
 $today = substr(db_now(), 0, 10);
 $days = [];
 for ($i = 29; $i >= 0; $i--) {
@@ -51,9 +60,10 @@ $daily = function ($sql, $column) use ($pdo, $since, &$days) {
   }
 };
 $daily("SELECT DATE(created_at) AS d, COUNT(*) AS n FROM users
-         WHERE role <> 'administrator' AND created_at >= ? GROUP BY d", 'accounts');
-$daily("SELECT DATE(created_at) AS d, COUNT(*) AS n FROM boarding_houses
-         WHERE created_at >= ? GROUP BY d", 'listings');
+         WHERE role <> 'administrator' AND deleted_at IS NULL AND created_at >= ? GROUP BY d", 'accounts');
+$daily("SELECT DATE(bh.created_at) AS d, COUNT(*) AS n FROM boarding_houses bh
+          JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL
+         WHERE bh.deleted_at IS NULL AND bh.created_at >= ? GROUP BY d", 'listings');
 $decided = $pdo->prepare(
   "SELECT SUM(action = 'listing_approve') AS approved, SUM(action = 'listing_reject') AS rejected
      FROM audit_logs WHERE created_at >= ?"
@@ -123,13 +133,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         <a class="stat stat--filled stat--teal" href="<?= base_url('admin/manage_users.php?role=landlord') ?>">
           <i class="fas fa-user-tie stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['landlords'] ?></span>
-          <span class="stat-label">Landlords</span>
+          <span class="stat-label">Landlords<?= $counts['landlords_off'] ? ' &middot; ' . (int) $counts['landlords_off'] . ' deactivated' : '' ?></span>
           <span class="stat-more">View landlords <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
         <a class="stat stat--filled stat--green" href="<?= base_url('admin/manage_users.php?role=boarder') ?>">
           <i class="fas fa-users stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['boarders'] ?></span>
-          <span class="stat-label">Boarders</span>
+          <span class="stat-label">Boarders<?= $counts['boarders_off'] ? ' &middot; ' . (int) $counts['boarders_off'] . ' deactivated' : '' ?></span>
           <span class="stat-more">View boarders <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
         </a>
         <a class="stat stat--filled stat--terracotta" href="<?= base_url('admin/manage_listings.php') ?>">
@@ -182,6 +192,15 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   </li>
                 <?php endforeach; ?>
               </ul>
+            <?php endif; ?>
+            <?php if ($counts['pending_hidden'] > 0): ?>
+              <div class="card-footer small text-muted">
+                <?= $counts['pending_hidden'] == 1
+                  ? '1 more pending listing belongs to a deactivated landlord. It stays'
+                  : (int) $counts['pending_hidden'] . ' more pending listings belong to deactivated landlords. They stay' ?>
+                out of this queue until the account is active again.
+                <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>">See every pending listing</a>
+              </div>
             <?php endif; ?>
           </div>
 

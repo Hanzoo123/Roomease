@@ -425,7 +425,8 @@ function landlord_listings($landlordId, $status = '')
 }
 
 /**
- * How many listings a landlord has: total, approved, pending and rejected.
+ * How many listings a landlord has: total, approved, pending and rejected,
+ * and live: approved with at least one room, which is what boarders see.
  * For the dashboard's tiles, the filter on My Boarding Houses and the
  * sidebar's Needs Changes.
  */
@@ -438,15 +439,17 @@ function landlord_listing_counts($landlordId)
             "SELECT COUNT(*) AS total,
                     COALESCE(SUM(moderation_status = 'approved'), 0) AS approved,
                     COALESCE(SUM(moderation_status = 'pending'), 0)  AS pending,
-                    COALESCE(SUM(moderation_status = 'rejected'), 0) AS rejected
-               FROM boarding_houses
+                    COALESCE(SUM(moderation_status = 'rejected'), 0) AS rejected,
+                    COALESCE(SUM(moderation_status = 'approved' AND EXISTS (
+                        SELECT 1 FROM rooms r WHERE r.boarding_house_id = bh.boarding_house_id)), 0) AS live
+               FROM boarding_houses bh
               WHERE landlord_id = ? AND deleted_at IS NULL"
         );
         $stmt->execute([(int) $landlordId]);
         return array_map('intval', $stmt->fetch());
     } catch (PDOException $e) {
         error_log('RoomEase: landlord listing counts failed - ' . $e->getMessage());
-        return ['total' => 0, 'approved' => 0, 'pending' => 0, 'rejected' => 0];
+        return ['total' => 0, 'approved' => 0, 'pending' => 0, 'rejected' => 0, 'live' => 0];
     }
 }
 
