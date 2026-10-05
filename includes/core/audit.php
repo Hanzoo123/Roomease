@@ -224,11 +224,20 @@ function audit_entries_for($targetType, $targetId, $limit = 20, $group = null)
     }
 }
 
-/** Admin decisions on a landlord's listings in the last $days days, removed listings included. */
+/**
+ * Admin decisions on a landlord's listings in the last $days days, removed
+ * listings included. A rejection stays in however old it is, while the
+ * listing still waits to be fixed (its latest rejection only), and comes
+ * first, since it is the one asking for something.
+ */
 
 function landlord_recent_decisions($landlordId, $days = 30, $limit = 5)
 {
     global $pdo;
+    $stillRejected = "a.action = 'listing_reject' AND bh.moderation_status = 'rejected' AND bh.deleted_at IS NULL
+                      AND a.log_id = (SELECT MAX(r.log_id) FROM audit_logs r
+                                       WHERE r.target_type = 'listing' AND r.target_id = a.target_id
+                                         AND r.action = 'listing_reject')";
     try {
         $stmt = $pdo->prepare(
             "SELECT a.action, a.detail, a.created_at, bh.boarding_house_id, bh.name, bh.deleted_at
@@ -236,8 +245,8 @@ function landlord_recent_decisions($landlordId, $days = 30, $limit = 5)
                JOIN boarding_houses bh ON bh.boarding_house_id = a.target_id
               WHERE a.target_type = 'listing' AND bh.landlord_id = ?
                 AND a.action IN ('listing_approve', 'listing_reject', 'listing_remove', 'listing_restore')
-                AND a.created_at > NOW() - INTERVAL " . (int) $days . " DAY
-              ORDER BY a.created_at DESC, a.log_id DESC
+                AND (a.created_at > NOW() - INTERVAL " . (int) $days . " DAY OR (" . $stillRejected . "))
+              ORDER BY (" . $stillRejected . ") DESC, a.created_at DESC, a.log_id DESC
               LIMIT " . (int) $limit
         );
         $stmt->execute([(int) $landlordId]);

@@ -119,11 +119,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <div class="content-wrapper">
   <?php panel_page_header('Dashboard', [
-    
+    'subtitle' => 'What is waiting for a decision, who has joined, and the last 30 days on RoomEase.',
     'actions' => '<a href="' . base_url('admin/manage_listings.php?status=pending')
-      . '" class="btn btn-sm btn-primary"><i class="fas fa-clipboard-check mr-1"></i> Review queue</a>'
-      . '<a href="' . base_url('admin/reports.php') . '" class="btn btn-sm btn-outline-secondary">'
-      . '<i class="fas fa-chart-bar mr-1"></i> Reports</a>',
+      . '" class="btn btn-sm btn-primary"><i class="fas fa-clipboard-check mr-1"></i> Review queue</a>',
   ]); ?>
 
   <section class="content">
@@ -193,13 +191,24 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <?php endforeach; ?>
               </ul>
             <?php endif; ?>
-            <?php if ($counts['pending_hidden'] > 0): ?>
+            <?php $moreWaiting = $counts['pending'] - count($needsReview); ?>
+            <?php if ($moreWaiting > 0 || $counts['pending_hidden'] > 0): ?>
               <div class="card-footer small text-muted">
-                <?= $counts['pending_hidden'] == 1
-                  ? '1 more pending listing belongs to a deactivated landlord. It stays'
-                  : (int) $counts['pending_hidden'] . ' more pending listings belong to deactivated landlords. They stay' ?>
-                out of this queue until the account is active again.
-                <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>">See every pending listing</a>
+                <?php if ($moreWaiting > 0): ?>
+                  <div>
+                    <?= $moreWaiting ?> more waiting.
+                    <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>">See the whole queue</a>
+                  </div>
+                <?php endif; ?>
+                <?php if ($counts['pending_hidden'] > 0): ?>
+                  <div>
+                    <?= $counts['pending_hidden'] == 1
+                      ? '1 more pending listing belongs to a deactivated landlord. It stays'
+                      : (int) $counts['pending_hidden'] . ' more pending listings belong to deactivated landlords. They stay' ?>
+                    out of this queue until the account is active again.
+                    <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>">See every pending listing</a>
+                  </div>
+                <?php endif; ?>
               </div>
             <?php endif; ?>
           </div>
