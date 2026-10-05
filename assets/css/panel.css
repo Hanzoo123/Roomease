@@ -2099,6 +2099,22 @@ html[data-theme="dark"] .main-sidebar .brand-mark {
   padding: 28px 20px;
 }
 
+/* One line instead of the whole block, for a card where "nothing here" is
+   the good news and does not need the room (re_empty_line()). */
+.re-empty-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 20px;
+  font-size: .845rem;
+  color: var(--re-ink-soft);
+}
+
+.re-empty-line i {
+  color: var(--re-ink-faint);
+}
+
 /* =========================================================
    Record tabs (includes/components/panel_page_header.php)
    ---------------------------------------------------------

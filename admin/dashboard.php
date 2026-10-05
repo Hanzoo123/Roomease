@@ -116,7 +116,7 @@ if (is_super_admin()) {
        FROM audit_logs a LEFT JOIN users u ON u.user_id = a.actor_id
       WHERE a.action IN (" . sql_placeholders(count($adminActions)) . ")
       ORDER BY a.created_at DESC, a.log_id DESC
-      LIMIT 6"
+      LIMIT 4"
   );
   $recentActivity->execute($adminActions);
   $recentActivity = $recentActivity->fetchAll();
@@ -129,7 +129,7 @@ $recentUsers = $pdo->query(
      FROM users
     WHERE role <> 'administrator'
     ORDER BY created_at DESC
-    LIMIT 5"
+    LIMIT 4"
 )->fetchAll();
 
 /** A row of 30 thin columns, one per day, scaled to the busiest day. */
@@ -156,8 +156,6 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <div class="content-wrapper">
   <?php panel_page_header('Dashboard', [
     'subtitle' => 'What is waiting for a decision, who has joined, and the last 30 days on RoomEase.',
-    'actions' => '<a href="' . base_url('admin/manage_listings.php?status=pending')
-      . '" class="btn btn-sm btn-primary"><i class="fas fa-clipboard-check mr-1"></i> Review queue</a>',
   ]); ?>
 
   <section class="content">
@@ -250,15 +248,11 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           </div>
 
           <div class="card card-primary card-outline shadow-sm">
-            <div class="card-header card-header--split">
-              <div style="min-width: 0;">
-                <h3 class="card-title">Last 30 days</h3>
-                <span class="card-subtitle">New accounts and new listings, one day per step. Hover a day for its figures.</span>
-              </div>
-              <div class="card-tools">
-                <a href="<?= base_url('admin/reports.php') ?>" class="btn btn-tool">Reports</a>
-              </div>
-            </div>
+            <?php panel_card_header(
+              'Last 30 days',
+              'New accounts and new listings, one day per step. Hover a day for its figures.',
+              '<a href="' . base_url('admin/reports.php') . '" class="btn btn-tool">Reports</a>'
+            ); ?>
             <div class="card-body">
               <div class="chart-totals">
                 <div><span class="chart-key chart-key--teal"></span> New accounts
@@ -267,18 +261,19 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <strong class="tabular"><?= array_sum(array_column($days, 'listings')) ?></strong></div>
               </div>
               <?php /* Accounts as columns, listings as a line over them, one day per
-                   step; hovering a day shows both. The sparks inside are what
-                   shows until the chart draws, and if it never does. */ ?>
-              <div class="re-chart" style="min-height: 280px;" data-chart="<?= h(json_encode([
+                   step, on one scale; hovering a day shows both. The totals above
+                   are the key, so the chart has no legend of its own. The sparks
+                   inside are what shows until the chart draws, and if it never does. */ ?>
+              <div class="re-chart" style="min-height: 260px;" data-chart="<?= h(json_encode([
                 'kind' => 'mixed',
-                'height' => 280,
+                'height' => 260,
+                'legend' => false,
                 'categories' => array_map(function ($d) { return date('M j', strtotime($d)); }, array_keys($days)),
                 'tickAmount' => 6,
                 'columnWidth' => '60%',
-                'leftTitle' => 'Accounts',
                 'series' => [
                   ['name' => 'New accounts', 'type' => 'column', 'data' => array_column($days, 'accounts'), 'color' => 'teal'],
-                  ['name' => 'New listings', 'type' => 'line', 'data' => array_column($days, 'listings'), 'color' => 'terracotta', 'axis' => 1],
+                  ['name' => 'New listings', 'type' => 'line', 'data' => array_column($days, 'listings'), 'color' => 'terracotta'],
                 ],
               ])) ?>">
                 <div class="row">
@@ -298,11 +293,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           <div class="card card-warning card-outline shadow-sm">
             <?php panel_card_header('Needs attention', 'Listings that are not where they should be.'); ?>
             <?php if (!$attentionCount): ?>
-              <?= re_empty(
-                'Nothing needs attention',
-                'Every approved listing can be seen and has a map pin, and none is waiting on its landlord.',
-                'fa-check-circle'
-              ) ?>
+              <?= re_empty_line('Nothing needs attention. Every approved listing can be seen and has a map pin.') ?>
             <?php else: ?>
               <ul class="list-group list-group-flush">
                 <?php if ($attention['approved_hidden']): ?>
@@ -334,23 +325,21 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
           <?php if ($security !== null): ?>
             <div class="card card-danger card-outline shadow-sm">
-              <?php panel_card_header(
-                'Security',
-                'Sign-ins and administrators. Super admins only.',
-                '<a href="' . base_url('admin/activity.php?tab=signin&kind=failed') . '" class="btn btn-tool">Failed sign-ins</a>'
-              ); ?>
+              <?php panel_card_header('Security', 'Sign-ins and administrators. Super admins only.'); ?>
               <ul class="list-group list-group-flush">
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                   <a href="<?= base_url('admin/activity.php?tab=signin&kind=failed') ?>">Failed sign-ins, last 7 days</a>
                   <strong class="tabular"><?= (int) $security['failed_week'] ?></strong>
                 </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <span>
-                    Accounts paused now
-                    <small class="text-muted d-block"><?= LOGIN_MAX_PER_ACCOUNT ?> wrong passwords in <?= LOGIN_WINDOW_SECONDS / 60 ?> minutes</small>
-                  </span>
-                  <strong class="tabular<?= $security['locked'] ? ' text-danger' : '' ?>"><?= (int) $security['locked'] ?></strong>
-                </li>
+                <?php if ($security['locked']): ?>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                      Accounts paused now
+                      <small class="text-muted d-block"><?= LOGIN_MAX_PER_ACCOUNT ?> wrong passwords in <?= LOGIN_WINDOW_SECONDS / 60 ?> minutes</small>
+                    </span>
+                    <strong class="tabular text-danger"><?= (int) $security['locked'] ?></strong>
+                  </li>
+                <?php endif; ?>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                   <span>
                     <a href="<?= base_url('admin/admins.php') ?>">Administrators</a>
@@ -366,42 +355,41 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
           <?php /* The audit log is for super admins only, this glimpse of it included. */ ?>
           <?php if ($recentActivity !== null): ?>
-          <div class="card card-info card-outline shadow-sm">
-            <?php panel_card_header(
-              'Recent activity',
-              'The last few things an administrator did.',
-              '<a href="' . base_url('admin/activity.php') . '" class="btn btn-tool">Full log</a>'
-            ); ?>
-            <div class="card-body<?= $recentActivity ? '' : ' p-0' ?>">
-              <?php if (!$recentActivity): ?>
-                <?= re_empty('Nothing logged yet', 'Approvals, rejections and account changes will appear here.', 'fa-history') ?>
-              <?php else: ?>
-                <ul class="review-history">
-                  <?php foreach ($recentActivity as $e): ?>
-                    <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
-                    <?php $url = admin_target_url($e['target_type'], $e['target_id']); ?>
-                    <li>
-                      <span class="badge <?= h($type['badge']) ?>"><?= h($type['label']) ?></span>
-                      <?php if ($url !== null): ?>
-                        <a href="<?= h($url) ?>"><?= h($e['target_label']) ?></a>
-                      <?php else: ?>
-                        <?= h($e['target_label']) ?>
-                      <?php endif; ?>
-                      <small class="text-muted d-flex align-items-center" style="gap: 6px;">
-                        <?php if ($e['admin_name'] !== null): ?>
-                          <?= avatar_html($e, 18) ?><?= h($e['admin_name']) ?>
+            <div class="card card-info card-outline shadow-sm">
+              <?php panel_card_header(
+                'Recent activity',
+                'The last few things an administrator did.',
+                '<a href="' . base_url('admin/activity.php') . '" class="btn btn-tool">Full log</a>'
+              ); ?>
+              <div class="card-body<?= $recentActivity ? '' : ' p-0' ?>">
+                <?php if (!$recentActivity): ?>
+                  <?= re_empty('Nothing logged yet', 'Approvals, rejections and account changes will appear here.', 'fa-history') ?>
+                <?php else: ?>
+                  <ul class="review-history">
+                    <?php foreach ($recentActivity as $e): ?>
+                      <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
+                      <?php $url = admin_target_url($e['target_type'], $e['target_id']); ?>
+                      <li>
+                        <span class="badge <?= h($type['badge']) ?>"><?= h($type['label']) ?></span>
+                        <?php if ($url !== null): ?>
+                          <a href="<?= h($url) ?>"><?= h($e['target_label']) ?></a>
                         <?php else: ?>
-                          Unknown
+                          <?= h($e['target_label']) ?>
                         <?php endif; ?>
-                        &middot; <?= h(time_ago($e['created_at'])) ?>
-                      </small>
-                    </li>
-                  <?php endforeach; ?>
-                </ul>
-              <?php endif; ?>
+                        <small class="text-muted d-flex align-items-center" style="gap: 6px;">
+                          <?php if ($e['admin_name'] !== null): ?>
+                            <?= avatar_html($e, 18) ?><?= h($e['admin_name']) ?>
+                          <?php else: ?>
+                            Unknown
+                          <?php endif; ?>
+                          &middot; <?= h(time_ago($e['created_at'])) ?>
+                        </small>
+                      </li>
+                    <?php endforeach; ?>
+                  </ul>
+                <?php endif; ?>
+              </div>
             </div>
-          </div>
-
           <?php endif; ?>
 
           <div class="card card-success card-outline shadow-sm">

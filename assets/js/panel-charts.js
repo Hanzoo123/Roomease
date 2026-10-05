@@ -4,6 +4,7 @@
  * fallback without JavaScript.
  *
  * kind: 'mixed' (columns + line), 'donut', 'hbar' or 'column'.
+ * legend: false hides the chart's own legend.
  * Colours come from panel.css, so charts follow light and dark mode.
  */
 (function () {
@@ -125,6 +126,9 @@
       }
       options.tooltip = { y: { formatter: whole } };
     }
+
+    // legend: false when the page prints its own key above the chart.
+    if (spec.legend === false) options.legend.show = false;
 
     // Everything that depends on the theme, read fresh on every build.
     options.chart.foreColor = token('ink-soft');

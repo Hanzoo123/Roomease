@@ -133,3 +133,9 @@ function re_empty($title, $text = '', $icon = 'fa-inbox', $action = '')
     }
     return $html . '</div>';
 }
+
+/** A one-line empty state, for a card where "nothing here" is good news. */
+function re_empty_line($text, $icon = 'fa-check-circle')
+{
+    return '<p class="re-empty-line"><i class="fas ' . h($icon) . '" aria-hidden="true"></i>' . h($text) . '</p>';
+}
