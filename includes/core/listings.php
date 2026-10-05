@@ -398,8 +398,8 @@ function room_type_counts()
 }
 
 /**
- * A landlord's listings, newest first, with room totals, photo counts and
- * save_count: how many boarders saved it (active accounts only; who they
+ * A landlord's listings, newest first, with room totals, the cover photo,
+ * photo counts and save_count: how many boarders saved it (active accounts only; who they
  * are is not shown to the landlord). $status ('approved', 'pending' or
  * 'rejected') keeps only that approval status.
  */
@@ -414,7 +414,7 @@ function landlord_listings($landlordId, $status = '')
         $params[] = $status;
     }
     $stmt = $pdo->prepare(
-        'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ',
+        'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ', ' . COVER_PHOTO_SELECT . ',
                 (SELECT COUNT(*) FROM images img
                    WHERE img.boarding_house_id = bh.boarding_house_id) AS photo_count,
                 (SELECT COUNT(*) FROM favorites fv
@@ -454,9 +454,9 @@ function landlord_beds($landlordId)
 }
 
 /**
- * What a landlord could still do to their listings: fix a rejection, add a
- * room, a photo, or the map pin. Each item has the listing's name, the
- * problem, a link to fix it and the link's label.
+ * What a landlord could still do to their listings, one entry per listing
+ * that needs something: its name, the reason it was sent back (null if it
+ * was not), what it is missing, and the fixes, each a label and a link.
  * $listings comes from landlord_listings().
  */
 
@@ -466,21 +466,28 @@ function landlord_todo(array $listings)
     foreach ($listings as $l) {
         $id = (int) $l['boarding_house_id'];
         $edit = 'landlord/edit_listing.php?id=' . $id;
-        if ($l['moderation_status'] === 'rejected') {
-            $todo[] = ['name' => $l['name'], 'problem' => 'was sent back: ' . ($l['rejection_reason'] ?: 'see the listing for why'),
-                'link' => $edit, 'action' => 'Fix it'];
-        }
+        $rejected = $l['moderation_status'] === 'rejected';
+        $missing = [];
+        $fixes = $rejected ? [['label' => 'Fix it', 'link' => $edit]] : [];
         if ((int) ($l['room_count'] ?? 0) === 0) {
-            $todo[] = ['name' => $l['name'], 'problem' => 'has no rooms, so boarders cannot see it',
-                'link' => 'landlord/room_form.php?house=' . $id, 'action' => 'Add a room'];
+            $missing[] = 'No rooms, so boarders cannot see it';
+            $fixes[] = ['label' => 'Add a room', 'link' => 'landlord/room_form.php?house=' . $id];
         }
         if ((int) $l['photo_count'] === 0) {
-            $todo[] = ['name' => $l['name'], 'problem' => 'has no photos yet',
-                'link' => $edit . '#photos', 'action' => 'Add photos'];
+            $missing[] = 'No photos';
+            $fixes[] = ['label' => 'Add photos', 'link' => $edit . '#photos'];
         }
         if ($l['latitude'] === null) {
-            $todo[] = ['name' => $l['name'], 'problem' => 'has no map pin, so it is left out of Find places near me',
-                'link' => $edit . '#location-picker', 'action' => 'Pin it'];
+            $missing[] = 'No map pin, so it is not in Find places near me';
+            $fixes[] = ['label' => 'Pin it', 'link' => $edit . '#location-picker'];
+        }
+        if ($fixes) {
+            $todo[] = [
+                'name'    => $l['name'],
+                'reason'  => $rejected ? ($l['rejection_reason'] ?: 'Open the listing to see why.') : null,
+                'missing' => $missing,
+                'fixes'   => $fixes,
+            ];
         }
     }
     return $todo;
