@@ -71,6 +71,42 @@ $decided = $pdo->prepare(
 $decided->execute([$since]);
 $decided = $decided->fetch();
 
+// Needs attention, for every administrator: approved listings boarders
+// cannot see (no room, or a deactivated landlord), rejected ones waiting on
+// their landlord, and approved ones with no map pin for Find places near me.
+$attention = $pdo->query(
+  "SELECT COALESCE(SUM(bh.moderation_status = 'approved' AND (u.is_active = 0 OR NOT EXISTS (
+            SELECT 1 FROM rooms r WHERE r.boarding_house_id = bh.boarding_house_id))), 0) AS approved_hidden,
+          COALESCE(SUM(bh.moderation_status = 'rejected'), 0) AS rejected,
+          MIN(CASE WHEN bh.moderation_status = 'rejected' THEN COALESCE(bh.moderated_at, bh.updated_at) END) AS rejected_since,
+          COALESCE(SUM(bh.moderation_status = 'approved' AND bh.latitude IS NULL), 0) AS no_pin
+     FROM boarding_houses bh
+     JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL
+    WHERE bh.deleted_at IS NULL"
+)->fetch();
+
+// Security, for super admins only: failed sign-ins this week (from the audit
+// log, which keeps them for AUDIT_SIGNIN_DAYS), accounts paused right now by
+// too many wrong passwords, and the administrators.
+$security = null;
+if (is_super_admin()) {
+  $security = $pdo->query(
+    "SELECT (SELECT COUNT(*) FROM audit_logs
+              WHERE action = 'signin_failed' AND created_at > NOW() - INTERVAL 7 DAY) AS failed_week,
+            (SELECT COUNT(*) FROM users WHERE role = 'administrator' AND deleted_at IS NULL) AS admins,
+            (SELECT COUNT(*) FROM users
+              WHERE role = 'administrator' AND deleted_at IS NULL AND must_change_password = 1) AS admins_must_change"
+  )->fetch();
+  $security['locked'] = 0;
+  if (throttle_available()) {
+    $security['locked'] = (int) $pdo->query(
+      "SELECT COUNT(*) FROM (SELECT identifier FROM login_attempts
+          WHERE kind = 'login' AND attempted_at > NOW() - INTERVAL " . LOGIN_WINDOW_SECONDS . " SECOND
+          GROUP BY identifier HAVING COUNT(*) >= " . LOGIN_MAX_PER_ACCOUNT . ") paused"
+    )->fetchColumn();
+  }
+}
+
 // Recent admin actions. Super admins only (others get null, and no card).
 $recentActivity = null;
 if (is_super_admin()) {
@@ -258,6 +294,76 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
 
         <div class="col-lg-4">
+          <?php $attentionCount = $attention['approved_hidden'] + $attention['rejected'] + $attention['no_pin']; ?>
+          <div class="card card-warning card-outline shadow-sm">
+            <?php panel_card_header('Needs attention', 'Listings that are not where they should be.'); ?>
+            <?php if (!$attentionCount): ?>
+              <?= re_empty(
+                'Nothing needs attention',
+                'Every approved listing can be seen and has a map pin, and none is waiting on its landlord.',
+                'fa-check-circle'
+              ) ?>
+            <?php else: ?>
+              <ul class="list-group list-group-flush">
+                <?php if ($attention['approved_hidden']): ?>
+                  <li class="list-group-item">
+                    <strong><?= (int) $attention['approved_hidden'] ?> approved</strong>
+                    <?= $attention['approved_hidden'] == 1 ? 'listing boarders cannot see' : 'listings boarders cannot see' ?>:
+                    no room yet, or the landlord is deactivated.
+                    <a class="d-block small" href="<?= base_url('admin/manage_listings.php?status=approved') ?>">See approved listings</a>
+                  </li>
+                <?php endif; ?>
+                <?php if ($attention['rejected']): ?>
+                  <li class="list-group-item">
+                    <?php $oldest = $attention['rejected_since'] ? preg_replace('/ ago$/', '', time_ago($attention['rejected_since'])) : null; ?>
+                    <strong><?= (int) $attention['rejected'] ?> rejected</strong>, waiting on the landlord to fix
+                    <?= $attention['rejected'] == 1 ? 'it' : 'them' ?><?= $oldest ? ' (the oldest for ' . h($oldest) . ')' : '' ?>.
+                    <a class="d-block small" href="<?= base_url('admin/manage_listings.php?status=rejected') ?>">See rejected listings</a>
+                  </li>
+                <?php endif; ?>
+                <?php if ($attention['no_pin']): ?>
+                  <li class="list-group-item">
+                    <strong><?= (int) $attention['no_pin'] ?> approved</strong> without a map pin, so left out of
+                    Find places near me.
+                    <a class="d-block small" href="<?= base_url('admin/manage_listings.php?status=approved') ?>">See approved listings</a>
+                  </li>
+                <?php endif; ?>
+              </ul>
+            <?php endif; ?>
+          </div>
+
+          <?php if ($security !== null): ?>
+            <div class="card card-danger card-outline shadow-sm">
+              <?php panel_card_header(
+                'Security',
+                'Sign-ins and administrators. Super admins only.',
+                '<a href="' . base_url('admin/activity.php?tab=signin&kind=failed') . '" class="btn btn-tool">Failed sign-ins</a>'
+              ); ?>
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <a href="<?= base_url('admin/activity.php?tab=signin&kind=failed') ?>">Failed sign-ins, last 7 days</a>
+                  <strong class="tabular"><?= (int) $security['failed_week'] ?></strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <span>
+                    Accounts paused now
+                    <small class="text-muted d-block"><?= LOGIN_MAX_PER_ACCOUNT ?> wrong passwords in <?= LOGIN_WINDOW_SECONDS / 60 ?> minutes</small>
+                  </span>
+                  <strong class="tabular<?= $security['locked'] ? ' text-danger' : '' ?>"><?= (int) $security['locked'] ?></strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <span>
+                    <a href="<?= base_url('admin/admins.php') ?>">Administrators</a>
+                    <?php if ($security['admins_must_change']): ?>
+                      <small class="text-muted d-block"><?= (int) $security['admins_must_change'] ?> must still change their password</small>
+                    <?php endif; ?>
+                  </span>
+                  <strong class="tabular"><?= (int) $security['admins'] ?></strong>
+                </li>
+              </ul>
+            </div>
+          <?php endif; ?>
+
           <?php /* The audit log is for super admins only, this glimpse of it included. */ ?>
           <?php if ($recentActivity !== null): ?>
           <div class="card card-info card-outline shadow-sm">
