@@ -105,7 +105,7 @@ $countFor = function (array $f) use ($pdo, $whereFor) {
 $totalCount = $countFor($searchFilters);
 
 // "Show more": ?page=N shows all results up to page N (works without JavaScript).
-$perPage = 6;
+$perPage = 12;
 $totalPages = max(1, (int) ceil($totalCount / $perPage));
 $page = max(1, min($filters['page'] ?? 1, $totalPages));
 
