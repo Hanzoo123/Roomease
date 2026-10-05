@@ -1,6 +1,7 @@
 <?php
 /**
- * "My Boarding Houses" table (dashboard and listings page).
+ * "My Boarding Houses" table, on landlord/listings.php (the dashboard has a
+ * shorter list of its own).
  * Expects $listings from landlord_listings(). The listings page also sets
  * $listingsFilter (its filter buttons, HTML) and $listingsEmpty (title, text
  * and icon for a filter that matches no listing).

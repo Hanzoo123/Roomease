@@ -398,8 +398,10 @@ function room_type_counts()
 }
 
 /**
- * A landlord's listings, newest first, with room totals and photo counts.
- * $status ('approved', 'pending' or 'rejected') keeps only that approval status.
+ * A landlord's listings, newest first, with room totals, photo counts and
+ * save_count: how many boarders saved it (active accounts only; who they
+ * are is not shown to the landlord). $status ('approved', 'pending' or
+ * 'rejected') keeps only that approval status.
  */
 
 function landlord_listings($landlordId, $status = '')
@@ -414,7 +416,10 @@ function landlord_listings($landlordId, $status = '')
     $stmt = $pdo->prepare(
         'SELECT bh.*, ' . ROOM_SUMMARY_COLUMNS . ',
                 (SELECT COUNT(*) FROM images img
-                   WHERE img.boarding_house_id = bh.boarding_house_id) AS photo_count
+                   WHERE img.boarding_house_id = bh.boarding_house_id) AS photo_count,
+                (SELECT COUNT(*) FROM favorites fv
+                   JOIN users fu ON fu.user_id = fv.user_id AND fu.is_active = 1 AND fu.deleted_at IS NULL
+                  WHERE fv.boarding_house_id = bh.boarding_house_id) AS save_count
            FROM boarding_houses bh
            ' . room_summary_join() . '
           WHERE bh.landlord_id = ? AND bh.deleted_at IS NULL' . $statusWhere . '
@@ -422,6 +427,63 @@ function landlord_listings($landlordId, $status = '')
     );
     $stmt->execute($params);
     return $stmt->fetchAll();
+}
+
+/**
+ * Beds in a landlord's open rooms: capacity, and taken (never more than
+ * the capacity, whatever was typed).
+ */
+
+function landlord_beds($landlordId)
+{
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare(
+            'SELECT COALESCE(SUM(r.capacity), 0) AS capacity,
+                    COALESCE(SUM(LEAST(r.slots_taken, r.capacity)), 0) AS taken
+               FROM rooms r
+               JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id
+              WHERE bh.landlord_id = ? AND bh.deleted_at IS NULL AND r.is_open = 1'
+        );
+        $stmt->execute([(int) $landlordId]);
+        return array_map('intval', $stmt->fetch());
+    } catch (PDOException $e) {
+        error_log('RoomEase: landlord beds failed - ' . $e->getMessage());
+        return ['capacity' => 0, 'taken' => 0];
+    }
+}
+
+/**
+ * What a landlord could still do to their listings: fix a rejection, add a
+ * room, a photo, or the map pin. Each item has the listing's name, the
+ * problem, a link to fix it and the link's label.
+ * $listings comes from landlord_listings().
+ */
+
+function landlord_todo(array $listings)
+{
+    $todo = [];
+    foreach ($listings as $l) {
+        $id = (int) $l['boarding_house_id'];
+        $edit = 'landlord/edit_listing.php?id=' . $id;
+        if ($l['moderation_status'] === 'rejected') {
+            $todo[] = ['name' => $l['name'], 'problem' => 'was sent back: ' . ($l['rejection_reason'] ?: 'see the listing for why'),
+                'link' => $edit, 'action' => 'Fix it'];
+        }
+        if ((int) ($l['room_count'] ?? 0) === 0) {
+            $todo[] = ['name' => $l['name'], 'problem' => 'has no rooms, so boarders cannot see it',
+                'link' => 'landlord/room_form.php?house=' . $id, 'action' => 'Add a room'];
+        }
+        if ((int) $l['photo_count'] === 0) {
+            $todo[] = ['name' => $l['name'], 'problem' => 'has no photos yet',
+                'link' => $edit . '#photos', 'action' => 'Add photos'];
+        }
+        if ($l['latitude'] === null) {
+            $todo[] = ['name' => $l['name'], 'problem' => 'has no map pin, so it is left out of Find places near me',
+                'link' => $edit . '#location-picker', 'action' => 'Pin it'];
+        }
+    }
+    return $todo;
 }
 
 /**
