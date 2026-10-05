@@ -82,36 +82,6 @@ function panel_card_header($title, $subtitle = '', $tools = '')
     <?php
 }
 
-/**
- * The row of figures at the top of a dashboard. Each figure:
- *   'value'  the number
- *   'of'     optional: shown after it as "/ of" (beds taken of beds)
- *   'label'  what it counts
- *   'note'   optional small line under the label
- *   'href'   where it leads
- *   'tone'   optional: 'waiting' (marigold) or 'problem' (red), meant only
- *            for a figure above 0
- * Styles: "Figures" in panel.css.
- */
-function panel_figures(array $figures)
-{
-    ?>
-    <div class="figure-row">
-      <?php foreach ($figures as $f): ?>
-        <a class="figure<?= !empty($f['tone']) ? ' figure--' . h($f['tone']) : '' ?>" href="<?= h($f['href']) ?>">
-          <span class="figure-value">
-            <?= h((string) $f['value']) ?><?php if (isset($f['of'])): ?><span class="figure-of"> / <?= h((string) $f['of']) ?></span><?php endif; ?>
-          </span>
-          <span class="figure-label"><?= h($f['label']) ?></span>
-          <?php if (!empty($f['note'])): ?>
-            <span class="figure-note"><?= h($f['note']) ?></span>
-          <?php endif; ?>
-        </a>
-      <?php endforeach; ?>
-    </div>
-    <?php
-}
-
 /** A label above a value. $value is escaped unless $raw is true. */
 function re_field($label, $value, $raw = false)
 {
