@@ -1820,6 +1820,7 @@ input[type=checkbox] {
 .near-me {
   display: none;
   gap: 10px;
+  margin: var(--s4) var(--s4) 0;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--line);
 }
@@ -1981,8 +1982,11 @@ html.js .filter-amenities:not(.show-all) .is-extra {
   display: none;
 }
 
-/* "More filters" is for phones only; see the 720px rules below. */
-.filter-toggle {
+/* The drawer's button, heading and tinted page are for phones only, with the
+   script; see the 720px rules below. */
+.filter-open,
+.filter-drawer-head,
+.filter-backdrop {
   display: none;
 }
 
@@ -2157,44 +2161,6 @@ html.js .results-sort-apply {
     padding: 0 var(--s3) var(--s3);
   }
 
-  /* With the script, everything after the search box folds under a real
-     button, open already when the search used one of those fields. */
-  html.js .filter-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 12px;
-    border: 1px solid var(--field-line);
-    border-radius: var(--r-md);
-    background: var(--panel);
-    color: var(--forest);
-    font: inherit;
-    font-size: 14.5px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-
-  html.js .filter-toggle::after {
-    content: '+';
-    font-size: 17px;
-    line-height: 1;
-  }
-
-  html.js .filter-toggle[aria-expanded="true"]::after {
-    content: '−';
-  }
-
-  html.js .filter-fields {
-    display: none;
-  }
-
-  html.js .filter-fields.is-open {
-    display: grid;
-  }
-
   .results-sort select {
     min-height: 44px;
   }
@@ -2205,6 +2171,118 @@ html.js .results-sort-apply {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
+  }
+
+  /* With the script, the panel stops being a card: Near me stays on the
+     page with Open filters under it, and the filters slide in from the left
+     in a drawer over the tinted page, the way the header's menu opens. */
+  html.js .filter-panel {
+    display: grid;
+    gap: 10px;
+    border: 0;
+    background: none;
+  }
+
+  html.js .near-me {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  html.js .near-me.is-on {
+    padding: var(--s3);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--panel);
+  }
+
+  html.js .filter-open {
+    display: flex;
+    width: 100%;
+    min-height: 46px;
+  }
+
+  html.js .filter-drawer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    width: min(86vw, 380px);
+    background: var(--panel);
+    box-shadow: 0 0 40px rgba(15, 58, 49, .25);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform .28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear .28s;
+  }
+
+  html.js .filter-drawer.is-open {
+    transform: none;
+    visibility: visible;
+    transition: transform .28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  html.js .filter-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 8px 10px var(--s4);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .filter-drawer-head h2 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .filter-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .filter-close:hover {
+    background: var(--leaf);
+  }
+
+  /* The fields scroll between the drawer's heading and its buttons. */
+  html.js .filter-drawer .filter-body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--s4);
+  }
+
+  html.js .filter-drawer .filter-actions {
+    padding: 12px var(--s4) var(--s4);
+    border-top: 1px solid var(--line);
+  }
+
+  html.js .filter-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: rgba(15, 58, 49, .35);
+  }
+
+  html.js .filter-backdrop[hidden] {
+    display: none;
+  }
+
+  html.filters-open,
+  html.filters-open body {
+    overflow: hidden;
   }
 }
 
@@ -2451,7 +2529,7 @@ html.js .results-sort-apply {
    Every card is a white card with the picture across its top and the words
    under it. The words read the same way down: the rent, set large, then the
    room types and the listing's state, then its name and street, then how
-   many slots are left. Three across on a laptop, two on a phone.
+   many slots are left. Three across on a laptop, one on a phone.
 
    A listing with no photo yet shows the house icon on a soft green tile in
    the photo's place, so a row of cards always lines up.
@@ -5290,117 +5368,14 @@ body.page-white {
 }
 
 @media (max-width: 600px) {
-  /* =========================================================
-     Two listings to a row on a phone
-     ---------------------------------------------------------
-     One card per row meant two listings to a screenful and a lot of scrolling
-     to compare rents. Two columns puts four in view. A card is then about
-     165px wide on a 375px screen, so everything inside it steps down a size
-     and the foot stacks: the slots left over "View details".
-     ========================================================= */
+  /* One listing to a row on a phone, at the card's full size. */
   .card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
   }
 
   .card-chunk + .card-chunk {
     margin-top: 20px;
-  }
-
-  .room-card-body {
-    padding: 12px 12px 12px;
-  }
-
-  /* The tile's icon and words step down with the card. */
-  .room-card-empty {
-    gap: 6px;
-  }
-
-  .room-card-empty .icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .room-card-empty span {
-    font-size: 11.5px;
-  }
-
-  .room-card-rent {
-    font-size: 1.3rem;
-  }
-
-  .room-card-per,
-  .room-card-meta {
-    font-size: 12.5px;
-  }
-
-  /* "/ month" takes a line under the figure: beside it, with "From" in front,
-     a rent ran wider than the card and wrapped on some cards and not others. */
-  .room-card-per {
-    display: block;
-    margin-top: 1px;
-  }
-
-  /* One room type, and the state only where it is not "Available", which the
-     slots left at the foot already say. Two tags side by side are wider than
-     the card, and a row that wrapped on one card and not its neighbour would
-     stop the row of cards lining up. */
-  .room-card-tags {
-    margin-top: 8px;
-  }
-
-  .room-card-tags .tag + .tag,
-  .room-card--available .room-card-tags .pill {
-    display: none;
-  }
-
-  .room-card-tags .tag,
-  .room-card-tags .pill {
-    font-size: 11.5px;
-  }
-
-  .room-card-title {
-    font-size: 14.5px;
-    margin-top: 8px;
-  }
-
-  .room-card-addr,
-  .room-card-distance {
-    margin-top: 2px;
-    font-size: 12.5px;
-    gap: 4px;
-  }
-
-  .room-card-foot {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding-top: 10px;
-  }
-
-  .room-card-cta {
-    font-size: 13.5px;
-  }
-
-  .room-card-body > :nth-last-child(2) {
-    margin-bottom: 10px;
-  }
-
-  .room-card .save-form {
-    top: 8px;
-    right: 8px;
-  }
-
-  /* Drawn a size smaller on a 165px card; the tap area stays 44px. */
-  .room-card .save-btn {
-    width: 40px;
-    height: 40px;
-  }
-
-  .room-card .save-btn::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
   }
 
   /* The home page's three figures stay side by side, a size smaller, with
@@ -5465,20 +5440,6 @@ body.page-white {
   .brand {
     font-size: 20px;
   }
-
-  /* Two cards still fit here, but the rent has to: any larger and a
-     four-figure rent pushed "/ month" onto a line of its own. */
-  .card-grid {
-    gap: 18px 10px;
-  }
-
-  .room-card-rent {
-    font-size: 1.15rem;
-  }
-
-  .room-card-per {
-    font-size: 12px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5500,7 +5461,9 @@ body.page-white {
   .site-header,
   .site-header.is-hidden,
   .listing-side,
-  .filter-panel {
+  .filter-panel,
+  html.js .filter-drawer,
+  html.js .filter-drawer.is-open {
     transition: none;
   }
 

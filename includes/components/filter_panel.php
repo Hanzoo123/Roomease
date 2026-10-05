@@ -1,9 +1,10 @@
 <?php
 /**
  * The browse page's filter panel: a card beside the results on a laptop, and
- * on top of them on a phone, where everything between Near me and Apply folds
- * under "More filters". It is the page's one search form; the Sort by menu
- * above the results joins it with form="browse-filters".
+ * above them on a tablet. On a phone, Find places near me stays on the page
+ * with an "Open filters" button under it, and the rest of the filters wait in
+ * a drawer that slides in from the left. It is the page's one search form;
+ * the Sort by menu above the results joins it with form="browse-filters".
  *
  * Options: 'action', 'room_types', 'amenity_options', 'filters' (the search
  * as browse has it, without the page), 'near_off' (the same search with Near
@@ -25,11 +26,10 @@ function render_filter_panel(array $opts)
     $within = $f['within'] ?? '';
     $amenityOptions = $opts['amenity_options'] ?? filter_amenity_options();
 
-    // On phones, "More filters" starts open when a field under it is in use,
-    // and says how many are.
-    $moreSet = ($roomType !== '' ? 1 : 0) + ($minRent !== '' ? 1 : 0) + ($maxRent !== '' ? 1 : 0)
-        + ($vacant ? 1 : 0) + count($ticked);
-    $anySet = $moreSet > 0 || $q !== '' || $near || isset($f['sort']);
+    // How many of the filters in the drawer are in use, for its button on a phone.
+    $filterCount = ($q !== '' ? 1 : 0) + ($roomType !== '' ? 1 : 0) + ($minRent !== '' ? 1 : 0)
+        + ($maxRent !== '' ? 1 : 0) + ($vacant ? 1 : 0) + count($ticked);
+    $anySet = $filterCount > 0 || $near || isset($f['sort']);
 
     // Landlords' own amenities wait behind "+ N more", unless one of them is
     // ticked, in which case the whole list is shown so it can be seen.
@@ -47,100 +47,109 @@ function render_filter_panel(array $opts)
     ?>
     <form method="get" action="<?= h($opts['action'] ?? '') ?>" class="filter-panel" id="browse-filters"
       role="search" aria-label="Filter boarding houses">
-      <div class="filter-body">
-        <?php /* Find places near me needs the browser's location, so it only
-                 shows where the script below runs (html.js). The location goes
-                 to the server in the small form after this one. */ ?>
-        <div class="near-me<?= $near ? ' is-on' : '' ?>" data-near>
-          <?php if ($near): ?>
-            <p class="near-me-state"><?= icon('locate', 16) ?><span>Showing how far each place is from you</span></p>
-            <div>
-              <label for="within">Distance</label>
-              <select id="within" name="within">
-                <option value="">Any distance</option>
-                <?php foreach (NEAR_RADII_KM as $km): ?>
-                  <option value="<?= $km ?>" <?= $within === $km ? 'selected' : '' ?>>Within <?= $km ?> km</option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <input type="hidden" name="near" value="1">
-            <p class="near-me-actions">
-              <button type="button" class="near-me-update" data-near-me>Update my location</button>
-              <a href="<?= h(base_url(browse_path($opts['near_off'] ?? [], 'results'))) ?>">Turn off</a>
-            </p>
-          <?php else: ?>
-            <button type="button" class="btn btn-near" data-near-me><?= icon('locate', 18) ?><span>Find places near me</span></button>
-          <?php endif; ?>
-          <p class="near-me-note" data-near-status role="status" aria-live="polite"><?= h($nearNote) ?></p>
-        </div>
-
-        <div>
-          <label for="q">Search</label>
-          <input type="text" id="q" name="q" value="<?= h($q) ?>" placeholder="Name, barangay, or street">
-        </div>
-
-        <?php /* A real button, so it can be reached and opened from the keyboard.
-                 It only shows where the script below runs (html.js) and the
-                 screen is narrow; everywhere else the fields are simply shown. */ ?>
-        <button type="button" class="filter-toggle" data-filter-toggle
-          aria-expanded="<?= $moreSet ? 'true' : 'false' ?>" aria-controls="filter-fields">
-          More filters<?= $moreSet ? ' (' . $moreSet . ')' : '' ?>
-        </button>
-
-        <div class="filter-fields<?= $moreSet ? ' is-open' : '' ?>" id="filter-fields">
+      <?php /* Find places near me needs the browser's location, so it only
+               shows where the script below runs (html.js). The location goes
+               to the server in the small form after this one. */ ?>
+      <div class="near-me<?= $near ? ' is-on' : '' ?>" data-near>
+        <?php if ($near): ?>
+          <p class="near-me-state"><?= icon('locate', 16) ?><span>Showing how far each place is from you</span></p>
           <div>
-            <label for="room_type">Room type</label>
-            <select id="room_type" name="room_type">
-              <option value="">Any</option>
-              <?php foreach (($opts['room_types'] ?? []) as $rtId => $rtName): ?>
-                <option value="<?= (int) $rtId ?>" <?= $roomType === $rtId ? 'selected' : '' ?>><?= h($rtName) ?></option>
+            <label for="within">Distance</label>
+            <select id="within" name="within">
+              <option value="">Any distance</option>
+              <?php foreach (NEAR_RADII_KM as $km): ?>
+                <option value="<?= $km ?>" <?= $within === $km ? 'selected' : '' ?>>Within <?= $km ?> km</option>
               <?php endforeach; ?>
             </select>
           </div>
+          <input type="hidden" name="near" value="1">
+          <p class="near-me-actions">
+            <button type="button" class="near-me-update" data-near-me>Update my location</button>
+            <a href="<?= h(base_url(browse_path($opts['near_off'] ?? [], 'results'))) ?>">Turn off</a>
+          </p>
+        <?php else: ?>
+          <button type="button" class="btn btn-near" data-near-me><?= icon('locate', 18) ?><span>Find places near me</span></button>
+        <?php endif; ?>
+        <p class="near-me-note" data-near-status role="status" aria-live="polite"><?= h($nearNote) ?></p>
+      </div>
 
-          <fieldset>
-            <legend>Rent per month (₱)</legend>
-            <div class="filter-rent">
-              <label class="sr-only" for="min_rent">Lowest rent per month</label>
-              <input type="number" id="min_rent" name="min_rent" value="<?= h($minRent) ?>" placeholder="Min"
-                min="0" step="1" inputmode="numeric">
-              <span aria-hidden="true">to</span>
-              <label class="sr-only" for="max_rent">Highest rent per month</label>
-              <input type="number" id="max_rent" name="max_rent" value="<?= h($maxRent) ?>" placeholder="Max"
-                min="0" step="1" inputmode="numeric">
-            </div>
-          </fieldset>
+      <?php /* Phones: the filters below wait in a drawer, opened by this button.
+               Both only work where the script below runs (html.js); without
+               it, the filters are simply shown. */ ?>
+      <button type="button" class="btn btn-ghost filter-open" data-filter-open
+        aria-controls="filter-drawer" aria-expanded="false">
+        <?= icon('filter', 18) ?><span>Open filters<?= $filterCount ? ' (' . $filterCount . ')' : '' ?></span>
+      </button>
 
-          <label class="filter-check">
-            <input type="checkbox" name="vacant" value="1" <?= $vacant ? 'checked' : '' ?>>
-            Has a free slot
-          </label>
+      <div class="filter-drawer" id="filter-drawer" aria-labelledby="filter-drawer-title">
+        <div class="filter-drawer-head">
+          <h2 id="filter-drawer-title">Filters</h2>
+          <button type="button" class="filter-close" data-filter-close aria-label="Close filters"><?= icon('x', 22) ?></button>
+        </div>
 
-          <?php if ($amenityOptions): ?>
-            <fieldset class="filter-amenities<?= $extraTicked ? ' show-all' : '' ?>">
-              <legend>Amenities</legend>
-              <div class="filter-amenity-list">
-                <?php foreach ($amenityOptions as $id => $a): ?>
-                  <label class="filter-check<?= $a['extra'] ? ' is-extra' : '' ?>">
-                    <input type="checkbox" name="amenities[]" value="<?= (int) $id ?>" <?= isset($ticked[$id]) ? 'checked' : '' ?>>
-                    <?= h($a['name']) ?>
-                  </label>
+        <div class="filter-body">
+          <div>
+            <label for="q">Search</label>
+            <input type="text" id="q" name="q" value="<?= h($q) ?>" placeholder="Name, barangay, or street">
+          </div>
+
+          <div class="filter-fields">
+            <div>
+              <label for="room_type">Room type</label>
+              <select id="room_type" name="room_type">
+                <option value="">Any</option>
+                <?php foreach (($opts['room_types'] ?? []) as $rtId => $rtName): ?>
+                  <option value="<?= (int) $rtId ?>" <?= $roomType === $rtId ? 'selected' : '' ?>><?= h($rtName) ?></option>
                 <?php endforeach; ?>
+              </select>
+            </div>
+
+            <fieldset>
+              <legend>Rent per month (₱)</legend>
+              <div class="filter-rent">
+                <label class="sr-only" for="min_rent">Lowest rent per month</label>
+                <input type="number" id="min_rent" name="min_rent" value="<?= h($minRent) ?>" placeholder="Min"
+                  min="0" step="1" inputmode="numeric">
+                <span aria-hidden="true">to</span>
+                <label class="sr-only" for="max_rent">Highest rent per month</label>
+                <input type="number" id="max_rent" name="max_rent" value="<?= h($maxRent) ?>" placeholder="Max"
+                  min="0" step="1" inputmode="numeric">
               </div>
-              <?php if ($extraCount && !$extraTicked): ?>
-                <button type="button" class="amenity-more" data-amenity-more>+ <?= $extraCount ?> more</button>
-              <?php endif; ?>
             </fieldset>
+
+            <label class="filter-check">
+              <input type="checkbox" name="vacant" value="1" <?= $vacant ? 'checked' : '' ?>>
+              Has a free slot
+            </label>
+
+            <?php if ($amenityOptions): ?>
+              <fieldset class="filter-amenities<?= $extraTicked ? ' show-all' : '' ?>">
+                <legend>Amenities</legend>
+                <div class="filter-amenity-list">
+                  <?php foreach ($amenityOptions as $id => $a): ?>
+                    <label class="filter-check<?= $a['extra'] ? ' is-extra' : '' ?>">
+                      <input type="checkbox" name="amenities[]" value="<?= (int) $id ?>" <?= isset($ticked[$id]) ? 'checked' : '' ?>>
+                      <?= h($a['name']) ?>
+                    </label>
+                  <?php endforeach; ?>
+                </div>
+                <?php if ($extraCount && !$extraTicked): ?>
+                  <button type="button" class="amenity-more" data-amenity-more>+ <?= $extraCount ?> more</button>
+                <?php endif; ?>
+              </fieldset>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-accent"><?= icon('search', 18) ?><span>Apply filters</span></button>
+          <?php if ($anySet): ?>
+            <a class="filter-reset" href="<?= h(base_url(browse_path([], 'results'))) ?>">Clear filters</a>
           <?php endif; ?>
         </div>
       </div>
 
-      <div class="filter-actions">
-        <button type="submit" class="btn btn-accent"><?= icon('search', 18) ?><span>Apply filters</span></button>
-        <?php if ($anySet): ?>
-          <a class="filter-reset" href="<?= h(base_url(browse_path([], 'results'))) ?>">Clear filters</a>
-        <?php endif; ?>
-      </div>
+      <div class="filter-backdrop" data-filter-close hidden></div>
     </form>
 
     <?php /* Sends the location that Find places near me found (see the script),
@@ -158,13 +167,71 @@ function render_filter_panel(array $opts)
         var form = document.getElementById('browse-filters');
         if (!form) return;
 
-        // Phones: everything between Near me and Apply folds under "More filters".
-        var toggle = form.querySelector('[data-filter-toggle]');
-        var fields = document.getElementById(toggle.getAttribute('aria-controls'));
-        toggle.addEventListener('click', function () {
-          var open = toggle.getAttribute('aria-expanded') !== 'true';
-          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-          fields.classList.toggle('is-open', open);
+        // Phones: the filters slide in from the left over a tinted page, the
+        // way the site header's menu opens. The stylesheet decides at which
+        // width this happens; while the opener is on screen, it does.
+        var root = document.documentElement;
+        var opener = form.querySelector('[data-filter-open]');
+        var drawer = document.getElementById(opener.getAttribute('aria-controls'));
+        var backdrop = form.querySelector('.filter-backdrop');
+
+        var drawerStops = function () {
+          return Array.prototype.filter.call(
+            drawer.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]), select'),
+            function (el) { return el.offsetParent !== null; }
+          );
+        };
+
+        var openDrawer = function () {
+          drawer.setAttribute('role', 'dialog');
+          drawer.setAttribute('aria-modal', 'true');
+          drawer.classList.add('is-open');
+          backdrop.hidden = false;
+          opener.setAttribute('aria-expanded', 'true');
+          root.classList.add('filters-open');
+          drawer.querySelector('[data-filter-close]').focus();
+        };
+
+        var closeDrawer = function (returnFocus) {
+          if (!drawer.classList.contains('is-open')) return;
+          drawer.classList.remove('is-open');
+          drawer.removeAttribute('role');
+          drawer.removeAttribute('aria-modal');
+          backdrop.hidden = true;
+          opener.setAttribute('aria-expanded', 'false');
+          root.classList.remove('filters-open');
+          if (returnFocus) opener.focus();
+        };
+
+        opener.addEventListener('click', openDrawer);
+        form.querySelectorAll('[data-filter-close]').forEach(function (el) {
+          el.addEventListener('click', function () { closeDrawer(true); });
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (!drawer.classList.contains('is-open')) return;
+          if (e.key === 'Escape') {
+            closeDrawer(true);
+            return;
+          }
+          if (e.key !== 'Tab') return;
+          // Tab cycles within the drawer rather than into the page behind it.
+          var stops = drawerStops();
+          var first = stops[0];
+          var last = stops[stops.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        });
+
+        // Turning the phone, or widening the window, puts the filters back in
+        // the page; an open drawer would be left over them.
+        window.addEventListener('resize', function () {
+          if (opener.offsetParent === null) closeDrawer(false);
         });
 
         // "+ N more" brings in the landlords' own amenities, and keyboard focus
