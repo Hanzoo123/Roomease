@@ -227,7 +227,7 @@ function google_find_account($googleId, $email)
     }
 
     // Admins can't use Google; they sign in at admin/login.php.
-    if ($user['role'] === 'administrator') {
+    if (is_admin_role($user['role'])) {
         return [null, 'Administrators sign in on the admin sign-in page, with their email and password.', false];
     }
 

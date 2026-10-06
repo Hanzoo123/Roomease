@@ -15,15 +15,15 @@ $myId = (int) $_SESSION['user_id'];
 $admins = $pdo->query(
     "SELECT *, " . account_name_sql('users') . " AS full_name
        FROM users
-      WHERE role = 'administrator'
-      ORDER BY deleted_at IS NOT NULL, is_super_admin DESC, full_name"
+      WHERE role IN " . ADMIN_ROLES_SQL . "
+      ORDER BY deleted_at IS NOT NULL, role = 'super_admin' DESC, full_name"
 )->fetchAll();
 
 // When each one last signed in, from the audit log. Sign-ins are kept for 90
 // days (audit_purge_old_signins()), so an older one shows as a dash.
 $lastSignin = $pdo->query(
     "SELECT actor_id, MAX(created_at) FROM audit_logs
-      WHERE action = 'signin' AND actor_role = 'administrator'
+      WHERE action = 'signin' AND actor_role IN " . ADMIN_ROLES_SQL . "
       GROUP BY actor_id"
 )->fetchAll(PDO::FETCH_KEY_PAIR);
 
@@ -106,8 +106,8 @@ $actionButton = function ($adminId, $action, $class, $icon, $title, $confirm = '
                     <?php endif; ?>
                   </td>
                   <td>
-                    <?php if ($a['is_super_admin']): ?>
-                      <span class="badge badge-primary px-2 py-1"><i class="fas fa-user-shield mr-1"></i> Super admin</span>
+                    <?php if ($a['role'] === 'super_admin'): ?>
+                      <span class="badge badge-primary px-2 py-1"><i class="fas fa-user-shield mr-1"></i> Super Admin</span>
                     <?php else: ?>
                       <span class="badge badge-info px-2 py-1"><i class="fas fa-user-cog mr-1"></i> Administrator</span>
                     <?php endif; ?>
@@ -137,7 +137,7 @@ $actionButton = function ($adminId, $action, $class, $icon, $title, $confirm = '
                         <?= $a['is_active']
                           ? $actionButton($id, 'deactivate', 'btn-outline-warning', 'fa-user-slash', 'Deactivate ' . $name)
                           : $actionButton($id, 'activate', 'btn-outline-success', 'fa-user-check', 'Activate ' . $name) ?>
-                        <?= $a['is_super_admin']
+                        <?= $a['role'] === 'super_admin'
                           ? $actionButton($id, 'demote', 'btn-outline-secondary', 'fa-user-minus', 'Remove super admin from ' . $name,
                               'Take super admin away from ' . $name . '? They stay an administrator.')
                           : $actionButton($id, 'promote', 'btn-outline-primary', 'fa-user-shield', 'Make ' . $name . ' a super admin',

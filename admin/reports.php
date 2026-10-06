@@ -35,7 +35,7 @@ $accounts = $byMonth(
   "SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym,
           SUM(role = 'landlord') AS landlords, SUM(role = 'boarder') AS boarders
      FROM users
-    WHERE role <> 'administrator' AND created_at >= ?
+    WHERE role NOT IN " . ADMIN_ROLES_SQL . " AND created_at >= ?
     GROUP BY ym",
   [$since]
 );
@@ -79,7 +79,7 @@ $maxListings = max(1, max(array_column($monthRows, 'listings')));
 // Where things stand now.
 $people = $pdo->query(
   "SELECT SUM(role = 'landlord') AS landlords, SUM(role = 'boarder') AS boarders
-     FROM users WHERE role <> 'administrator' AND deleted_at IS NULL"
+     FROM users WHERE role NOT IN " . ADMIN_ROLES_SQL . " AND deleted_at IS NULL"
 )->fetch();
 $live = live_listing_stats();
 $roomFigures = $pdo->query(

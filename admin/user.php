@@ -9,7 +9,7 @@ require_once __DIR__ . '/../config/db.php';
 require_login('admin');
 
 $userId = (int) ($_GET['id'] ?? 0);
-$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role <> 'administrator'");
+$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role NOT IN " . ADMIN_ROLES_SQL);
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 

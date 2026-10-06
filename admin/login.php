@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $stmt = $pdo->prepare(
             "SELECT * FROM users
-              WHERE (email = ? OR username = ?) AND deleted_at IS NULL AND role = 'administrator'
+              WHERE (email = ? OR username = ?) AND deleted_at IS NULL AND role IN " . ADMIN_ROLES_SQL . "
               LIMIT 1"
         );
         $stmt->execute([$loginId, $loginId]);

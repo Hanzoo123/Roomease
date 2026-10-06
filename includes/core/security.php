@@ -173,7 +173,7 @@ function enforce_session_policy()
 
     try {
         $stmt = $pdo->prepare(
-            'SELECT role, is_super_admin, is_active, deleted_at, avatar_path, password_hash,
+            'SELECT role, is_active, deleted_at, avatar_path, password_hash,
                     first_name, last_name, email, username
                FROM users WHERE user_id = ?'
         );
@@ -207,17 +207,16 @@ function enforce_session_policy()
 
     // Refresh the session from the database, which is always the truth.
     $_SESSION['role'] = $account['role'];
-    $_SESSION['is_super_admin'] = !empty($account['is_super_admin']);
     $_SESSION['full_name'] = account_display_name($account);
     $_SESSION['email'] = (string) ($account['email'] ?? '');
     $_SESSION['username'] = $account['username'] ?? null;
-    $_SESSION['profile_incomplete'] = $account['role'] === 'administrator'
+    $_SESSION['profile_incomplete'] = is_admin_role($account['role'])
         && (trim((string) $account['first_name']) === '' || trim((string) $account['last_name']) === ''
             || (string) ($account['email'] ?? '') === '');
     $_SESSION['avatar_path'] = $account['avatar_path'];
 
     // Separate query, so an older database without this column only loses this check.
-    $_SESSION['must_change_password'] = $account['role'] === 'administrator'
+    $_SESSION['must_change_password'] = is_admin_role($account['role'])
         && account_must_change_password($_SESSION['user_id']);
 }
 
@@ -246,7 +245,6 @@ function start_user_session(array $user)
     $_SESSION['last_activity'] = time();
     $_SESSION['user_id'] = $user['user_id'];
     $_SESSION['role'] = $user['role'];
-    $_SESSION['is_super_admin'] = !empty($user['is_super_admin']);
     $_SESSION['first_name'] = $user['first_name'];
     $_SESSION['last_name'] = $user['last_name'];
     $_SESSION['full_name'] = account_display_name($user);

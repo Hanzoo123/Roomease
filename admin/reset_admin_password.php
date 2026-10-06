@@ -11,7 +11,7 @@ require_super_admin();
 
 $targetId = (int) ($_GET['id'] ?? $_POST['user_id'] ?? 0);
 
-$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role = 'administrator' AND deleted_at IS NULL");
+$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role IN " . ADMIN_ROLES_SQL . " AND deleted_at IS NULL");
 $stmt->execute([$targetId]);
 $target = $stmt->fetch();
 

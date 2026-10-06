@@ -39,7 +39,7 @@ $hash = password_hash($newPassword, PASSWORD_DEFAULT);
 
 require __DIR__ . '/../config/db.php';
 
-$stmt = $pdo->prepare("SELECT user_id, first_name, last_name FROM users WHERE email = ? AND role = 'administrator'");
+$stmt = $pdo->prepare("SELECT user_id, first_name, last_name FROM users WHERE email = ? AND role IN ('super_admin', 'administrator')");
 $stmt->execute([$adminEmail]);
 $admin = $stmt->fetch();
 

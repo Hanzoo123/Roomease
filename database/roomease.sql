@@ -63,9 +63,9 @@ CREATE TABLE users (
     phone_number    VARCHAR(30) DEFAULT NULL,
     -- Profile photo path. NULL shows initials instead.
     avatar_path     VARCHAR(255) NULL DEFAULT NULL,
-    role            ENUM('administrator', 'landlord', 'boarder') NOT NULL,
-    -- 1 = super admin: can also manage other admins and Appearance.
-    is_super_admin  TINYINT(1) NOT NULL DEFAULT 0,
+    -- super_admin: an administrator who can also manage other admins, the
+    -- audit log, All Users and Appearance.
+    role            ENUM('super_admin', 'administrator', 'landlord', 'boarder') NOT NULL,
     -- 1 = temporary password set by a super admin; must be changed.
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
@@ -446,10 +446,10 @@ CREATE TABLE audit_logs (
 --    Only a bcrypt hash of the password is stored. To change it:
 --    php database/set_admin_password.php "YourNewPassword" admin@roomease.com
 INSERT INTO users
-    (user_id, email, username, password_hash, first_name, last_name, phone_number, role, is_super_admin, is_active)
+    (user_id, email, username, password_hash, first_name, last_name, phone_number, role, is_active)
 VALUES
     (1, 'admin@roomease.com', 'admin', '$2y$10$ASqK/NDvxXriS5IfnBqLfuLZNdx2/d8zssHfHm3D6Q.fhB8.cG.ki',
-     'System', 'Administrator', '09000000000', 'administrator', 1, 1);
+     'System', 'Administrator', '09000000000', 'super_admin', 1);
 
 -- 2. Room types (needed before any room can be added).
 INSERT INTO room_types (room_type_id, room_type_name) VALUES

@@ -12,7 +12,7 @@ $roles = ['administrator' => 'Administrators', 'landlord' => 'Landlords', 'board
 $roleFilter = array_key_exists($_GET['role'] ?? '', $roles) ? $_GET['role'] : '';
 
 // Who belongs here: live accounts, super admins left out.
-$base = "deleted_at IS NULL AND NOT (role = 'administrator' AND is_super_admin = 1)";
+$base = "deleted_at IS NULL AND role <> 'super_admin'";
 
 $counts = $pdo->query("SELECT role, COUNT(*) FROM users WHERE $base GROUP BY role")->fetchAll(PDO::FETCH_KEY_PAIR);
 $total = array_sum($counts);
@@ -85,7 +85,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 [$badge, $icon, $roleLabel] = $roleBadges[$u['role']];
                 // Administrators have no page of their own; they are managed
                 // from the Administrators list.
-                $href = $u['role'] === 'administrator'
+                $href = is_admin_role($u['role'])
                     ? base_url('admin/admins.php')
                     : base_url('admin/user.php?id=' . (int) $u['user_id']);
                 ?>

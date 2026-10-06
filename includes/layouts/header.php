@@ -83,7 +83,7 @@ $navCurrent = function ($path) {
           <a href="<?= base_url('legal/contact.php') ?>"<?= $navCurrent('legal/contact.php') ?>>Contact Us</a>
           <?php if (is_logged_in()): ?>
             <?php if (current_role() !== 'boarder'): ?>
-              <span class="role-tag"><?= h(current_role()) ?></span>
+              <span class="role-tag"><?= h(strtolower(role_label(current_role()))) ?></span>
             <?php endif; ?>
             <a href="<?= base_url('auth/profile.php') ?>" class="nav-extra"<?= $navCurrent('auth/profile.php') ?>>Profile</a>
             <a href="<?= base_url('auth/logout.php') ?>">Log out</a>

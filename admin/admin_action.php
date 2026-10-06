@@ -18,7 +18,7 @@ $targetId = (int) ($_POST['user_id'] ?? 0);
 $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
 $myId = (int) $_SESSION['user_id'];
 
-$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role = 'administrator'");
+$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role IN " . ADMIN_ROLES_SQL);
 $stmt->execute([$targetId]);
 $target = $stmt->fetch();
 
@@ -37,11 +37,11 @@ $live = $target['deleted_at'] === null;
 // Would this action leave no active super admin? Only a change to an active
 // super admin can do that.
 $losesSuperAdmin = in_array($action, ['deactivate', 'remove', 'demote'], true)
-    && $target['is_super_admin'] && $target['is_active'] && $live;
+    && $target['role'] === 'super_admin' && $target['is_active'] && $live;
 if ($losesSuperAdmin) {
     $others = $pdo->prepare(
         "SELECT COUNT(*) FROM users
-          WHERE role = 'administrator' AND is_super_admin = 1 AND is_active = 1 AND deleted_at IS NULL
+          WHERE role = 'super_admin' AND is_active = 1 AND deleted_at IS NULL
             AND user_id <> ?"
     );
     $others->execute([$targetId]);
@@ -86,13 +86,13 @@ switch ($action) {
         }
         break;
     case 'promote':
-        if ($live && !$target['is_super_admin']) {
-            $apply('UPDATE users SET is_super_admin = 1', [], 'admin_promote', $name . ' is now a super admin.');
+        if ($live && $target['role'] !== 'super_admin') {
+            $apply("UPDATE users SET role = 'super_admin'", [], 'admin_promote', $name . ' is now a super admin.');
         }
         break;
     case 'demote':
-        if ($live && $target['is_super_admin']) {
-            $apply('UPDATE users SET is_super_admin = 0', [], 'admin_demote', $name . ' is no longer a super admin.');
+        if ($live && $target['role'] === 'super_admin') {
+            $apply("UPDATE users SET role = 'administrator'", [], 'admin_demote', $name . ' is no longer a super admin.');
         }
         break;
 }

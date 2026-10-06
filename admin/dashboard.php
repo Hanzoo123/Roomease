@@ -60,7 +60,7 @@ $daily = function ($sql, $column) use ($pdo, $since, &$days) {
   }
 };
 $daily("SELECT DATE(created_at) AS d, COUNT(*) AS n FROM users
-         WHERE role <> 'administrator' AND deleted_at IS NULL AND created_at >= ? GROUP BY d", 'accounts');
+         WHERE role NOT IN " . ADMIN_ROLES_SQL . " AND deleted_at IS NULL AND created_at >= ? GROUP BY d", 'accounts');
 $daily("SELECT DATE(bh.created_at) AS d, COUNT(*) AS n FROM boarding_houses bh
           JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL
          WHERE bh.deleted_at IS NULL AND bh.created_at >= ? GROUP BY d", 'listings');
@@ -93,9 +93,9 @@ if (is_super_admin()) {
   $security = $pdo->query(
     "SELECT (SELECT COUNT(*) FROM audit_logs
               WHERE action = 'signin_failed' AND created_at > NOW() - INTERVAL 7 DAY) AS failed_week,
-            (SELECT COUNT(*) FROM users WHERE role = 'administrator' AND deleted_at IS NULL) AS admins,
+            (SELECT COUNT(*) FROM users WHERE role IN " . ADMIN_ROLES_SQL . " AND deleted_at IS NULL) AS admins,
             (SELECT COUNT(*) FROM users
-              WHERE role = 'administrator' AND deleted_at IS NULL AND must_change_password = 1) AS admins_must_change"
+              WHERE role IN " . ADMIN_ROLES_SQL . " AND deleted_at IS NULL AND must_change_password = 1) AS admins_must_change"
   )->fetch();
   $security['locked'] = 0;
   if (throttle_available()) {
@@ -127,7 +127,7 @@ $recentUsers = $pdo->query(
   "SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name, email, role, is_active,
           deleted_at, created_at, avatar_path
      FROM users
-    WHERE role <> 'administrator'
+    WHERE role NOT IN " . ADMIN_ROLES_SQL . "
     ORDER BY created_at DESC
     LIMIT 4"
 )->fetchAll();

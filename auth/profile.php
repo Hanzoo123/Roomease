@@ -18,7 +18,6 @@ if (!$user) {
 
 $googleLinked = !empty($user['google_id']);
 $role = $user['role'];
-$roleLabels = ['administrator' => 'Administrator', 'landlord' => 'Landlord', 'boarder' => 'Boarder'];
 // A new administrator has only a username until they add their name.
 $fullName = account_display_name($user);
 $user['full_name'] = $fullName;
@@ -62,7 +61,7 @@ $pageTitle = 'My Profile';
 require __DIR__ . '/../includes/layouts/profile_top.php';
 
 $roleBadge = $usePanel
-  ? ['administrator' => 'badge badge-primary', 'landlord' => 'badge badge-info', 'boarder' => 'badge badge-secondary'][$role]
+  ? ['super_admin' => 'badge badge-primary', 'administrator' => 'badge badge-primary', 'landlord' => 'badge badge-info', 'boarder' => 'badge badge-secondary'][$role]
   : 'profile-role';
 ?>
 
@@ -79,7 +78,7 @@ $roleBadge = $usePanel
     <div class="profile-id">
       <h2 class="profile-name"><?= h($fullName) ?></h2>
       <p class="profile-email"><?= (string) $user['email'] !== '' ? h($user['email']) : 'No email yet' ?></p>
-      <span class="<?= $roleBadge ?>"><?= h($roleLabels[$role] ?? ucfirst($role)) ?></span>
+      <span class="<?= $roleBadge ?>"><?= h(role_label($role)) ?></span>
     </div>
     <div class="profile-actions">
       <a href="<?= base_url('auth/edit_profile.php') ?>" class="<?= $cls['btn'] ?>">Edit profile</a>

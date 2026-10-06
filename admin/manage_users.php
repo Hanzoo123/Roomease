@@ -11,7 +11,7 @@ $roleFilter = $_GET['role'] ?? '';
 // to be seen and restored from. The directory shows live accounts by default.
 $showArchived = ($_GET['view'] ?? '') === 'archived';
 
-$where = "role != 'administrator' AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL');
+$where = "role NOT IN " . ADMIN_ROLES_SQL . " AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL');
 $params = [];
 if (in_array($roleFilter, ['landlord', 'boarder'], true)) {
   $where .= ' AND role = ?';
@@ -25,7 +25,7 @@ $counts = $pdo->query(
           SUM(role = 'landlord' AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL') . ") AS landlords,
           SUM(role = 'boarder'  AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL') . ") AS boarders
      FROM users
-    WHERE role != 'administrator'"
+    WHERE role NOT IN " . ADMIN_ROLES_SQL
 )->fetch();
 $totalNonAdmin  = (int) $counts['live_total'];
 $totalArchived  = (int) $counts['archived_total'];

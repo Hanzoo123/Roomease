@@ -29,7 +29,7 @@ $filters = [];
 if ($type === 'users') {
   $archived = ($_GET['view'] ?? '') === 'archived';
   $role = $_GET['role'] ?? '';
-  $where = ["role <> 'administrator'", 'deleted_at IS ' . ($archived ? 'NOT NULL' : 'NULL')];
+  $where = ["role NOT IN " . ADMIN_ROLES_SQL, 'deleted_at IS ' . ($archived ? 'NOT NULL' : 'NULL')];
   $params = [];
   if (in_array($role, ['landlord', 'boarder'], true)) {
     $where[] = 'role = ?';

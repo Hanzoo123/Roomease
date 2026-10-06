@@ -20,7 +20,7 @@ $back = function ($listPath) use ($fromDetail, $userId) {
 };
 
 // Never let an admin deactivate/archive their own account or another administrator.
-$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role != 'administrator'");
+$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role NOT IN " . ADMIN_ROLES_SQL);
 $stmt->execute([$userId]);
 $target = $stmt->fetch();
 

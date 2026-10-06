@@ -37,11 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // No name or email yet: the new administrator adds both on first
         // sign-in. email stays NULL until then, which its unique key allows.
         $pdo->prepare(
-            "INSERT INTO users (role, is_super_admin, username, first_name, last_name, email, password_hash,
+            "INSERT INTO users (role, username, first_name, last_name, email, password_hash,
                                 is_active, created_by, updated_by)
-             VALUES ('administrator', ?, ?, '', '', NULL, ?, 1, ?, ?)"
+             VALUES (?, ?, '', '', NULL, ?, 1, ?, ?)"
         )->execute([
-            $isSuper ? 1 : 0,
+            $form['role'],
             $form['username'],
             password_hash($password, PASSWORD_DEFAULT),
             current_user_id(),

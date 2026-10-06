@@ -62,7 +62,7 @@ function password_reset_account($email, $scope)
         );
         $stmt->execute([$_SESSION['user_id']]);
     } else {
-        $roleCheck = $scope === 'admin' ? "role = 'administrator'" : "role <> 'administrator'";
+        $roleCheck = $scope === 'admin' ? 'role IN ' . ADMIN_ROLES_SQL : 'role NOT IN ' . ADMIN_ROLES_SQL;
         $stmt = $pdo->prepare(
             "SELECT user_id, email, first_name, role FROM users
               WHERE email = ? AND deleted_at IS NULL AND is_active = 1 AND $roleCheck"

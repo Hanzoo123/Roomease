@@ -41,7 +41,7 @@ if (!$preview && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // Admin accounts are excluded, so an admin email looks like an unknown one.
         $stmt = $pdo->prepare(
             "SELECT * FROM users
-              WHERE email = :login_id AND deleted_at IS NULL AND role <> 'administrator'
+              WHERE email = :login_id AND deleted_at IS NULL AND role NOT IN " . ADMIN_ROLES_SQL . "
               LIMIT 1"
         );
         $stmt->execute([':login_id' => $loginId]);

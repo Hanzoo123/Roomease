@@ -43,17 +43,15 @@ function require_login($roles = null)
 {
     if (!is_logged_in()) {
         $adminOnly = $roles !== null
-            && !array_diff((array) $roles, ['admin', 'administrator']);
+            && !array_diff((array) $roles, array_merge(['admin'], ADMIN_ROLES));
         redirect($adminOnly ? ADMIN_LOGIN_PATH : 'auth/login.php');
     }
     if ($roles !== null) {
         $roles = (array) $roles;
-        // 'admin' and 'administrator' mean the same.
-        if (in_array('admin', $roles, true) && !in_array('administrator', $roles, true)) {
-            $roles[] = 'administrator';
-        }
-        if (in_array('administrator', $roles, true) && !in_array('admin', $roles, true)) {
-            $roles[] = 'admin';
+        // 'admin' means either admin role: a super admin can open every
+        // administrator page.
+        if (array_intersect(['admin', 'administrator'], $roles)) {
+            $roles = array_merge($roles, ADMIN_ROLES);
         }
         if (!in_array(current_role(), $roles, true)) {
             redirect('index.php');
@@ -76,18 +74,43 @@ function require_login($roles = null)
 
 const ADMIN_LOGIN_PATH = 'admin/login.php';
 
-/** True if the current user is an administrator. */
+/**
+ * The two roles that sign in to the admin panel. A super admin can do all an
+ * administrator can, and also manage administrators, the audit log, All
+ * Users and Appearance. ADMIN_ROLES_SQL is the same list for `role IN ...`
+ * and `role NOT IN ...` in queries.
+ */
+
+const ADMIN_ROLES = ['super_admin', 'administrator'];
+const ADMIN_ROLES_SQL = "('super_admin', 'administrator')";
+
+/** True if $role is one of the admin roles. */
+
+function is_admin_role($role)
+{
+    return in_array($role, ADMIN_ROLES, true);
+}
+
+/** True if the current user is an administrator or a super admin. */
 
 function is_admin()
 {
-    return in_array(current_role(), ['administrator', 'admin'], true);
+    return is_admin_role(current_role());
 }
 
-/** True for a super admin: an admin who can also manage other admins and Appearance. */
+/** True for a super admin. */
 
 function is_super_admin()
 {
-    return is_admin() && !empty($_SESSION['is_super_admin']);
+    return current_role() === 'super_admin';
+}
+
+/** How a role is shown: "Super Admin", "Administrator", "Landlord", "Boarder". */
+
+function role_label($role)
+{
+    return ['super_admin' => 'Super Admin', 'administrator' => 'Administrator',
+            'landlord' => 'Landlord', 'boarder' => 'Boarder'][$role] ?? ucfirst((string) $role);
 }
 
 /** For super-admin-only pages. Anyone else goes to the dashboard. */

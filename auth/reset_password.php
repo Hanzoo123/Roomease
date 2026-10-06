@@ -76,7 +76,7 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // An administrator's reset came from the admin sign-in page, so it leads back
 // there; everyone else goes to the public login.
-$forAdmin = $reset ? $reset['role'] === 'administrator' : $scope === 'admin';
+$forAdmin = $reset ? is_admin_role($reset['role']) : $scope === 'admin';
 $loginPath = $forAdmin ? ADMIN_LOGIN_PATH : 'auth/login.php';
 
 $pageTitle = 'Reset password';
