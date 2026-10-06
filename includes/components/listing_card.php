@@ -13,7 +13,7 @@
  * The whole card is one link, whose label includes the price for screen readers.
  * The cover photo on top, or the house icon on a green tile while there is
  * none, then the rent, room types and state, name, street (and how far away,
- * with Near me on) and slots left. Styles: "Listing cards" in style.css.
+ * with Near me on), when its availability was last updated, and slots left. Styles: "Listing cards" in style.css.
  */
 require_once __DIR__ . '/icons.php';
 
@@ -55,6 +55,9 @@ function render_listing_card(array $l, ?array $save = null)
     $hasDistance = array_key_exists('distance_km', $l);
     $distance = $hasDistance && $l['distance_km'] !== null ? distance_label((float) $l['distance_km']) : null;
 
+    // When the landlord last changed or confirmed a room.
+    $freshness = availability_freshness($l['rooms_updated_at'] ?? null);
+
     // Everything the card shows above the name is drawn for the eye and hidden
     // from screen readers, which hear it in the link's label instead, after
     // the name, in one sentence.
@@ -68,6 +71,9 @@ function render_listing_card(array $l, ?array $save = null)
     $spoken[] = $meta;
     if ($distance !== null) {
         $spoken[] = $distance;
+    }
+    if ($freshness) {
+        $spoken[] = 'availability ' . lcfirst($freshness['text']);
     }
     ?>
     <article class="room-card room-card--<?= h($avail['key']) ?>">
@@ -128,6 +134,9 @@ function render_listing_card(array $l, ?array $save = null)
         <p class="room-card-addr" title="<?= h($l['address']) ?>"><?= icon('pin', 15) ?><span><?= h(short_address($l['address'])) ?></span></p>
         <?php if ($hasDistance): ?>
           <p class="room-card-distance<?= $distance === null ? ' is-unknown' : '' ?>"><?= icon('locate', 15) ?><span><?= h($distance ?? 'No map pin yet') ?></span></p>
+        <?php endif; ?>
+        <?php if ($freshness): ?>
+          <p class="room-card-updated<?= $freshness['stale'] ? ' is-stale' : '' ?>" aria-hidden="true"><?= icon('clock', 15) ?><span><?= h($freshness['text']) ?></span></p>
         <?php endif; ?>
 
         <div class="room-card-foot" aria-hidden="true">

@@ -45,7 +45,8 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
 /** Columns that room_summary_join() adds, for a SELECT list. */
 
 const ROOM_SUMMARY_COLUMNS = 'rs.room_count, rs.rooms_available, rs.rooms_open,
-       rs.rent_from_available, rs.rent_from_all, rs.room_types, rs.open_room_types, rs.slots_left';
+       rs.rent_from_available, rs.rent_from_all, rs.room_types, rs.open_room_types, rs.slots_left,
+       rs.rooms_updated_at';
 
 /**
  * Room totals per listing, joined as `rs`. $inner = true drops listings with no rooms.
@@ -64,7 +65,8 @@ function room_summary_join($inner = false)
                GROUP_CONCAT(DISTINCT rt.room_type_name ORDER BY rt.room_type_id SEPARATOR ', ') AS room_types,
                GROUP_CONCAT(DISTINCT CASE WHEN r.is_open = 1 THEN rt.room_type_name END
                             ORDER BY rt.room_type_id SEPARATOR ', ') AS open_room_types,
-               SUM(CASE WHEN r.is_open = 1 THEN GREATEST(r.capacity - r.slots_taken, 0) ELSE 0 END) AS slots_left
+               SUM(CASE WHEN r.is_open = 1 THEN GREATEST(r.capacity - r.slots_taken, 0) ELSE 0 END) AS slots_left,
+               MAX(r.updated_at) AS rooms_updated_at
           FROM rooms r
           JOIN room_types rt ON rt.room_type_id = r.room_type_id
          GROUP BY r.boarding_house_id
@@ -136,6 +138,36 @@ function listing_availability(array $listing)
     }
     return $base + ['key' => 'closed', 'label' => 'Not available', 'pill' => 'pill--rejected',
         'summary' => 'Not taking tenants right now'];
+}
+
+/**
+ * How fresh a listing's availability is. Any change to a room (a tenant in
+ * or out, a room opened or closed, an edit) moves rooms.updated_at, and so
+ * does the landlord's "Still accurate" (landlord/confirm_rooms.php). After
+ * AVAILABILITY_REMIND_DAYS the landlord's To do asks them to confirm it;
+ * after AVAILABILITY_STALE_DAYS boarders see a warning.
+ */
+
+const AVAILABILITY_REMIND_DAYS = 14;
+const AVAILABILITY_STALE_DAYS = 30;
+
+/**
+ * From the newest rooms.updated_at: days (whole days since), stale, and
+ * text ("Updated 3 days ago"). Null when the listing has no rooms.
+ */
+
+function availability_freshness($updatedAt)
+{
+    if ($updatedAt === null || $updatedAt === '') {
+        return null;
+    }
+    $days = (int) floor(max(0, strtotime(db_now()) - strtotime((string) $updatedAt)) / 86400);
+    $stale = $days >= AVAILABILITY_STALE_DAYS;
+    return [
+        'days'  => $days,
+        'stale' => $stale,
+        'text'  => $stale ? 'Not updated in ' . $days . ' days' : 'Updated ' . time_ago($updatedAt),
+    ];
 }
 
 /* ---------------------------------------------------------------------------
@@ -456,7 +488,8 @@ function landlord_beds($landlordId)
 /**
  * What a landlord could still do to their listings, one entry per listing
  * that needs something: its name, the reason it was sent back (null if it
- * was not), what it is missing, and the fixes, each a label and a link.
+ * was not), what it is missing, and the fixes, each a label and a link,
+ * or a label and 'confirm' (a listing id) for the "Still accurate" button.
  * $listings comes from landlord_listings().
  */
 
@@ -480,6 +513,13 @@ function landlord_todo(array $listings)
         if ($l['latitude'] === null) {
             $missing[] = 'No map pin, so it is not in Find places near me';
             $fixes[] = ['label' => 'Pin it', 'link' => $edit . '#location-picker'];
+        }
+        // Only for a listing boarders can see.
+        $fresh = availability_freshness($l['rooms_updated_at'] ?? null);
+        if ($fresh && $fresh['days'] >= AVAILABILITY_REMIND_DAYS && $l['moderation_status'] === 'approved') {
+            $missing[] = 'Availability not confirmed in ' . $fresh['days'] . ' days';
+            $fixes[] = ['label' => 'Still accurate', 'confirm' => $id];
+            $fixes[] = ['label' => 'Update rooms', 'link' => $edit . '#rooms'];
         }
         if ($fixes) {
             $todo[] = [

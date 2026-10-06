@@ -58,6 +58,14 @@ $houseSummary = function () use ($pdo, $houseId) {
     return listing_availability($stmt->fetch() ?: [])['summary'];
 };
 
+/** "Updated just now", for the line beside the card header's room counts. */
+$houseFreshness = function () use ($pdo, $houseId) {
+    $stmt = $pdo->prepare('SELECT MAX(updated_at) FROM rooms WHERE boarding_house_id = ?');
+    $stmt->execute([$houseId]);
+    $fresh = availability_freshness($stmt->fetchColumn() ?: null);
+    return $fresh ? $fresh['text'] : '';
+};
+
 /** The room as the table shows it after the change. */
 $roomPayload = function () use ($pdo, $roomId) {
     $stmt = $pdo->prepare('SELECT room_id, name, capacity, slots_taken, is_open FROM rooms WHERE room_id = ?');
@@ -97,6 +105,7 @@ if ($action === 'slots') {
         'message' => $room['name'] . ': ' . $fresh['slots_taken'] . ' of ' . $fresh['capacity'] . ' slots taken.',
         'room' => $fresh,
         'summary' => $houseSummary(),
+        'freshness' => $houseFreshness(),
     ], $houseId);
 }
 
@@ -109,6 +118,7 @@ if ($action === 'toggle_open') {
         'message' => $room['name'] . ($fresh['is_open'] ? ' is open to tenants again.' : ' is closed to new tenants.'),
         'room' => $fresh,
         'summary' => $houseSummary(),
+        'freshness' => $houseFreshness(),
     ], $houseId);
 }
 
@@ -137,6 +147,7 @@ if ($action === 'delete') {
         'message' => $room['name'] . ' was deleted.'
             . ($left === 0 ? ' This listing has no rooms now, so boarders cannot see it until you add one.' : ''),
         'summary' => $houseSummary(),
+        'freshness' => $houseFreshness(),
     ], $houseId);
 }
 

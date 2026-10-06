@@ -100,6 +100,8 @@ $avail = listing_availability([
   'rent_from_available' => $availableRooms ? min(array_column($availableRooms, 'monthly_rent')) : null,
   'rent_from_all' => $rooms ? min(array_column($rooms, 'monthly_rent')) : null,
 ]);
+// When the landlord last changed or confirmed a room.
+$freshness = availability_freshness($rooms ? max(array_column($rooms, 'updated_at')) : null);
 
 $amenStmt = $pdo->prepare(
   'SELECT a.amenity_name
@@ -297,7 +299,7 @@ require __DIR__ . '/../includes/layouts/header.php';
         <div class="rooms-head">
           <h2>Rooms</h2>
           <?php if ($rooms): ?>
-            <span class="rooms-count"><?= h($avail['summary']) ?></span>
+            <span class="rooms-count"><?= h($avail['summary']) ?><?php if ($freshness): ?> &middot; <span class="<?= $freshness['stale'] ? 'is-stale' : '' ?>"><?= h(lcfirst($freshness['text'])) ?></span><?php endif; ?></span>
           <?php endif; ?>
         </div>
 
@@ -511,6 +513,9 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php endif; ?>
       <?php if ($rooms): ?>
         <a href="#rooms" class="quick-rooms quick-rooms--<?= h($avail['key']) ?>"><?= h($avail['summary']) ?></a>
+      <?php endif; ?>
+      <?php if ($freshness): ?>
+        <p class="freshness<?= $freshness['stale'] ? ' is-stale' : '' ?>"><?= icon('clock', 14) ?><span>Availability <?= h(lcfirst($freshness['text'])) ?><?= $freshness['stale'] ? '. Ask the landlord before you visit.' : '' ?></span></p>
       <?php endif; ?>
 
       <?php if (can_save_listings()): ?>

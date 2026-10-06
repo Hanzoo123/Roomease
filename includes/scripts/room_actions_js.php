@@ -59,6 +59,13 @@
             var summary = document.querySelector('[data-rooms-summary]');
             if (summary) summary.textContent = data.summary;
           }
+          if (data.freshness) {
+            var freshness = document.querySelector('[data-rooms-freshness]');
+            if (freshness) {
+              freshness.textContent = data.freshness;
+              freshness.classList.remove('text-warning');
+            }
+          }
           if (data.deleted) {
             row.remove();
             if (data.reload) {
