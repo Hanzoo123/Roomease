@@ -5,15 +5,18 @@
  *
  * Optional: $returnStatus (tab to return to), $returnTo ('review' or 'next'),
  * $rejectReturnTo (if rejecting should go somewhere else than removing).
+ * $decisionsInPlace: true on Manage Listings, where the dialogs send without a
+ * reload (listing_actions_js.php) and show any error inside the dialog.
  * Include before panel_footer.php.
  */
 $returnStatus = $returnStatus ?? '';
 $returnTo = $returnTo ?? '';
 $rejectReturnTo = $rejectReturnTo ?? $returnTo;
+$inPlace = !empty($decisionsInPlace) ? ' data-listing-action="modal"' : '';
 ?>
 <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
-    <form method="post" action="<?= base_url('admin/listing_action.php') ?>">
+    <form method="post" action="<?= base_url('admin/listing_action.php') ?>"<?= $inPlace ?>>
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="rejectModalLabel">Reject listing</h5>
@@ -22,6 +25,7 @@ $rejectReturnTo = $rejectReturnTo ?? $returnTo;
           </button>
         </div>
         <div class="modal-body">
+          <div class="alert alert-danger d-none" role="alert" data-modal-error></div>
           <?= csrf_field() ?>
           <input type="hidden" name="action" value="reject">
           <input type="hidden" name="return_status" value="<?= h($returnStatus) ?>">
@@ -47,7 +51,7 @@ $rejectReturnTo = $rejectReturnTo ?? $returnTo;
 
 <div class="modal fade" id="removeModal" tabindex="-1" role="dialog" aria-labelledby="removeModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
-    <form method="post" action="<?= base_url('admin/listing_action.php') ?>">
+    <form method="post" action="<?= base_url('admin/listing_action.php') ?>"<?= $inPlace ?>>
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="removeModalLabel">Remove listing</h5>
@@ -56,6 +60,7 @@ $rejectReturnTo = $rejectReturnTo ?? $returnTo;
           </button>
         </div>
         <div class="modal-body">
+          <div class="alert alert-danger d-none" role="alert" data-modal-error></div>
           <?= csrf_field() ?>
           <input type="hidden" name="action" value="remove">
           <input type="hidden" name="return_status" value="<?= h($returnStatus) ?>">
@@ -88,6 +93,7 @@ $rejectReturnTo = $rejectReturnTo ?? $returnTo;
         modal.find('.js-modal-id').val($(this).data('id'));
         modal.find('.js-modal-name').text($(this).data('name'));
         modal.find('textarea').val('');
+        modal.find('[data-modal-error]').addClass('d-none').text('');
         modal.modal('show');
       });
     }
