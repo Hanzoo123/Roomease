@@ -253,18 +253,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <span class="card-subtitle">Each room has its own rent, capacity and photos.</span>
               <span class="text-muted small" data-rooms-summary><?= h($summary['summary']) ?></span>
               <?php if ($freshness): ?>
-                <span class="small <?= $freshness['days'] >= AVAILABILITY_REMIND_DAYS ? 'text-warning' : 'text-muted' ?>" data-rooms-freshness><?= h($freshness['text']) ?></span>
+                <span class="small text-muted" data-rooms-freshness><?= h($freshness['text']) ?></span>
               <?php endif; ?>
-              <?php if ($rooms): ?>
-                <form method="post" action="<?= base_url('landlord/confirm_rooms.php') ?>" class="m-0 ml-auto"
-                  title="Nothing changed? Tell boarders these rooms are still as shown.">
-                  <?= csrf_field() ?>
-                  <input type="hidden" name="boarding_house_id" value="<?= $boardingHouseId ?>">
-                  <input type="hidden" name="return" value="edit">
-                  <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-check mr-1"></i> Still accurate</button>
-                </form>
-              <?php endif; ?>
-              <a href="<?= base_url('landlord/room_form.php?house=' . $boardingHouseId) ?>" class="btn btn-sm btn-primary<?= $rooms ? '' : ' ml-auto' ?>">
+              <a href="<?= base_url('landlord/room_form.php?house=' . $boardingHouseId) ?>" class="btn btn-sm btn-primary ml-auto">
                 <i class="fas fa-plus mr-1"></i> Add room
               </a>
             </div>

@@ -141,19 +141,11 @@ function listing_availability(array $listing)
 }
 
 /**
- * How fresh a listing's availability is. Any change to a room (a tenant in
- * or out, a room opened or closed, an edit) moves rooms.updated_at, and so
- * does the landlord's "Still accurate" (landlord/confirm_rooms.php). After
- * AVAILABILITY_REMIND_DAYS the landlord's To do asks them to confirm it;
- * after AVAILABILITY_STALE_DAYS boarders see a warning.
- */
-
-const AVAILABILITY_REMIND_DAYS = 14;
-const AVAILABILITY_STALE_DAYS = 30;
-
 /**
- * From the newest rooms.updated_at: days (whole days since), stale, and
- * text ("Updated 3 days ago"). Null when the listing has no rooms.
+ * How fresh a listing's availability is. Any change to a room (a tenant in
+ * or out, a room opened or closed, an edit) moves rooms.updated_at. From
+ * the newest one: days (whole days since) and text ("Updated 3 days ago").
+ * Null when the listing has no rooms.
  */
 
 function availability_freshness($updatedAt)
@@ -162,11 +154,9 @@ function availability_freshness($updatedAt)
         return null;
     }
     $days = (int) floor(max(0, strtotime(db_now()) - strtotime((string) $updatedAt)) / 86400);
-    $stale = $days >= AVAILABILITY_STALE_DAYS;
     return [
-        'days'  => $days,
-        'stale' => $stale,
-        'text'  => $stale ? 'Not updated in ' . $days . ' days' : 'Updated ' . time_ago($updatedAt),
+        'days' => $days,
+        'text' => 'Updated ' . time_ago($updatedAt),
     ];
 }
 
@@ -488,8 +478,7 @@ function landlord_beds($landlordId)
 /**
  * What a landlord could still do to their listings, one entry per listing
  * that needs something: its name, the reason it was sent back (null if it
- * was not), what it is missing, and the fixes, each a label and a link,
- * or a label and 'confirm' (a listing id) for the "Still accurate" button.
+ * was not), what it is missing, and the fixes, each a label and a link.
  * $listings comes from landlord_listings().
  */
 
@@ -513,13 +502,6 @@ function landlord_todo(array $listings)
         if ($l['latitude'] === null) {
             $missing[] = 'No map pin, so it is not in Find places near me';
             $fixes[] = ['label' => 'Pin it', 'link' => $edit . '#location-picker'];
-        }
-        // Only for a listing boarders can see.
-        $fresh = availability_freshness($l['rooms_updated_at'] ?? null);
-        if ($fresh && $fresh['days'] >= AVAILABILITY_REMIND_DAYS && $l['moderation_status'] === 'approved') {
-            $missing[] = 'Availability not confirmed in ' . $fresh['days'] . ' days';
-            $fixes[] = ['label' => 'Still accurate', 'confirm' => $id];
-            $fixes[] = ['label' => 'Update rooms', 'link' => $edit . '#rooms'];
         }
         if ($fixes) {
             $todo[] = [

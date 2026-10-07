@@ -2766,8 +2766,7 @@ html.js .results-sort-apply {
   color: var(--ink-faint);
 }
 
-/* When the availability was last updated: small and grey, until it is
-   AVAILABILITY_STALE_DAYS old and turns the pending amber. */
+/* When the availability was last updated: small and grey. */
 .room-card-updated {
   display: flex;
   align-items: center;
@@ -2779,10 +2778,6 @@ html.js .results-sort-apply {
 
 .room-card-updated .icon {
   flex: 0 0 auto;
-}
-
-.room-card-updated.is-stale {
-  color: var(--pending-fg);
 }
 
 .room-card-addr span {
@@ -3659,11 +3654,6 @@ img.avatar {
 .freshness .icon {
   flex: 0 0 auto;
   margin-top: 3px;
-}
-
-.freshness.is-stale,
-.rooms-count .is-stale {
-  color: var(--pending-fg);
 }
 
 /* Rooms section on the listing page */

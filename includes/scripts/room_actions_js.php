@@ -61,10 +61,7 @@
           }
           if (data.freshness) {
             var freshness = document.querySelector('[data-rooms-freshness]');
-            if (freshness) {
-              freshness.textContent = data.freshness;
-              freshness.classList.remove('text-warning');
-            }
+            if (freshness) freshness.textContent = data.freshness;
           }
           if (data.deleted) {
             row.remove();

@@ -136,7 +136,7 @@ function render_listing_card(array $l, ?array $save = null)
           <p class="room-card-distance<?= $distance === null ? ' is-unknown' : '' ?>"><?= icon('locate', 15) ?><span><?= h($distance ?? 'No map pin yet') ?></span></p>
         <?php endif; ?>
         <?php if ($freshness): ?>
-          <p class="room-card-updated<?= $freshness['stale'] ? ' is-stale' : '' ?>" aria-hidden="true"><?= icon('clock', 15) ?><span><?= h($freshness['text']) ?></span></p>
+          <p class="room-card-updated" aria-hidden="true"><?= icon('clock', 15) ?><span><?= h($freshness['text']) ?></span></p>
         <?php endif; ?>
 
         <div class="room-card-foot" aria-hidden="true">

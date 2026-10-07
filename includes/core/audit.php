@@ -51,6 +51,7 @@ function audit_action_types()
         'room_close'      => ['label' => 'Closed room',         'badge' => 'badge-warning',   'target' => 'listing', 'group' => 'landlord'],
         'room_slot_taken' => ['label' => 'Tenant moved in',     'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
         'room_slot_freed' => ['label' => 'Tenant moved out',    'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
+        // No longer logged (the "Still accurate" button is gone); kept so older entries read properly.
         'rooms_confirm'   => ['label' => 'Confirmed rooms',     'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
         'photos_add'      => ['label' => 'Added photos',        'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
         'photo_remove'    => ['label' => 'Removed photo',       'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],

@@ -299,7 +299,7 @@ require __DIR__ . '/../includes/layouts/header.php';
         <div class="rooms-head">
           <h2>Rooms</h2>
           <?php if ($rooms): ?>
-            <span class="rooms-count"><?= h($avail['summary']) ?><?php if ($freshness): ?> &middot; <span class="<?= $freshness['stale'] ? 'is-stale' : '' ?>"><?= h(lcfirst($freshness['text'])) ?></span><?php endif; ?></span>
+            <span class="rooms-count"><?= h($avail['summary']) ?><?php if ($freshness): ?> &middot; <?= h(lcfirst($freshness['text'])) ?><?php endif; ?></span>
           <?php endif; ?>
         </div>
 
@@ -515,7 +515,7 @@ require __DIR__ . '/../includes/layouts/header.php';
         <a href="#rooms" class="quick-rooms quick-rooms--<?= h($avail['key']) ?>"><?= h($avail['summary']) ?></a>
       <?php endif; ?>
       <?php if ($freshness): ?>
-        <p class="freshness<?= $freshness['stale'] ? ' is-stale' : '' ?>"><?= icon('clock', 14) ?><span>Availability <?= h(lcfirst($freshness['text'])) ?><?= $freshness['stale'] ? '. Ask the landlord before you visit.' : '' ?></span></p>
+        <p class="freshness"><?= icon('clock', 14) ?><span>Availability <?= h(lcfirst($freshness['text'])) ?></span></p>
       <?php endif; ?>
 
       <?php if (can_save_listings()): ?>

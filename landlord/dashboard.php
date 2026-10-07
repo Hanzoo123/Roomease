@@ -128,15 +128,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       </div>
                       <div class="d-flex flex-wrap" style="gap: 6px;">
                         <?php foreach ($item['fixes'] as $fix): ?>
-                          <?php if (isset($fix['confirm'])): ?>
-                            <form method="post" action="<?= base_url('landlord/confirm_rooms.php') ?>" class="m-0">
-                              <?= csrf_field() ?>
-                              <input type="hidden" name="boarding_house_id" value="<?= (int) $fix['confirm'] ?>">
-                              <button type="submit" class="btn btn-sm btn-primary"><?= h($fix['label']) ?></button>
-                            </form>
-                          <?php else: ?>
-                            <a href="<?= base_url($fix['link']) ?>" class="btn btn-sm btn-outline-primary"><?= h($fix['label']) ?></a>
-                          <?php endif; ?>
+                          <a href="<?= base_url($fix['link']) ?>" class="btn btn-sm btn-outline-primary"><?= h($fix['label']) ?></a>
                         <?php endforeach; ?>
                       </div>
                     </li>
