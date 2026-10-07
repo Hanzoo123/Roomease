@@ -16,17 +16,16 @@ function too_long($value, $max, $label)
         : null;
 }
 
-/** 7 to 15 digits, with spaces and + - ( ) allowed, e.g. +63 917 123 4567. */
+/** A Philippine mobile number: 11 digits starting with 09, spaces and dashes allowed, e.g. 0917 123 4567. */
 
 function phone_problem($phone, $label = 'Phone number')
 {
     $phone = (string) $phone;
-    if (!preg_match('/^[0-9+()\-\s]+$/', $phone)) {
-        return $label . ' can only use digits, spaces and + - ( ), like 0917 123 4567.';
+    if (!preg_match('/^[0-9\-\s]+$/', $phone)) {
+        return $label . ' can only use digits, spaces and dashes, like 0917 123 4567.';
     }
-    $digits = strlen(preg_replace('/\D/', '', $phone));
-    if ($digits < 7 || $digits > 15) {
-        return $label . ' must have 7 to 15 digits.';
+    if (!preg_match('/^09\d{9}$/', preg_replace('/\D/', '', $phone))) {
+        return $label . ' must be an 11-digit mobile number starting with 09, like 0917 123 4567.';
     }
     // The column holds 30 characters.
     return too_long($phone, 30, $label);
