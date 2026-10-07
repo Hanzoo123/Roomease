@@ -49,7 +49,7 @@ $policyPresets = [
 <div class="form-group">
   <label for="contact_number">Landlord contact number</label>
   <input type="text" class="form-control" id="contact_number" name="contact_number"
-    value="<?= $val('contact_number') ?>" placeholder="e.g. 09171234567" required>
+    value="<?= $val('contact_number') ?>" maxlength="13" placeholder="e.g. 09171234567" required>
 </div>
 
 <div class="form-group">

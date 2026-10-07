@@ -266,7 +266,7 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
       <div class="<?= $cls['group'] ?>">
         <label for="phone_number">Phone number</label>
         <input type="tel" class="<?= $cls['input'] ?>" id="phone_number" name="phone_number"
-          value="<?= h($old['phone_number']) ?>" placeholder="e.g. 09171234567" autocomplete="tel">
+          value="<?= h($old['phone_number']) ?>" maxlength="13" placeholder="e.g. 09171234567" autocomplete="tel">
       </div>
 
       <div class="profile-form-actions">

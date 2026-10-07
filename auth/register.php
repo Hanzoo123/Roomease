@@ -138,7 +138,7 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
 
   <label for="phone_number">Phone number</label>
   <input type="tel" id="phone_number" name="phone_number" value="<?= h($old['phone_number']) ?>"
-    autocomplete="tel" placeholder="e.g. 09171234567">
+    maxlength="13" autocomplete="tel" placeholder="e.g. 09171234567">
 
   <div class="field-row">
     <div>

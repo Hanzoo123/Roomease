@@ -96,7 +96,7 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
   </fieldset>
 
   <label for="phone_number">Phone number (optional)</label>
-  <input type="tel" id="phone_number" name="phone_number" value="<?= h($phone) ?>" maxlength="30"
+  <input type="tel" id="phone_number" name="phone_number" value="<?= h($phone) ?>" maxlength="13"
     autocomplete="tel" placeholder="e.g. 09171234567">
 
   <button type="submit" class="btn btn-primary btn-block btn-auth">Create my account</button>
