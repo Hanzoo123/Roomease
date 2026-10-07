@@ -25,11 +25,14 @@ const COVER_PHOTO_SELECT = '(SELECT img.image_path FROM images img
        ORDER BY img.room_id IS NULL DESC, img.is_primary DESC, img.image_id ASC
        LIMIT 1) AS cover_photo';
 
-/** Cover photo thumbnail for admin tables, or a camera icon if there is none. */
+/**
+ * Cover photo thumbnail for admin tables, or a camera icon if there is none
+ * or its file is missing (so it never shows as a broken image).
+ */
 
 function listing_thumb_html(array $l, $class = 'queue-thumb')
 {
-    if (!empty($l['cover_photo'])) {
+    if (!empty($l['cover_photo']) && photo_on_disk($l['cover_photo'])) {
         return '<img class="' . h($class) . '" src="' . h(base_url($l['cover_photo']))
             . '" alt="" loading="lazy" decoding="async">';
     }
