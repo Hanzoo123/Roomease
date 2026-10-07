@@ -104,17 +104,15 @@ $navCurrent = function ($path) {
     <div class="nav-scrim" data-nav-scrim hidden></div>
   </header>
 
-  <?php /* Outside the header, which stays on screen as the page scrolls: a
-       message should scroll away with the top of the page it belongs to. */ ?>
+  <?php /* A small notice at the bottom right, over the page rather than in
+       it, so it never pushes the design down. Successes fade on their own
+       (assets/js/flash.js); errors stay until closed. */ ?>
   <?php if ($flash): ?>
-    <div class="flash-band"<?= $flash['type'] === 'error' ? '' : ' data-autohide' ?>>
-      <div class="container">
-        <div class="flash-slot" role="status">
-          <div class="alert alert-<?= $flash['type'] === 'error' ? 'error' : 'success' ?>">
-            <?= h($flash['message']) ?>
-          </div>
-        </div>
-      </div>
+    <?php $flashError = $flash['type'] === 'error'; ?>
+    <div class="flash-toast alert alert-<?= $flashError ? 'error' : 'success' ?>"
+      role="<?= $flashError ? 'alert' : 'status' ?>"<?= $flashError ? '' : ' data-autohide' ?>>
+      <span><?= h($flash['message']) ?></span>
+      <button type="button" class="flash-close" data-flash-close aria-label="Close"><?= icon('x', 16) ?></button>
     </div>
   <?php endif; ?>
 

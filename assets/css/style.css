@@ -565,20 +565,6 @@ main:focus {
   }
 }
 
-/* Flash messages sit just under the header, so they need no script. */
-.flash-band {
-  position: relative;
-  z-index: 1;
-}
-
-.flash-slot {
-  padding: var(--s4) 0;
-}
-
-.flash-slot .alert {
-  margin: 0;
-}
-
 /* =========================================================
    The title strip
    ---------------------------------------------------------
@@ -1427,6 +1413,50 @@ input[type=checkbox] {
 .save-toast.is-on {
   opacity: 1;
   transform: none;
+}
+
+/* Flash messages: a notice at the bottom right, like .save-toast, floating
+   over the page so it never pushes the design down. */
+.flash-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(380px, calc(100vw - 36px));
+  margin: 0;
+  box-shadow: 0 6px 20px rgba(15, 58, 49, .18);
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.flash-toast > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.flash-close {
+  display: inline-flex;
+  flex: none;
+  margin: 1px -4px 0 0;
+  padding: 2px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  opacity: .7;
+  cursor: pointer;
+}
+
+.flash-close:hover,
+.flash-close:focus-visible {
+  opacity: 1;
+}
+
+.flash-toast.is-hiding {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 /* =========================================================
