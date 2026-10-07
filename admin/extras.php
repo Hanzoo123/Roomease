@@ -7,6 +7,51 @@ require __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../config/db.php';
 require_login('admin');
 
+// Five rows per card. Each card keeps its own page number in the URL,
+// and actions return to the same pages.
+$perPage = 5;
+$pageParams = ['utilities_page', 'amenities_page', 'utilities_added_page', 'amenities_added_page'];
+
+$pageUrl = function (array $overrides = []) use ($pageParams) {
+    $query = [];
+    foreach ($pageParams as $param) {
+        $query[$param] = (int) ($overrides[$param] ?? $_GET[$param] ?? 1);
+    }
+    $query = array_filter($query, function ($page) { return $page > 1; });
+    return 'admin/extras.php' . ($query ? '?' . http_build_query($query) : '');
+};
+
+// Returns [rows on this page, page, page count]. A page past the end
+// (e.g. after deleting its last row) falls back to the last page.
+$paginate = function (array $items, $param) use ($perPage) {
+    $pages = max(1, (int) ceil(count($items) / $perPage));
+    $page = min($pages, max(1, (int) ($_GET[$param] ?? 1)));
+    return [array_slice($items, ($page - 1) * $perPage, $perPage), $page, $pages];
+};
+
+// Prev / Page x of y / Next, shown only when a list has more than one page.
+$pager = function ($param, $page, $pages, $total, $anchor, $class) use ($perPage, $pageUrl) {
+    if ($pages < 2) {
+        return;
+    }
+    ?>
+    <div class="<?= $class ?> d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+      <span class="text-muted small">
+        <?= (($page - 1) * $perPage) + 1 ?>&ndash;<?= min($total, $page * $perPage) ?> of <?= $total ?>
+      </span>
+      <ul class="pagination pagination-sm m-0">
+        <li class="page-item <?= $page === 1 ? 'disabled' : '' ?>">
+          <a class="page-link" href="<?= h(base_url($pageUrl([$param => $page - 1])) . '#' . $anchor) ?>">Prev</a>
+        </li>
+        <li class="page-item disabled"><span class="page-link">Page <?= $page ?> of <?= $pages ?></span></li>
+        <li class="page-item <?= $page === $pages ? 'disabled' : '' ?>">
+          <a class="page-link" href="<?= h(base_url($pageUrl([$param => $page + 1])) . '#' . $anchor) ?>">Next</a>
+        </li>
+      </ul>
+    </div>
+    <?php
+};
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
@@ -38,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash_set('Unknown action.', 'error');
     }
 
-    redirect('admin/extras.php#' . $k['plural']);
+    redirect($pageUrl() . '#' . $k['plural']);
 }
 
 $pageTitle = 'Utilities & Amenities';
@@ -56,8 +101,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   <section class="content">
     <div class="container-fluid">
 
+      <!-- One wrapping row: shared cards line up on top, landlord cards below.
+           order-lg-* keeps each kind together when the columns stack on small screens. -->
       <div class="row">
-        <?php foreach (['utility', 'amenity'] as $kind): ?>
+        <?php foreach (['utility', 'amenity'] as $i => $kind): ?>
           <?php
           $k = lookup_kind($kind);
           $shared = lookup_choices($kind, null);
@@ -68,22 +115,26 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                  JOIN users u ON u.user_id = t.landlord_id
                 ORDER BY t.{$k['name']}, landlord"
           )->fetchAll();
+          $sharedParam = $k['plural'] . '_page';
+          $addedParam = $k['plural'] . '_added_page';
+          [$sharedRows, $sharedPage, $sharedPages] = $paginate($shared, $sharedParam);
+          [$addedRows, $addedPage, $addedPages] = $paginate($landlordItems, $addedParam);
           ?>
-          <div class="col-lg-6" id="<?= $k['plural'] ?>">
-            <div class="card card-primary card-outline shadow-sm">
+          <div class="col-lg-6 d-flex flex-column order-lg-<?= $i + 1 ?>" id="<?= $k['plural'] ?>">
+            <div class="card card-primary card-outline shadow-sm flex-fill">
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
                   <i class="fas <?= $kind === 'utility' ? 'fa-bolt' : 'fa-concierge-bell' ?> mr-1"></i>
                   <?= $k['Plural'] ?> for every landlord
                 </h3>
-              <span class="card-subtitle">Available to every landlord on RoomEase.</span>
+                <span class="card-subtitle">Available to every landlord on RoomEase.</span>
               </div>
-              <div class="card-body">
+              <div class="card-body d-flex flex-column">
                 <?php if (!$shared): ?>
                   <p class="text-muted small">None yet.</p>
                 <?php else: ?>
                   <ul class="list-group mb-3">
-                    <?php foreach ($shared as $item): ?>
+                    <?php foreach ($sharedRows as $item): ?>
                       <?php $n = (int) ($used[$item['id']] ?? 0); ?>
                       <li class="list-group-item py-2">
                         <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
@@ -112,9 +163,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       </li>
                     <?php endforeach; ?>
                   </ul>
+                  <?php $pager($sharedParam, $sharedPage, $sharedPages, count($shared), $k['plural'], 'mb-3'); ?>
                 <?php endif; ?>
 
-                <form method="post" class="d-flex" style="gap: 6px;">
+                <form method="post" class="d-flex mt-auto" style="gap: 6px;">
                   <?= csrf_field() ?>
                   <input type="hidden" name="kind" value="<?= $kind ?>">
                   <input type="hidden" name="action" value="add">
@@ -127,13 +179,15 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 </form>
               </div>
             </div>
+          </div>
 
-            <div class="card card-outline card-secondary shadow-sm">
+          <div class="col-lg-6 d-flex flex-column order-lg-<?= $i + 3 ?>" id="<?= $k['plural'] ?>-added">
+            <div class="card card-outline card-secondary shadow-sm flex-fill">
               <div class="card-header">
                 <h3 class="card-title font-weight-bold">
                   <i class="fas fa-user-tie mr-1"></i> <?= $k['Plural'] ?> landlords added
-              <span class="card-subtitle">Their own items. Make one available to everyone to merge same-name copies.</span>
                 </h3>
+                <span class="card-subtitle">Their own items. Make one available to everyone to merge same-name copies.</span>
               </div>
               <div class="card-body p-0">
                 <?php if (!$landlordItems): ?>
@@ -144,7 +198,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <tr><th class="pl-3">Name</th><th>Landlord</th><th>Listings</th><th></th></tr>
                     </thead>
                     <tbody>
-                      <?php foreach ($landlordItems as $item): ?>
+                      <?php foreach ($addedRows as $item): ?>
                         <tr>
                           <td class="pl-3 align-middle"><?= h($item['name']) ?></td>
                           <td class="align-middle"><?= h($item['landlord']) ?></td>
@@ -167,6 +221,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   </table>
                 <?php endif; ?>
               </div>
+              <?php $pager($addedParam, $addedPage, $addedPages, count($landlordItems), $k['plural'] . '-added', 'card-footer'); ?>
             </div>
           </div>
         <?php endforeach; ?>
