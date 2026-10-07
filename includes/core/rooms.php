@@ -56,8 +56,8 @@ function room_from_input(array $input, array $roomTypes, $label = '')
     if (!isset($roomTypes[(int) $room['room_type_id']])) {
         $errors[] = $p . 'Choose a room type from the list.';
     }
-    if (!is_numeric($room['monthly_rent']) || (float) $room['monthly_rent'] < 0 || (float) $room['monthly_rent'] > 1000000) {
-        $errors[] = $p . 'Enter a valid monthly rent.';
+    if ($problem = money_problem($room['monthly_rent'], $p . 'Monthly rent')) {
+        $errors[] = $problem;
     }
     if (!ctype_digit($room['capacity']) || (int) $room['capacity'] < 1 || (int) $room['capacity'] > 100) {
         $errors[] = $p . 'Capacity must be between 1 and 100 people.';
