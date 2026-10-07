@@ -2,6 +2,9 @@
 /**
  * Checks for typed values, shared by every form. Each returns an error
  * message, or null when the value is fine. Length limits match the columns.
+ *
+ * Used by: listings.php and rooms.php (listing and room checks), the
+ * account forms in auth/ and admin/, and legal/contact.php.
  */
 
 /** "First name must be 100 characters or fewer.", or null. */

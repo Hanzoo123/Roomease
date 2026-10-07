@@ -8,6 +8,9 @@
  *
  * Credentials come from .env (ROOMEASE_GOOGLE_CLIENT_ID / _SECRET) or
  * config/google.local.php, never from a tracked file.
+ *
+ * Used by: auth/google_*.php, and the login, register, profile and
+ * password pages in auth/.
  */
 
 require_once __DIR__ . '/env.php';

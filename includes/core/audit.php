@@ -2,6 +2,9 @@
 /**
  * The audit log (who did what), and telling landlords about decisions on
  * their listings by email and on their dashboard.
+ *
+ * Used by: every page that saves a change (they call audit_log()), the admin
+ * Activity, Reports and Export pages, and the landlord dashboard.
  */
 
 /** Days sign-in records are kept. */

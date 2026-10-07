@@ -1,6 +1,9 @@
 <?php
 /**
  * Amenities, utilities and room types: the lists landlords pick from.
+ *
+ * Used by: the listing form (Add/Edit Listing), landlord/room_form.php,
+ * landlord/extras.php, admin/extras.php, and the boarder browse filters.
  */
 
 /** Read a lookup table. If it fails, log it and return an empty list (the page says so). */

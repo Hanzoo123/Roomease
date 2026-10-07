@@ -2,6 +2,10 @@
 /**
  * Listing queries and rules: what is public, room availability, browse
  * filters, stay terms, moderation and saved listings.
+ *
+ * Used by: index.php and the boarder pages (browse, view, saved), the landlord
+ * pages, the admin dashboard, listing and report pages, the panel sidebar, and
+ * the listing components (listing_card, listing_form, landlord_listings_table).
  */
 
 /** JOIN that hides listings whose landlord is deactivated or removed. */

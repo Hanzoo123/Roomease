@@ -1,6 +1,10 @@
 <?php
 /**
  * Photo upload limits and saving listing photos to assets/uploads/.
+ *
+ * Used by: Add/Edit Listing, landlord/room_form.php, rooms.php and the listing
+ * form (listing photos); avatars.php, auth/edit_profile.php and
+ * admin/appearance.php (upload size limits).
  */
 
 /** An uploaded file's name, cleaned so it is safe to show in an error message. */

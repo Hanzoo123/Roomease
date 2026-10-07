@@ -1,6 +1,9 @@
 <?php
 /**
  * CSRF tokens for forms. Add csrf_field() to every POST form, verify_csrf() in its handler.
+ *
+ * Used by: every page with a POST form in auth/, admin/, landlord/ and
+ * boarder/, and the form components in includes/components/.
  */
 
 /** This session's token, made on first use. */

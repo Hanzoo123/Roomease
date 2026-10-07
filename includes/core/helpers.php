@@ -1,6 +1,8 @@
 <?php
 /**
  * Everyday helpers: escaping output, redirects, URLs, flash messages, dates and money.
+ *
+ * Used by: every page, layout and component.
  */
 
 /** Escape output for safe HTML display. */

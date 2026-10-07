@@ -7,6 +7,9 @@
  *
  * $scope is 'public', 'admin', or 'profile' (a signed-in Google account
  * setting its first password).
+ *
+ * Used by: the three pages above, auth/change_password.php, and
+ * legal/privacy.php (how long a code lasts).
  */
 
 /** Wrong guesses allowed per code. */

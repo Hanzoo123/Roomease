@@ -1,6 +1,8 @@
 <?php
 /**
  * Profile photos: saving, cropping, deleting and drawing initials as a fallback.
+ *
+ * Used by: auth/edit_profile.php and includes/components/avatar.php.
  */
 
 /* ---------------------------------------------------------------------------

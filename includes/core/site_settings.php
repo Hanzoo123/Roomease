@@ -1,6 +1,8 @@
 <?php
 /**
  * Settings an admin changes from the panel, such as the sign-in background.
+ *
+ * Used by: admin/appearance.php and includes/layouts/auth_header.php.
  */
 
 /** One setting, or $default. All settings are loaded in one query, once per request. */

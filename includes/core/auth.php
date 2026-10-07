@@ -2,6 +2,9 @@
 /**
  * Who is signed in, role checks, admin usernames, temporary passwords, and
  * returning to the right page after login.
+ *
+ * Used by: every page (require_login() at the top), the page layouts, and
+ * the sign-in pages in auth/.
  */
 
 /** True if a user is logged in. */

@@ -1,6 +1,9 @@
 <?php
 /**
  * Rooms inside a listing: reading them from a form and saving them.
+ *
+ * Used by: landlord/add_listing.php, landlord/room_form.php,
+ * landlord/room_action.php and includes/components/room_rows_form.php.
  */
 
 /** One of this landlord's rooms with its listing, or false. Another landlord's room is never found. */

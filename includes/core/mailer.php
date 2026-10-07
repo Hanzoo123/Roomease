@@ -6,6 +6,9 @@
  * Credentials: .env (ROOMEASE_MAIL_USERNAME / _PASSWORD, a Gmail App
  * Password) or config/mail.local.php. Each send is logged to storage/mail.log,
  * never with the message or password.
+ *
+ * Used by: audit.php (decision emails to landlords), password_reset.php,
+ * auth/verify_code.php and legal/contact.php.
  */
 
 require_once __DIR__ . '/env.php';

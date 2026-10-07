@@ -3,6 +3,9 @@
  * Session and security settings: cookies, headers, session timeouts,
  * "Remember me" and sign-in throttling. Loaded by includes/init.php before
  * the session starts.
+ *
+ * Used by: includes/init.php, the sign-in and password pages in auth/ and
+ * admin/, the admin dashboard and user actions, and legal/contact.php.
  */
 
 const SESSION_IDLE_TIMEOUT = 1800;       // 30 minutes idle signs you out
