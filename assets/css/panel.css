@@ -2530,3 +2530,26 @@ html[data-theme="dark"] .dark-mode .btn-outline-primary {
   color: var(--re-forest);
   border-color: var(--re-line-strong);
 }
+
+/* Dark outline buttons (e.g. "Removed" on Manage Users and Listings) match
+   the grey outline buttons beside them. AdminLTE's dark mode would paint them
+   near-black, which disappears on the dark page. */
+html[data-theme="dark"] .dark-mode .btn-outline-dark {
+  color: var(--re-ink-soft);
+  background-color: var(--re-panel);
+  border-color: var(--re-line-strong);
+}
+
+html[data-theme="dark"] .dark-mode .btn-outline-dark:hover,
+html[data-theme="dark"] .dark-mode .btn-outline-dark:focus {
+  color: var(--re-ink);
+  background-color: var(--re-paper);
+  border-color: var(--re-ink-faint);
+}
+
+html[data-theme="dark"] .dark-mode .btn-outline-dark:not(:disabled):not(.disabled).active,
+html[data-theme="dark"] .dark-mode .btn-outline-dark:not(:disabled):not(.disabled):active {
+  color: var(--re-ink);
+  background-color: var(--re-muted-bg);
+  border-color: var(--re-ink-faint);
+}
