@@ -1,5 +1,8 @@
 <?php
-/** Admin actions on a landlord or boarder: activate/deactivate, remove or restore. Logged. */
+/**
+ * Admin actions on a landlord or boarder: activate/deactivate (any admin),
+ * remove or restore (super admin only). Logged.
+ */
 require __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../config/db.php';
 
@@ -27,6 +30,12 @@ $target = $stmt->fetch();
 if (!$target) {
     flash_set('User not found or cannot be modified.', 'error');
     redirect('admin/manage_users.php');
+}
+
+// Any admin can deactivate an account; removing and restoring are for a super admin.
+if (in_array($action, ['delete', 'restore'], true) && !is_super_admin()) {
+    flash_set('Only a super admin can remove or restore accounts. You can deactivate it instead.', 'error');
+    redirect($back($target['deleted_at'] !== null ? 'admin/manage_users.php?view=archived' : 'admin/manage_users.php'));
 }
 
 $fullName = trim($target['first_name'] . ' ' . $target['last_name']);

@@ -307,8 +307,9 @@ New helper functions go in the `includes/core/` file that matches their topic
   details, get directions to a listing in Google Maps and follow their own
   position on its map, and save listings to a shortlist.
 - Admin: view platform stats, approve or reject listings with a reason,
-  activate/deactivate user accounts, archive and restore them, and remove
-  and restore listings (removal archives, it never deletes). Every decision
+  activate/deactivate user accounts, and remove and restore listings
+  (removal archives, it never deletes). Removing and restoring user
+  accounts is for a super admin; other admins can deactivate them. Every decision
   is written to the Activity Log with the administrator and the reason, and
   the landlord is told by email and on their dashboard.
 - All roles: edit their profile, upload a profile photo, and change their own

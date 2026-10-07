@@ -9,7 +9,8 @@ $roleFilter = $_GET['role'] ?? '';
 
 // Removed accounts are archived rather than destroyed, so they need somewhere
 // to be seen and restored from. The directory shows live accounts by default.
-$showArchived = ($_GET['view'] ?? '') === 'archived';
+// Only a super admin removes accounts, so only they see the Removed view.
+$showArchived = is_super_admin() && ($_GET['view'] ?? '') === 'archived';
 
 $where = "role NOT IN " . ADMIN_ROLES_SQL . " AND deleted_at IS " . ($showArchived ? 'NOT NULL' : 'NULL');
 $params = [];
@@ -53,11 +54,13 @@ $pageActions = '<a href="' . base_url('admin/export.php?' . http_build_query($ex
   . '" class="btn btn-sm btn-outline-secondary" title="Download these accounts as a spreadsheet">'
   . '<i class="fas fa-file-csv mr-1"></i> Export CSV</a>';
 
-$pageActions .= $showArchived
-  ? '<a href="' . base_url('admin/manage_users.php') . '" class="btn btn-sm btn-outline-dark">'
-    . '<i class="fas fa-users mr-1"></i> Active accounts</a>'
-  : '<a href="' . base_url('admin/manage_users.php?view=archived') . '" class="btn btn-sm btn-outline-dark">'
-    . '<i class="fas fa-archive mr-1"></i> Removed <span class="badge badge-light ml-1">' . $totalArchived . '</span></a>';
+if (is_super_admin()) {
+  $pageActions .= $showArchived
+    ? '<a href="' . base_url('admin/manage_users.php') . '" class="btn btn-sm btn-outline-dark">'
+      . '<i class="fas fa-users mr-1"></i> Active accounts</a>'
+    : '<a href="' . base_url('admin/manage_users.php?view=archived') . '" class="btn btn-sm btn-outline-dark">'
+      . '<i class="fas fa-archive mr-1"></i> Removed <span class="badge badge-light ml-1">' . $totalArchived . '</span></a>';
+}
 
 ?>
 
@@ -167,8 +170,8 @@ $pageActions .= $showArchived
                   </td>
                   <td>
                     <div class="d-flex align-items-center" style="gap: 5px;">
-                      <?php if ($u['deleted_at'] !== null): ?>
-                        <!-- Restore Button -->
+                      <?php if ($u['deleted_at'] !== null && is_super_admin()): ?>
+                        <!-- Restore Button (super admin only) -->
                         <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
                           <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
@@ -177,7 +180,7 @@ $pageActions .= $showArchived
                             <i class="fas fa-trash-restore mr-1"></i> Restore
                           </button>
                         </form>
-                      <?php else: ?>
+                      <?php elseif ($u['deleted_at'] === null): ?>
                         <!-- Status Toggle Button -->
                         <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
                           <?= csrf_field() ?>
@@ -194,7 +197,8 @@ $pageActions .= $showArchived
                           <?php endif; ?>
                         </form>
 
-                        <!-- Remove (archive) Button -->
+                        <?php if (is_super_admin()): ?>
+                        <!-- Remove (archive) Button (super admin only) -->
                         <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline js-confirm"
                           data-confirm="Remove <?= h($u['full_name']) ?>? Their account and listings will be hidden from the site. Nothing is deleted, and you can restore it from the Removed tab.">
                           <?= csrf_field() ?>
@@ -204,6 +208,7 @@ $pageActions .= $showArchived
                             <i class="fas fa-trash"></i>
                           </button>
                         </form>
+                        <?php endif; ?>
                       <?php endif; ?>
                     </div>
                   </td>

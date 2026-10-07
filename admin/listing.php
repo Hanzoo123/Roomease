@@ -353,7 +353,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <?= avatar_html(['full_name' => $landlordName, 'avatar_path' => $listing['landlord_avatar']], 44) ?>
                 <div style="min-width: 0;">
                   <p class="mb-0 font-weight-bold">
-                    <a href="<?= base_url('admin/user.php?id=' . (int) $listing['landlord_id']) ?>"><?= h($landlordName) ?></a>
+                    <?php /* A removed landlord's profile is for a super admin only. */ ?>
+                    <?php if ($listing['landlord_deleted_at'] === null || is_super_admin()): ?>
+                      <a href="<?= base_url('admin/user.php?id=' . (int) $listing['landlord_id']) ?>"><?= h($landlordName) ?></a>
+                    <?php else: ?>
+                      <?= h($landlordName) ?>
+                    <?php endif; ?>
                   </p>
                   <p class="mb-0 text-truncate"><a href="mailto:<?= h($listing['landlord_email']) ?>"><?= h($listing['landlord_email']) ?></a></p>
                   <p class="mb-0 text-muted"><?= h($listing['landlord_phone'] ?: 'No phone number') ?></p>

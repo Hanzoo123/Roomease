@@ -127,7 +127,7 @@ $recentUsers = $pdo->query(
   "SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name, email, role, is_active,
           deleted_at, created_at, avatar_path
      FROM users
-    WHERE role NOT IN " . ADMIN_ROLES_SQL . "
+    WHERE role NOT IN " . ADMIN_ROLES_SQL . (is_super_admin() ? '' : ' AND deleted_at IS NULL') . "
     ORDER BY created_at DESC
     LIMIT 4"
 )->fetchAll();

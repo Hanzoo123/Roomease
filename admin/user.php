@@ -13,7 +13,8 @@ $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role NOT IN " .
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
-if (!$user) {
+// Removed accounts are a super admin's to see, like the Removed view.
+if (!$user || ($user['deleted_at'] !== null && !is_super_admin())) {
   flash_set('User not found.', 'error');
   redirect('admin/manage_users.php');
 }
@@ -119,12 +120,15 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
           . '<i class="fas ' . $icon . ' mr-1"></i> ' . $label . '</button></form>';
   };
 
+  // Any admin can deactivate; only a super admin can remove or restore.
   if ($removed) {
-      $pageActions = $act('restore', 'btn-success', 'fa-trash-restore', 'Restore account');
+      $pageActions = is_super_admin() ? $act('restore', 'btn-success', 'fa-trash-restore', 'Restore account') : '';
   } else {
       $pageActions = $user['is_active']
           ? $act('toggle_status', 'btn-outline-warning', 'fa-user-slash', 'Deactivate')
           : $act('toggle_status', 'btn-success', 'fa-user-check', 'Activate');
+  }
+  if (!$removed && is_super_admin()) {
       $pageActions .= $act(
           'delete',
           'btn-outline-danger',
