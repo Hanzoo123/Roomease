@@ -140,16 +140,13 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <div class="content-wrapper">
   <?php
-  // Only History is a tab; everything needed to decide stays on one screen.
+  // No tabs: everything needed to decide stays on one screen, and a super
+  // admin's History follows it below.
   panel_page_header($listing['name'], [
     'subtitle' => $listing['address'],
     'back' => 'admin/manage_listings.php' . ($archived ? '?view=removed' : ''),
     'backLabel' => 'Back to Manage Listings',
     'lead' => listing_thumb_html($listing, 'queue-thumb'),
-    'tabs' => array_values(array_filter([
-      ['id' => 'panel-review', 'label' => 'Review'],
-      $history !== null ? ['id' => 'panel-history', 'label' => 'History', 'count' => count($history)] : null,
-    ])),
   ]);
   ?>
 
@@ -253,7 +250,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
         </div>
       </div>
 
-      <div class="row re-tabpanel" id="panel-review" role="tabpanel" aria-labelledby="tab-panel-review">
+      <div class="row" id="review">
         <div class="col-lg-8">
 
           <div class="card shadow-sm">
@@ -418,7 +415,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
       </div>
 
       <?php if ($history !== null): ?>
-      <div class="re-tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-panel-history" hidden>
+      <div id="history">
         <div class="card shadow-sm">
           <?php panel_card_header('History', 'Every decision made on this listing, and every change its landlord made, newest first.'); ?>
           <div class="card-body<?= $history ? '' : ' p-0' ?>">
