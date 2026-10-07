@@ -172,11 +172,9 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
+  
   <!-- Content Header (Page header) -->
   <?php panel_page_header('Add Boarding House', [
-    'subtitle' => 'Post a new listing. It goes to an administrator for approval before boarders can see it.',
-    'back' => 'landlord/listings.php',
-    'backLabel' => 'Back to my boarding houses',
   ]); ?>
 
   <!-- Main content -->
@@ -190,7 +188,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
               <h3 class="card-title font-weight-bold">
                 <i class="fas fa-clipboard-list mr-1"></i> New Listing Details
               </h3>
-              <span class="card-subtitle">It goes to an administrator for approval before boarders can see it.</span>
+              <span class="card-subtitle">It goes to an administrator for approval.</span>
             </div>
 
             <?php if ($errors): ?>
@@ -209,8 +207,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
             <form method="post" enctype="multipart/form-data" novalidate>
               <div class="card-body">
-                <p class="text-muted">Fill in the property details, its rooms, utilities, and house rules for
-                  boarders in Baybay City.</p>
+                
                 <?= csrf_field() ?>
                 <?php require __DIR__ . '/../includes/components/listing_form.php'; ?>
               </div>

@@ -41,3 +41,4 @@ config/mail.local.php
 # Files kept on this computer only: old schema versions, upgrade scripts,
 # demo data and notes. Nothing the running site needs.
 local-only/
+.devswarm-temp/

@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'Add User';
+$pageTitle = 'Add Administrator';
 require __DIR__ . '/../includes/layouts/panel_head.php';
 require __DIR__ . '/../includes/layouts/panel_navbar.php';
 require __DIR__ . '/../includes/layouts/panel_sidebar.php';
@@ -66,7 +66,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
 
-  <?php panel_page_header('Add User', [
+  <?php panel_page_header('Add Administrator', [
     'subtitle' => 'A new administrator who can sign in to this panel. Landlords and boarders sign up for themselves.',
     'back' => 'admin/admins.php',
     'backLabel' => 'Back to administrators',

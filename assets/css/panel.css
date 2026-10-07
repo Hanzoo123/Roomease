@@ -2035,7 +2035,7 @@ html[data-theme="dark"] .main-sidebar .brand-mark {
   max-width: 100%;
   margin-top: 14px;
   padding: 3px;
-  background: var(--re-muted-bg);
+  background: var(--re-panel);
   border-radius: 10px;
 }
 

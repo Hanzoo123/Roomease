@@ -52,7 +52,7 @@ require __DIR__ . '/../includes/layouts/header.php';
   <img class="band-photo" src="<?= base_url('assets/img/pages/about-header.webp') ?>" alt="">
   <div class="container">
     <div class="band-head">
-      <div>
+      <div> 
         <h1 class="band-title">About RoomEase</h1>
         <p class="band-lede">A boarding house directory for Baybay City, built so a room can be compared before it is visited.</p>
       </div>

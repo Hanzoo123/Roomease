@@ -21,7 +21,7 @@ function panel_config()
             $super ? [
                 ['url' => 'admin/admins.php',   'icon' => 'fa-user-shield', 'label' => 'Administrators',
                  'also' => ['reset_admin_password.php']],
-                ['url' => 'admin/add_user.php', 'icon' => 'fa-user-plus',   'label' => 'Add User'],
+                ['url' => 'admin/add_user.php', 'icon' => 'fa-user-plus',   'label' => 'Add Admin'],
             ] : []
         );
 

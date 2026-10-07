@@ -1,5 +1,5 @@
-  </main>
 
+  </main>
 <footer class="site-footer">
   <div class="container">
     <div class="footer-inner">
@@ -17,7 +17,7 @@
           </ul>
         </div>
         <div>
-          <h2>Landlords</h2>
+          <h2 class="">Landlords</h2>
           <ul>
             <?php if (current_role() === 'landlord'): ?>
               <li><a href="<?= base_url('landlord/add_listing.php') ?>">Add a listing</a></li>

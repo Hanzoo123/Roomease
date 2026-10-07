@@ -251,6 +251,20 @@ require __DIR__ . '/../includes/layouts/header.php';
 
 <section class="section section--white contact-help">
   <div class="container contact-help-inner">
+
+          <div class="faq">
+      <h2>Questions people ask</h2>
+      <?php /* Every answer shown, not folded: there are six, and they are short. */ ?>
+      <dl class="faq-list">
+        <?php foreach ($faqs as $faq): ?>
+          <div>
+            <dt><?= h($faq['q']) ?></dt>
+            <dd><?= h($faq['a']) ?></dd>
+          </div>
+        <?php endforeach; ?>
+      </dl>
+    </div>
+
     <div class="contact-topics-wrap">
       <h2>What to tell us</h2>
       <ul class="contact-topics">
@@ -278,18 +292,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       </ul>
     </div>
 
-    <div class="faq">
-      <h2>Questions people ask</h2>
-      <?php /* Every answer shown, not folded: there are six, and they are short. */ ?>
-      <dl class="faq-list">
-        <?php foreach ($faqs as $faq): ?>
-          <div>
-            <dt><?= h($faq['q']) ?></dt>
-            <dd><?= h($faq['a']) ?></dd>
-          </div>
-        <?php endforeach; ?>
-      </dl>
-    </div>
+    
   </div>
 </section>
 

@@ -50,7 +50,7 @@ $actionButton = function ($adminId, $action, $class, $icon, $title, $confirm = '
   <?php panel_page_header('Administrators', [
     'subtitle' => 'Everyone who can sign in to this panel. Only a super admin sees this page.',
     'actions' => '<a href="' . base_url('admin/add_user.php') . '" class="btn btn-sm btn-primary">'
-      . '<i class="fas fa-user-plus mr-1"></i> Add User</a>',
+      . '<i class="fas fa-user-plus mr-1"></i> Add admin</a>',
   ]); ?>
 
   <!-- Main content -->

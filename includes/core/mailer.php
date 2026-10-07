@@ -18,7 +18,7 @@ function mail_config()
         $config = [
             'username'  => (string) env_value('ROOMEASE_MAIL_USERNAME'),
             'password'  => (string) env_value('ROOMEASE_MAIL_PASSWORD'),
-            'from_name' => 'RoomEase',
+            'from_name' => 'roomease',
             'host'      => 'smtp.gmail.com',
             // 465 = encrypted from the start; 587 = STARTTLS (for networks that block 465).
             'port'      => (int) (env_value('ROOMEASE_MAIL_PORT') ?: 465),

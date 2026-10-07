@@ -395,9 +395,7 @@ require __DIR__ . '/../includes/layouts/header.php';
     <div class="section-head results-head" id="results">
       <div class="results-title">
         <h2><?= !$filtered ? 'All boarding houses' : ($totalCount ? 'Matching boarding houses' : 'No matches') ?></h2>
-        <?php if ($totalCount): ?>
-          <span class="count-tag"><?= $totalCount ?> <?= $filtered ? 'found' : 'listed' ?></span>
-        <?php endif; ?>
+        
       </div>
       <?php if ($totalCount > 1): ?>
         <?php /* Part of the filter form (form="browse-filters"), so a new order
