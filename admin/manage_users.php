@@ -2,10 +2,11 @@
 /** Manage Users: landlords and boarders, plus a Removed view. */
 require __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/components/user_status.php';
 
 require_login('admin');
 
-$roleFilter = $_GET['role'] ?? '';
+$roleFilter = in_array($_GET['role'] ?? '', ['landlord', 'boarder'], true) ? $_GET['role'] : '';
 
 // Removed accounts are archived rather than destroyed, so they need somewhere
 // to be seen and restored from. The directory shows live accounts by default.
@@ -133,7 +134,7 @@ if (is_super_admin()) {
             </thead>
             <tbody>
               <?php foreach ($users as $u): ?>
-                <tr>
+                <tr data-user-row="<?= (int) $u['user_id'] ?>">
                   <td class="font-weight-bold">
                     <?php /* The photo replaces the role glyph that used to sit here;
                          the Role column already says which role this is. */ ?>
@@ -154,18 +155,14 @@ if (is_super_admin()) {
                     <?php endif; ?>
                   </td>
                   <td>
+                    <?= user_status_badge($u) ?>
                     <?php if ($u['deleted_at'] !== null): ?>
-                      <span class="badge badge-dark px-2 py-1"><i class="fas fa-archive mr-1"></i> Removed</span>
                       <div class="text-muted text-sm mt-1">
                         <?= h(date('M j, Y', strtotime($u['deleted_at']))) ?>
                       </div>
-                    <?php elseif ($u['is_active']): ?>
-                      <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Active</span>
-                    <?php else: ?>
-                      <span class="badge badge-danger px-2 py-1"><i class="fas fa-ban mr-1"></i> Inactive</span>
                     <?php endif; ?>
                   </td>
-                  <td class="text-sm text-muted">
+                  <td class="text-sm text-muted" data-order="<?= (int) strtotime($u['created_at']) ?>">
                     <?= h(date('M j, Y', strtotime($u['created_at']))) ?>
                   </td>
                   <td>
@@ -176,26 +173,14 @@ if (is_super_admin()) {
                           <?= csrf_field() ?>
                           <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                           <input type="hidden" name="action" value="restore">
+                          <input type="hidden" name="role" value="<?= h($roleFilter) ?>">
                           <button type="submit" class="btn btn-xs btn-outline-success" title="Restore Account">
                             <i class="fas fa-trash-restore mr-1"></i> Restore
                           </button>
                         </form>
                       <?php elseif ($u['deleted_at'] === null): ?>
-                        <!-- Status Toggle Button -->
-                        <form method="post" action="<?= base_url('admin/user_action.php') ?>" class="d-inline">
-                          <?= csrf_field() ?>
-                          <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
-                          <input type="hidden" name="action" value="toggle_status">
-                          <?php if ($u['is_active']): ?>
-                            <button type="submit" class="btn btn-xs btn-outline-warning" title="Deactivate Account">
-                              <i class="fas fa-user-slash"></i>
-                            </button>
-                          <?php else: ?>
-                            <button type="submit" class="btn btn-xs btn-outline-success" title="Activate Account">
-                              <i class="fas fa-user-check"></i>
-                            </button>
-                          <?php endif; ?>
-                        </form>
+                        <!-- Activate / Deactivate, without a reload (user_actions_js.php) -->
+                        <?= user_status_form($u, 'list', $roleFilter) ?>
 
                         <?php if (is_super_admin()): ?>
                         <!-- Remove (archive) Button (super admin only) -->
@@ -204,6 +189,7 @@ if (is_super_admin()) {
                           <?= csrf_field() ?>
                           <input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                           <input type="hidden" name="action" value="delete">
+                          <input type="hidden" name="role" value="<?= h($roleFilter) ?>">
                           <button type="submit" class="btn btn-xs btn-outline-danger" title="Remove User">
                             <i class="fas fa-trash"></i>
                           </button>
@@ -228,6 +214,7 @@ if (is_super_admin()) {
 <!-- /.content-wrapper -->
 
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/scripts/user_actions_js.php'; ?>
 
 <!-- Initialize DataTables for usersTable -->
 <script>
@@ -236,7 +223,13 @@ if (is_super_admin()) {
       "responsive": true,
       "lengthChange": true,
       "autoWidth": false,
-      "order": [[6, "desc"]],
+      // Newest first by the Joined date (column 5); Actions isn't sortable.
+      "order": [[5, "desc"]],
+      "columnDefs": [{ "orderable": false, "targets": 6 }],
+      // Remember page, search and sort for this tab, so the reload after
+      // Remove or Restore comes back to the same place.
+      "stateSave": true,
+      "stateDuration": -1,
       "pageLength": 10
     });
   });

@@ -5,6 +5,7 @@
  */
 require __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/components/user_status.php';
 
 require_login('admin');
 
@@ -124,9 +125,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
   if ($removed) {
       $pageActions = is_super_admin() ? $act('restore', 'btn-success', 'fa-trash-restore', 'Restore account') : '';
   } else {
-      $pageActions = $user['is_active']
-          ? $act('toggle_status', 'btn-outline-warning', 'fa-user-slash', 'Deactivate')
-          : $act('toggle_status', 'btn-success', 'fa-user-check', 'Activate');
+      // Activate / Deactivate, without a reload (user_actions_js.php).
+      $pageActions = user_status_form($user, 'user');
   }
   if (!$removed && is_super_admin()) {
       $pageActions .= $act(
@@ -170,13 +170,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <div style="min-width: 0;">
                     <h4 class="re-profile-name">
                       <?= h($fullName) ?>
-                      <?php if ($removed): ?>
-                        <span class="badge badge-dark"><i class="fas fa-archive mr-1"></i> Removed</span>
-                      <?php elseif ($user['is_active']): ?>
-                        <span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i> Active</span>
-                      <?php else: ?>
-                        <span class="badge badge-danger"><i class="fas fa-ban mr-1"></i> Deactivated</span>
-                      <?php endif; ?>
+                      <?= user_status_badge($user, 'user') ?>
                     </h4>
                     <p class="re-profile-meta">
                       <?= $isLandlord ? 'Landlord' : 'Boarder' ?> &middot; account #<?= (int) $userId ?>
@@ -476,3 +470,4 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 <?php /* The confirmation listener now lives in includes/scripts/panel_tabs.php,
      which the footer loads on every panel page. */ ?>
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>
+<?php require __DIR__ . '/../includes/scripts/user_actions_js.php'; ?>
