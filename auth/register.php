@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     too_long($old['last_name'], 100, 'Last name'),
     too_long($old['email'], 150, 'Email'),
     $old['phone_number'] !== '' ? phone_problem($old['phone_number']) : null,
-    password_problem($password),
+    password_problem($password, 'Password', [$old['first_name'], $old['last_name'], $old['email']]),
   ]));
   if ($password !== $confirm)
     $errors[] = 'Passwords do not match.';
@@ -143,7 +143,7 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
   <div class="field-row">
     <div>
       <label for="password">Password</label>
-      <input type="password" id="password" name="password" autocomplete="new-password" required>
+      <input type="password" id="password" name="password" autocomplete="new-password" required data-password-checklist>
     </div>
     <div>
       <label for="confirm_password">Confirm password</label>

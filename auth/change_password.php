@@ -57,7 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$googleLinked) {
   } elseif (!password_verify($currentPassword, $user['password_hash'])) {
     $errors[] = 'Incorrect current password.';
   }
-  if ($problem = password_problem($newPassword, 'New password')) {
+  if ($problem = password_problem($newPassword, 'New password',
+      [$user['first_name'], $user['last_name'], $user['email'], $user['username']])) {
     $errors[] = $problem;
   }
   if ($newPassword !== $confirmPassword) {
@@ -151,14 +152,15 @@ require __DIR__ . '/../includes/layouts/profile_top.php';
 
         <?php foreach ([
           ['current_password', 'Current password', 'current-password', ''],
-          ['new_password', 'New password', 'new-password', 'At least 8 characters.'],
+          ['new_password', 'New password', 'new-password',
+            'At least 8 characters, with an uppercase and a lowercase letter, a number and a symbol.'],
           ['confirm_password', 'Confirm new password', 'new-password', ''],
         ] as [$field, $label, $autocomplete, $hint]): ?>
           <div class="<?= $cls['group'] ?>">
             <label for="<?= $field ?>"><?= $label ?></label>
             <div class="password-field">
               <input type="password" class="<?= $cls['input'] ?>" id="<?= $field ?>" name="<?= $field ?>"
-                autocomplete="<?= $autocomplete ?>" required<?= $hint ? ' aria-describedby="' . $field . '-hint"' : '' ?>>
+                autocomplete="<?= $autocomplete ?>" required<?= $hint ? ' aria-describedby="' . $field . '-hint"' : '' ?><?= $field === 'new_password' ? ' data-password-checklist' : '' ?>>
               <?php /* Only shown once the script below is running, since without it
                 the button would do nothing. */ ?>
               <button type="button" class="password-toggle" data-password-toggle="<?= $field ?>"

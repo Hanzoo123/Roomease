@@ -32,7 +32,7 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $newPassword     = $_POST['new_password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    if ($problem = password_problem($newPassword, 'New password')) {
+    if ($problem = password_problem($newPassword, 'New password', [$reset['first_name'], $reset['email']])) {
         $errors[] = $problem;
     }
     if ($newPassword !== $confirmPassword) {
@@ -119,7 +119,7 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
     <?= csrf_field() ?>
 
     <label for="new_password">New password</label>
-    <input type="password" id="new_password" name="new_password" autocomplete="new-password" required autofocus>
+    <input type="password" id="new_password" name="new_password" autocomplete="new-password" required autofocus data-password-checklist>
 
     <label for="confirm_password">Confirm new password</label>
     <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>

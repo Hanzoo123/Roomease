@@ -42,11 +42,28 @@ function money_problem($value, $label)
 }
 
 /**
- * At least 8 characters, and at most 72 bytes: password_hash() reads only the
- * first 72 bytes, so anything typed after them would be silently ignored.
+ * Words that make a password easy to guess however it is dressed up: with
+ * capitals, digits or symbols around it, or letters swapped for look-alikes
+ * (P@ssw0rd123! is still "password").
+ */
+const COMMON_PASSWORD_WORDS = [
+    'password', 'passw', 'pass', 'qwerty', 'qwertyuiop', 'asdf', 'asdfgh', 'zxcvbn', 'abc', 'abcd', 'abcde',
+    'abcdef', 'admin', 'administrator', 'welcome', 'letmein', 'iloveyou', 'loveyou', 'love', 'monkey', 'dragon',
+    'sunshine', 'princess', 'football', 'baseball', 'basketball', 'master', 'login', 'user', 'test', 'secret',
+    'hello', 'freedom', 'student', 'boarder', 'landlord', 'roomease', 'baybay', 'leyte', 'philippines', 'pilipinas',
+];
+
+/**
+ * 8 to 72 characters with an uppercase letter, a lowercase letter, a number
+ * and a symbol; not a common password; and not containing the person's own
+ * name or email ($personal: their names, email or username, where the form
+ * has them). At most 72 bytes because password_hash() reads only the first
+ * 72, so anything typed after them would be silently ignored.
+ * includes/scripts/password_checklist.php shows the first five rules as the
+ * person types.
  */
 
-function password_problem($password, $label = 'Password')
+function password_problem($password, $label = 'Password', array $personal = [])
 {
     $password = (string) $password;
     if (strlen($password) < 8) {
@@ -55,5 +72,44 @@ function password_problem($password, $label = 'Password')
     if (strlen($password) > 72) {
         return $label . ' must be 72 characters or fewer.';
     }
+
+    $missing = [];
+    if (!preg_match('/\p{Lu}/u', $password)) {
+        $missing[] = 'an uppercase letter';
+    }
+    if (!preg_match('/\p{Ll}/u', $password)) {
+        $missing[] = 'a lowercase letter';
+    }
+    if (!preg_match('/\d/', $password)) {
+        $missing[] = 'a number';
+    }
+    if (!preg_match('/[^\p{L}\p{N}]/u', $password)) {
+        $missing[] = 'a symbol, such as ! @ # or ?';
+    }
+    if ($missing) {
+        $last = array_pop($missing);
+        return $label . ' needs ' . ($missing ? implode(', ', $missing) . ' and ' : '') . $last . '.';
+    }
+
+    // The word underneath: digits and symbols trimmed off both ends, look-alikes
+    // turned back into letters, anything else that is not a letter dropped.
+    $word = trim(strtolower($password), '0123456789!@#$%^&*()_+-=[]{};:\'",.<>/?\\|`~ ');
+    $word = preg_replace('/[^a-z]/', '', strtr($word, ['@' => 'a', '4' => 'a', '0' => 'o', '3' => 'e', '1' => 'i', '$' => 's', '5' => 's', '7' => 't']));
+    if (in_array($word, COMMON_PASSWORD_WORDS, true)) {
+        return $label . ' is too common. Avoid words like "password" or "qwerty", even with numbers and symbols added.';
+    }
+
+    // The person's names, and the parts of their email before the @.
+    $lower = strtolower($password);
+    foreach ($personal as $value) {
+        $value = strtolower(trim((string) $value));
+        $parts = preg_split('/[^a-z]+/', strstr($value, '@', true) ?: $value, -1, PREG_SPLIT_NO_EMPTY);
+        foreach ($parts as $part) {
+            if (strlen($part) >= 4 && strpos($lower, $part) !== false) {
+                return $label . ' must not contain your name or email.';
+            }
+        }
+    }
+
     return null;
 }

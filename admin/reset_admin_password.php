@@ -35,7 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm = is_string($_POST['confirm_password'] ?? null) ? $_POST['confirm_password'] : '';
 
     $errors = array_values(array_filter([
-        password_problem($password, 'Temporary password'),
+        password_problem($password, 'Temporary password',
+            [$target['first_name'], $target['last_name'], $target['email'], $target['username']]),
         $password !== $confirm ? 'The two passwords do not match.' : null,
     ]));
 
@@ -105,8 +106,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                 <div class="form-group">
                   <label for="password">New temporary password</label>
                   <input type="password" class="form-control" id="password" name="password" required
-                    autocomplete="new-password" autofocus>
-                  <small class="form-text text-muted">8 to 72 characters. Ask them to change it after they sign in.</small>
+                    autocomplete="new-password" autofocus data-password-checklist>
+                  <small class="form-text text-muted">Ask them to change it after they sign in.</small>
                 </div>
                 <div class="form-group mb-0">
                   <label for="confirm_password">Confirm password</label>

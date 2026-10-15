@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $errors = array_values(array_filter([
         username_problem($form['username']),
-        password_problem($password, 'Temporary password'),
+        password_problem($password, 'Temporary password', [$form['username']]),
         $password !== $confirm ? 'The two passwords do not match.' : null,
     ]));
     if (!in_array($form['role'], ['administrator', 'super_admin'], true)) {
@@ -116,8 +116,8 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <div class="col-md-6 form-group">
                     <label for="password">Temporary password</label>
                     <input type="password" class="form-control" id="password" name="password" required
-                      autocomplete="new-password">
-                    <small class="form-text text-muted">8 to 72 characters. Give it to them privately.</small>
+                      autocomplete="new-password" data-password-checklist>
+                    <small class="form-text text-muted">Give it to them privately.</small>
                   </div>
                   <div class="col-md-6 form-group">
                     <label for="confirm_password">Confirm password</label>

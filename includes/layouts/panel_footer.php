@@ -54,6 +54,7 @@ $flash = flash_get();
 <?php endif; ?>
 
 <?php require __DIR__ . '/../scripts/password_toggle.php'; ?>
+<?php require __DIR__ . '/../scripts/password_checklist.php'; ?>
 <?php require __DIR__ . '/../scripts/panel_tabs.php'; ?>
 </body>
 
