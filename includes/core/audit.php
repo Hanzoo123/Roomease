@@ -13,7 +13,8 @@ const AUDIT_SIGNIN_DAYS = 90;
 
 /**
  * Every action the log records: its label, badge, what it acts on, and its
- * tab (admin, landlord or signin). Room changes are filed under the listing.
+ * tab (admin, landlord, reservation or signin). Room changes and room
+ * requests are filed under the listing.
  */
 
 function audit_action_types()
@@ -58,6 +59,12 @@ function audit_action_types()
         'rooms_confirm'   => ['label' => 'Confirmed rooms',     'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
         'photos_add'      => ['label' => 'Added photos',        'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
         'photo_remove'    => ['label' => 'Removed photo',       'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'landlord'],
+
+        // Room requests: a boarder asks or withdraws, the landlord answers.
+        'reservation_request' => ['label' => 'Requested room',       'badge' => 'badge-info',      'target' => 'listing', 'group' => 'reservation'],
+        'reservation_cancel'  => ['label' => 'Cancelled request',    'badge' => 'badge-secondary', 'target' => 'listing', 'group' => 'reservation'],
+        'reservation_accept'  => ['label' => 'Accepted reservation', 'badge' => 'badge-success',   'target' => 'listing', 'group' => 'reservation'],
+        'reservation_decline' => ['label' => 'Declined reservation', 'badge' => 'badge-warning',   'target' => 'listing', 'group' => 'reservation'],
 
         // Sign-ins, passwords and emails.
         'signin'          => ['label' => 'Signed in',           'badge' => 'badge-success',   'target' => 'account', 'group' => 'signin'],

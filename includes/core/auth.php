@@ -222,7 +222,7 @@ function set_password_change_required($userId, $required)
 function safe_return_path($path)
 {
     $path = (string) $path;
-    return preg_match('#^(index\.php|boarder/(view_listing|browse|saved)\.php)(\?[\w\-=&%.+~]*)?$#', $path) ? $path : '';
+    return preg_match('#^(index\.php|boarder/(view_listing|browse|saved|reserve|reservations)\.php)(\?[\w\-=&%.+~]*)?$#', $path) ? $path : '';
 }
 
 /** Remember where to go, and what to save, after login. */

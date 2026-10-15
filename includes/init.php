@@ -15,6 +15,7 @@
  *   lookups.php         amenities, utilities, room types
  *   listings.php        listing queries, availability, browse filters
  *   rooms.php           rooms inside a listing
+ *   reservations.php    room requests, accepting and declining them
  *   audit.php           audit log and landlord notices
  *   password_reset.php  reset by emailed code
  *   site_settings.php   settings an admin changes
@@ -43,6 +44,7 @@ require_once __DIR__ . '/core/avatars.php';
 require_once __DIR__ . '/core/lookups.php';
 require_once __DIR__ . '/core/listings.php';
 require_once __DIR__ . '/core/rooms.php';
+require_once __DIR__ . '/core/reservations.php';
 require_once __DIR__ . '/core/audit.php';
 require_once __DIR__ . '/core/password_reset.php';
 require_once __DIR__ . '/core/site_settings.php';

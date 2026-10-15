@@ -51,8 +51,10 @@ function panel_config()
         ];
     }
 
-    // Listings an administrator sent back, counted beside Needs Changes.
+    // Listings an administrator sent back, counted beside Needs Changes, and
+    // room requests waiting for an answer, beside Reservations.
     $listingCounts = landlord_listing_counts($_SESSION['user_id'] ?? 0);
+    $reservationCounts = landlord_reservation_counts($_SESSION['user_id'] ?? 0);
 
     return [
         'name'  => 'Landlord',
@@ -70,6 +72,8 @@ function panel_config()
                  'count' => $listingCounts['rejected']],
                 ['url' => 'landlord/extras.php',      'icon' => 'fa-bolt',        'label' => 'Utilities & Amenities'],
             ]],
+            ['url' => 'landlord/reservations.php', 'icon' => 'fa-calendar-check', 'label' => 'Reservations',
+             'count' => $reservationCounts['pending']],
         ],
     ];
 }

@@ -38,6 +38,8 @@ require __DIR__ . '/../includes/layouts/header.php';
     <li><strong>Listings, for landlords:</strong> the boarding house name, address, map pin, contact number,
       description, house rules, rooms, rent, and photos.</li>
     <li><strong>Saved listings, for boarders.</strong></li>
+    <li><strong>Room requests, for boarders:</strong> the room you asked for, your move-in date, your note to the
+      landlord, and the landlord's answer, with any reason they give.</li>
     <li><strong>Security records:</strong> failed sign-in and password reset attempts, with the email address and
       IP address used, so password guessing can be stopped.</li>
     <li><strong>An audit log:</strong> when you sign in, sign out, create your account or change your password,
@@ -70,6 +72,8 @@ require __DIR__ . '/../includes/layouts/header.php';
       number when a listing has no contact number of its own.</li>
     <li><strong>Administrators</strong> can see account details and all listings, to review and manage the site.</li>
     <li><strong>Your saved listings</strong> are not shown to anyone else.</li>
+    <li><strong>When you request a room,</strong> that room's landlord sees your name, email address, phone number if
+      you gave one, move-in date and note, so they can answer and arrange your move-in.</li>
     <li><strong>Google</strong> knows you signed in to RoomEase if you choose to continue with Google. Emails
       RoomEase sends you, such as password codes, also go out through Google's Gmail. Google's own privacy policy
       applies to both.</li>

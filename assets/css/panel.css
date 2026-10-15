@@ -2553,3 +2553,21 @@ html[data-theme="dark"] .dark-mode .btn-outline-dark:not(:disabled):not(.disable
   background-color: var(--re-muted-bg);
   border-color: var(--re-ink-faint);
 }
+
+/* Landlord Reservations table: the boarder and room keep a readable width (the
+   table scrolls sideways on a phone), and a long note wraps instead of
+   widening the table. */
+.reservation-table td:nth-child(-n+2) {
+  min-width: 170px;
+}
+
+.reservation-table td:nth-child(5) {
+  min-width: 150px;
+}
+
+.reservation-note-cell {
+  min-width: 150px;
+  max-width: 280px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

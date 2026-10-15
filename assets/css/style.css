@@ -1244,6 +1244,7 @@ input[type=email],
 input[type=password],
 input[type=number],
 input[type=tel],
+input[type=date],
 select,
 textarea {
   width: 100%;
@@ -5530,5 +5531,213 @@ body.page-white {
   a.room-type-tile:hover img,
   .btn:active {
     transform: none;
+  }
+}
+
+/* =========================================================
+   Reservations: Request on a room, the request form (boarder/reserve.php)
+   and My Reservations (boarder/reservations.php)
+   ========================================================= */
+.room-request {
+  margin-top: 10px;
+}
+
+.room-tile-body .room-request {
+  width: 100%;
+}
+
+.room-request-status {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--pending-fg);
+}
+
+.room-row-side .room-request,
+.room-row-side .room-request-status {
+  margin-top: 0;
+}
+
+.label-optional {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.reserve-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s4);
+  align-items: start;
+}
+
+.reserve-layout input[type=date] {
+  max-width: 260px;
+}
+
+.reserve-summary-house {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.reserve-summary h2 {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin: 2px 0 var(--s2);
+}
+
+.reserve-summary-foot {
+  margin: 0;
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.reserve-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 var(--s4);
+  padding: var(--s3) 14px;
+  background: var(--leaf);
+  border-radius: var(--r-md);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.reserve-note .icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--forest);
+}
+
+.reserve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+
+.reservation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s3);
+}
+
+.reservation-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s3) var(--s4);
+  padding: var(--s4);
+}
+
+.reservation-house {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.reservation-gone {
+  color: var(--ink-faint);
+}
+
+.reservation-item h2 {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin: 2px 0 4px;
+}
+
+.reservation-meta {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.reservation-note {
+  margin: var(--s2) 0 0;
+  font-size: 14px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.reservation-note span {
+  color: var(--ink-soft);
+}
+
+.reservation-answer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: var(--s3) 0 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.reservation-answer .icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.reservation-answer--yes {
+  color: var(--available-fg);
+}
+
+.reservation-answer--no {
+  color: var(--rejected-fg);
+}
+
+.reservation-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  text-align: right;
+}
+
+.reservation-side small {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.reservation-side form {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  /* The room comes first, then the form for it. */
+  .reserve-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reserve-summary {
+    order: -1;
+  }
+
+  .reservation-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reservation-side {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    text-align: left;
+  }
+
+  .room-row-side {
+    flex-wrap: wrap;
+  }
+
+  .room-row-side .room-request {
+    flex-basis: 100%;
   }
 }

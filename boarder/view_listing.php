@@ -125,6 +125,26 @@ $utilities = $utilStmt->fetchAll();
 $isSaved = can_save_listings()
   && isset(saved_listing_ids($_SESSION['user_id'])[$listingId]);
 
+// Requesting a room: boarders, and guests (who log in first), on a public
+// listing. $myRequests: room_id => 'pending' or 'accepted' for this boarder.
+$canReserve = $listing['moderation_status'] === 'approved' && $listing['deleted_at'] === null && $landlordLive
+  && (!is_logged_in() || current_role() === 'boarder');
+$myRequests = $canReserve && is_logged_in() ? boarder_room_reservations($_SESSION['user_id'], $listingId) : [];
+
+/** Under each room: Request if it can be asked for, or where this boarder's request stands. */
+$requestControl = function (array $room) use ($canReserve, $myRequests) {
+  $mine = $myRequests[(int) $room['room_id']] ?? null;
+  if ($mine !== null) {
+    return '<a class="room-request-status" href="' . base_url('boarder/reservations.php') . '">'
+      . ($mine === 'accepted' ? 'Your request was accepted' : 'Requested, waiting for the landlord') . '</a>';
+  }
+  if ($canReserve && room_state($room)['key'] === 'available') {
+    return '<a class="btn btn-sm btn-primary room-request" href="'
+      . base_url('boarder/reserve.php?room=' . (int) $room['room_id']) . '">Request this room</a>';
+  }
+  return '';
+};
+
 /* ---------------------------------------------------------------------------
  * Stay terms: only the ones the landlord filled in (NULL = not stated).
  * ------------------------------------------------------------------------ */
@@ -351,6 +371,7 @@ require __DIR__ . '/../includes/layouts/header.php';
                   <div class="room-row-side">
                     <p class="room-row-rent"><?= peso_round($room['monthly_rent']) ?> <span>/ month</span></p>
                     <span class="pill <?= h($state['pill']) ?>"><?= h($state['label']) ?></span>
+                    <?= $requestControl($room) ?>
                   </div>
                 </li>
                 <?php continue; ?>
@@ -382,6 +403,7 @@ require __DIR__ . '/../includes/layouts/header.php';
                     </div>
                   <?php endif; ?>
                   <p class="room-tile-note room-tile-note--<?= h($state['key']) ?>"><?= h($state['note']) ?></p>
+                  <?= $requestControl($room) ?>
                 </div>
               </li>
             <?php endforeach; ?>

@@ -1,7 +1,7 @@
 <?php
 /**
- * Audit Log (super admins only): who did what, on three tabs
- * (Administrators, Landlords, Sign-ins). Filtered and paged in SQL.
+ * Audit Log (super admins only): who did what, on four tabs
+ * (Administrators, Landlords, Reservations, Sign-ins). Filtered and paged in SQL.
  * Opening it also deletes sign-in records older than AUDIT_SIGNIN_DAYS.
  */
 require __DIR__ . '/../includes/init.php';
@@ -15,6 +15,7 @@ $types = audit_action_types();
 $tabs = [
   'admin'    => ['label' => 'Administrators', 'who' => 'Administrator', 'search' => 'Listing, account, or reason'],
   'landlord' => ['label' => 'Landlords',      'who' => 'Landlord',      'search' => 'Listing, room, or change'],
+  'reservation' => ['label' => 'Reservations', 'who' => 'Boarder or landlord', 'search' => 'Listing, room, or boarder'],
   'signin'   => ['label' => 'Sign-ins',       'who' => 'Account',       'search' => 'Name or email'],
 ];
 $group = array_key_exists($_GET['tab'] ?? '', $tabs) ? $_GET['tab'] : 'admin';
@@ -97,6 +98,7 @@ $filtered = $kind !== '' || $personFilter || $q !== '';
 $subtitles = [
   'admin'    => 'Every decision an administrator has made, with who made it and when.',
   'landlord' => 'What landlords changed in their listings and rooms, and when.',
+  'reservation' => 'Every room request a boarder sent or cancelled, and how its landlord answered.',
   'signin'   => 'Every sign-in, failed attempt and password change. Kept for ' . AUDIT_SIGNIN_DAYS . ' days.',
 ];
 

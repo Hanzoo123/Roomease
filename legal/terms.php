@@ -30,8 +30,10 @@ require __DIR__ . '/../includes/layouts/header.php';
   <h2>What RoomEase does, and does not do</h2>
   <ul>
     <li>RoomEase shows boarding houses, their rooms, rent, and how to contact the landlord.</li>
-    <li>It does not rent out rooms, take reservations, or handle payments. Any reservation fee, deposit, or rent
-      is agreed and paid between you and the landlord directly.</li>
+    <li>A boarder can request a room, and its landlord accepts or declines the request. An accepted request is
+      not a rental contract: the move-in is still arranged between you and the landlord.</li>
+    <li>RoomEase does not rent out rooms or handle payments. Any reservation fee, deposit, or rent is agreed and
+      paid between you and the landlord directly.</li>
     <li>RoomEase is not a party to any agreement between a boarder and a landlord.</li>
   </ul>
 

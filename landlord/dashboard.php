@@ -13,6 +13,10 @@ $saves = array_sum(array_column($listings, 'save_count'));
 $beds = landlord_beds($landlordId);
 $todo = landlord_todo($listings);
 
+// Room requests waiting for an answer, newest first.
+$pendingRequests = landlord_reservations($landlordId, 'pending', 5);
+$pendingRequestCount = landlord_reservation_counts($landlordId)['pending'];
+
 // What an administrator decided about this landlord's listings lately,
 // including any listing that was removed and so is no longer in the table.
 // A rejection still waiting to be fixed is left out: To do shows it, with
@@ -106,10 +110,35 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 
       <?php /* Two columns on a laptop: what to act on, then the listings. On
                a tablet or phone it is one column, in that order. */ ?>
-      <?php $side = $todo || $decisions; ?>
+      <?php $side = $pendingRequests || $todo || $decisions; ?>
       <div class="row">
         <?php if ($side): ?>
           <div class="col-lg-7">
+            <?php if ($pendingRequests): ?>
+              <?php /* Boarders waiting on an answer come before everything else. */ ?>
+              <div class="card card-primary card-outline shadow-sm">
+                <?php panel_card_header(
+                  'Room requests',
+                  'Boarders waiting for you to accept or decline.',
+                  '<a href="' . base_url('landlord/reservations.php?status=pending') . '" class="btn btn-tool">All ' . (int) $pendingRequestCount . '</a>'
+                ); ?>
+                <ul class="list-group list-group-flush">
+                  <?php foreach ($pendingRequests as $r): ?>
+                    <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between" style="gap: 10px;">
+                      <div style="min-width: 0;">
+                        <strong><?= h($r['boarder_name']) ?></strong> wants <?= h($r['room_name']) ?>
+                        <small class="text-muted d-block">
+                          <?= h($r['house_name']) ?> &middot; moving in <?= h(date('M j', strtotime($r['move_in_date']))) ?>
+                          &middot; asked <?= h(time_ago($r['created_at'])) ?>
+                        </small>
+                      </div>
+                      <a href="<?= base_url('landlord/reservations.php?status=pending') ?>" class="btn btn-sm btn-outline-primary">Answer</a>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              </div>
+            <?php endif; ?>
+
             <?php if ($todo): ?>
               <?php /* Only shown while there is something to do. */ ?>
               <div class="card card-warning card-outline shadow-sm">

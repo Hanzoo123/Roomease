@@ -42,6 +42,9 @@ These steps set up a copy on your own machine.
    the file again, so your tables match the code. Your local test accounts and
    listings go with it.
 
+   **Only missing room reservations?** Import `database/add_reservations.sql`
+   instead. It adds the `reservations` table and keeps everything else.
+
 4. **Set up the optional features.** Nothing here touches the database —
    step 3 already created every table, including brute-force throttling,
    "Remember me", room photos, stay terms and the Appearance page. These are
@@ -218,6 +221,7 @@ roomease/
 │                              sign-in background. PHP is off in this folder.
 └── database/
     ├── roomease.sql             The whole database: every table, lookup data, one admin
+    ├── add_reservations.sql     Adds the reservations table to an existing database
     └── set_admin_password.php   CLI tool to set the administrator password
 ```
 
@@ -439,10 +443,16 @@ ask for it:
 
 ## Out of scope (per the project's stated limitations)
 
-Online reservations, online payments, real-time messaging, interactive
-maps/GPS, reviews/ratings, and automatic notifications are intentionally
-not included, matching the "Limitations of the Study" section of the
-project document.
+Online payments, real-time messaging, interactive maps/GPS,
+reviews/ratings, and automatic notifications are intentionally not
+included, matching the "Limitations of the Study" section of the project
+document.
+
+Room reservations are included as **requests only**: a boarder asks for a
+room with a move-in date, and the landlord accepts (taking one of the room's
+slots) or declines. No money changes hands in RoomEase, and nobody is
+emailed; both sides see the status on screen. The "Limitations of the Study"
+section should say this rather than list reservations as out of scope.
 
 ## Suggested next steps
 

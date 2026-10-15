@@ -75,6 +75,7 @@ $navCurrent = function ($path) {
               <a href="<?= base_url('admin/dashboard.php') ?>">Admin panel</a>
             <?php elseif (current_role() === 'boarder'): ?>
               <a href="<?= base_url('boarder/saved.php') ?>"<?= $navCurrent('boarder/saved.php') ?>>Saved</a>
+              <a href="<?= base_url('boarder/reservations.php') ?>"<?= $navCurrent('boarder/reservations.php') ?>>Reservations</a>
             <?php endif; ?>
           <?php else: ?>
             <a href="<?= base_url('auth/register.php?role=landlord') ?>" class="nav-extra">List a property</a>

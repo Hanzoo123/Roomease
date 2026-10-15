@@ -27,6 +27,7 @@ DROP TABLE IF EXISTS site_settings;
 DROP TABLE IF EXISTS login_attempts;
 DROP TABLE IF EXISTS remember_tokens;
 DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS reservations;
 DROP TABLE IF EXISTS favorites;
 DROP TABLE IF EXISTS images;
 DROP TABLE IF EXISTS rooms;
@@ -317,13 +318,46 @@ CREATE TABLE favorites (
         REFERENCES boarding_houses(boarding_house_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---------------------------------------------------------
+-- 11. reservations
+-- A boarder's request for one room, which the landlord accepts or declines.
+-- A request, not a payment: any fee is settled with the landlord directly.
+-- Accepting takes one of the room's slots (rooms.slots_taken).
+-- ---------------------------------------------------------
+CREATE TABLE reservations (
+    reservation_id      INT AUTO_INCREMENT PRIMARY KEY,
+    room_id             INT NOT NULL,
+    boarder_id          INT NOT NULL,
+    move_in_date        DATE NOT NULL,
+    message             VARCHAR(500) DEFAULT NULL,
+    status              ENUM('pending', 'accepted', 'declined', 'cancelled') NOT NULL DEFAULT 'pending',
+    -- The landlord's reason when declining.
+    landlord_note       VARCHAR(500) DEFAULT NULL,
+    decided_at          TIMESTAMP NULL DEFAULT NULL,
+    created_by          INT NULL,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by          INT NULL,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- A room's requests by status, and a boarder's requests, newest first.
+    KEY idx_res_room_status (room_id, status),
+    KEY idx_res_boarder_recent (boarder_id, created_at),
+    CONSTRAINT fk_res_room FOREIGN KEY (room_id)
+        REFERENCES rooms(room_id) ON DELETE CASCADE,
+    CONSTRAINT fk_res_boarder FOREIGN KEY (boarder_id)
+        REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_res_created_by FOREIGN KEY (created_by)
+        REFERENCES users(user_id) ON DELETE SET NULL,
+    CONSTRAINT fk_res_updated_by FOREIGN KEY (updated_by)
+        REFERENCES users(user_id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- =========================================================
 -- SIGN-IN AND SECURITY
 -- =========================================================
 
 -- ---------------------------------------------------------
--- 11. password_resets
+-- 12. password_resets
 -- One row per reset request. Only hashes of the code and token are stored.
 -- The code dies after 5 wrong tries; each row is single use and expires.
 -- ---------------------------------------------------------
@@ -345,7 +379,7 @@ CREATE TABLE password_resets (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
--- 12. remember_tokens
+-- 13. remember_tokens
 -- "Remember me" devices. Only a hash of the cookie's validator is stored.
 -- Each token is used once, then replaced.
 -- ---------------------------------------------------------
@@ -364,7 +398,7 @@ CREATE TABLE remember_tokens (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
--- 13. login_attempts
+-- 14. login_attempts
 -- Failed logins and reset requests, counted per account and per IP
 -- to limit guessing.
 -- ---------------------------------------------------------
@@ -392,7 +426,7 @@ CREATE TABLE login_attempts (
 -- =========================================================
 
 -- ---------------------------------------------------------
--- 14. site_settings
+-- 15. site_settings
 -- Settings an admin changes, e.g. the sign-in background. Key/value, so a
 -- new setting needs no new column.
 -- ---------------------------------------------------------
@@ -411,7 +445,7 @@ CREATE TABLE site_settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
--- 15. audit_logs
+-- 16. audit_logs
 -- Who did what, and when (admin/activity.php). target_label keeps the name
 -- as it was, so entries still make sense after a rename. IP and browser are
 -- kept for sign-ins only, and deleted after 90 days.
