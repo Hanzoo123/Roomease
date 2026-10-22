@@ -99,6 +99,8 @@ $avail = listing_availability([
   'rooms_open' => count(array_filter($rooms, fn($r) => !empty($r['is_open']))),
   'rent_from_available' => $availableRooms ? min(array_column($availableRooms, 'monthly_rent')) : null,
   'rent_from_all' => $rooms ? min(array_column($rooms, 'monthly_rent')) : null,
+  'rent_to_available' => $availableRooms ? max(array_column($availableRooms, 'monthly_rent')) : null,
+  'rent_to_all' => $rooms ? max(array_column($rooms, 'monthly_rent')) : null,
 ]);
 // When the landlord last changed or confirmed a room.
 $freshness = availability_freshness($rooms ? max(array_column($rooms, 'updated_at')) : null);
@@ -542,7 +544,7 @@ require __DIR__ . '/../includes/layouts/header.php';
     <div class="quick-card">
       <?php if ($avail['rent_from'] !== null): ?>
         <p class="price">
-          <?php if (count($rooms) > 1): ?><span class="price-from">From</span><?php endif; ?>
+          <?php if ($avail['rent_varies']): ?><span class="price-from">From</span><?php endif; ?>
           <?= peso_round($avail['rent_from']) ?> <span>/ month</span>
         </p>
       <?php endif; ?>
@@ -631,7 +633,7 @@ require __DIR__ . '/../includes/layouts/header.php';
     <div class="call-bar-inner">
       <?php if ($avail['rent_from'] !== null): ?>
         <p class="call-bar-price">
-          <?php if (count($rooms) > 1): ?><span>From</span> <?php endif; ?><?= peso_round($avail['rent_from']) ?>
+          <?php if ($avail['rent_varies']): ?><span>From</span> <?php endif; ?><?= peso_round($avail['rent_from']) ?>
           <span>/ month</span>
         </p>
       <?php else: ?>

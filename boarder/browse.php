@@ -134,10 +134,13 @@ if ($matchConds && $vacant) {
   $matchConds[] = 'mr.slots_taken < mr.capacity';
 }
 if ($matchConds) {
-  $matchSelect = ', m.match_rent, m.match_count';
+  $matchSelect = ', m.match_rent, m.match_rent_max, m.match_count';
+  // The highest of the same rooms too, so the card says "from" only when
+  // the matching rooms differ in rent.
   $matchJoin = 'LEFT JOIN (
       SELECT mr.boarding_house_id,
              COALESCE(MIN(CASE WHEN mr.slots_taken < mr.capacity THEN mr.monthly_rent END), MIN(mr.monthly_rent)) AS match_rent,
+             COALESCE(MAX(CASE WHEN mr.slots_taken < mr.capacity THEN mr.monthly_rent END), MAX(mr.monthly_rent)) AS match_rent_max,
              COUNT(*) AS match_count
         FROM rooms mr
        WHERE mr.is_open = 1 AND ' . implode(' AND ', $matchConds) . '

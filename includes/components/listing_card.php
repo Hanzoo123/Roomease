@@ -22,7 +22,9 @@ function render_listing_card(array $l, ?array $save = null)
     $id = (int) $l['boarding_house_id'];
     $avail = listing_availability($l);
     $saved = $save && !empty($save['saved']);
-    $types = (string) ($l['open_room_types'] ?? $l['room_types'] ?? '');
+    // Only the open rooms' types: with every room closed that list is empty
+    // (NULL), and the card names no type rather than ones nobody can book.
+    $types = (string) (array_key_exists('open_room_types', $l) ? $l['open_room_types'] : ($l['room_types'] ?? ''));
     $photo = !empty($l['cover_photo']) && photo_on_disk($l['cover_photo']);
 
     // Two room types fit on a phone's card; any more are counted, not named.
@@ -31,16 +33,19 @@ function render_listing_card(array $l, ?array $save = null)
     $typeList = array_slice($typeList, 0, 2);
 
     // The rent to quote: the matching room's when browse filtered by room, the
-    // listing's cheapest free room otherwise.
+    // listing's cheapest free room otherwise. "From" only when the rooms it
+    // stands for differ in rent: two rooms at the same rent are just that rent.
     $matchRent = $l['match_rent'] ?? null;
     if ($matchRent !== null) {
         $rent = $matchRent;
-        $many = (int) ($l['match_count'] ?? 1) > 1;
+        $many = array_key_exists('match_rent_max', $l)
+            ? (float) $l['match_rent_max'] > (float) $matchRent
+            : (int) ($l['match_count'] ?? 1) > 1;
         $type = $l['match_type'] ?? '';
         $rentLabel = $type !== '' ? ($many ? $type . ' from' : $type) : ($many ? 'From' : '');
     } else {
         $rent = $avail['rent_from'];
-        $rentLabel = $avail['room_count'] > 1 ? 'From' : '';
+        $rentLabel = $avail['rent_varies'] ? 'From' : '';
     }
 
     // What is free: the beds still open, where there are any; otherwise the

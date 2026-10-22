@@ -52,7 +52,8 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
 /** Columns that room_summary_join() adds, for a SELECT list. */
 
 const ROOM_SUMMARY_COLUMNS = 'rs.room_count, rs.rooms_available, rs.rooms_open,
-       rs.rent_from_available, rs.rent_from_all, rs.room_types, rs.open_room_types, rs.slots_left,
+       rs.rent_from_available, rs.rent_from_all, rs.rent_to_available, rs.rent_to_all,
+       rs.room_types, rs.open_room_types, rs.slots_left,
        rs.rooms_updated_at';
 
 /**
@@ -69,6 +70,9 @@ function room_summary_join($inner = false)
                SUM(r.is_open = 1) AS rooms_open,
                MIN(CASE WHEN r.is_open = 1 AND r.slots_taken < r.capacity THEN r.monthly_rent END) AS rent_from_available,
                MIN(r.monthly_rent) AS rent_from_all,
+               -- The highest rents too, so \"From\" is said only when they differ.
+               MAX(CASE WHEN r.is_open = 1 AND r.slots_taken < r.capacity THEN r.monthly_rent END) AS rent_to_available,
+               MAX(r.monthly_rent) AS rent_to_all,
                GROUP_CONCAT(DISTINCT rt.room_type_name ORDER BY rt.room_type_id SEPARATOR ', ') AS room_types,
                GROUP_CONCAT(DISTINCT CASE WHEN r.is_open = 1 THEN rt.room_type_name END
                             ORDER BY rt.room_type_id SEPARATOR ', ') AS open_room_types,
@@ -113,7 +117,9 @@ function room_state_rank(array $room)
 
 /**
  * A whole listing's status from the room totals: available, full, closed or
- * none. Also returns a summary like "3 of 5 rooms available" and rent_from.
+ * none. Also returns a summary like "3 of 5 rooms available", rent_from, and
+ * rent_varies: whether the rooms quoted differ in rent, so "From" is true.
+ * Without the rent_to_* figures, any listing with two or more rooms counts.
  */
 
 function listing_availability(array $listing)
@@ -121,12 +127,15 @@ function listing_availability(array $listing)
     $count = (int) ($listing['room_count'] ?? 0);
     $available = (int) ($listing['rooms_available'] ?? 0);
     $open = (int) ($listing['rooms_open'] ?? 0);
-    $rentFrom = $listing['rent_from_available'] ?? null;
-    if ($rentFrom === null) {
-        $rentFrom = $listing['rent_from_all'] ?? null;
-    }
+    // The free rooms' rents when there are any, otherwise every room's.
+    $pool = ($listing['rent_from_available'] ?? null) !== null ? 'available' : 'all';
+    $rentFrom = $listing['rent_from_' . $pool] ?? null;
+    $rentTo = $listing['rent_to_' . $pool] ?? null;
+    $rentVaries = array_key_exists('rent_to_' . $pool, $listing)
+        ? $rentTo !== null && (float) $rentTo > (float) $rentFrom
+        : $count > 1;
 
-    $base = ['room_count' => $count, 'rent_from' => $rentFrom];
+    $base = ['room_count' => $count, 'rent_from' => $rentFrom, 'rent_varies' => $rentVaries];
 
     if ($count === 0) {
         return $base + ['key' => 'none', 'label' => 'No rooms yet', 'pill' => 'pill--unavailable',
