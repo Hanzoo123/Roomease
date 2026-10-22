@@ -103,7 +103,7 @@ if (!$preview && !$savingName && is_array($afterLogin)
 }
 
 $pageTitle = 'Log in';
-$authHeading = 'Sign in to your account';
+$authHeading = 'Log in to your account';
 $authPreview = $preview;
 $authSwitch = ['text' => 'New to RoomEase?', 'href' => base_url('auth/register.php'), 'label' => 'Create an account'];
 require __DIR__ . '/../includes/layouts/auth_header.php';
@@ -160,7 +160,7 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
       <a href="<?= base_url('auth/forgot_password.php') ?>">Forgot password?</a>
     </div>
 
-    <button type="submit" class="btn btn-primary btn-block btn-auth">Sign in</button>
+    <button type="submit" class="btn btn-primary btn-block btn-auth">Log in</button>
   </fieldset>
 </form>
 

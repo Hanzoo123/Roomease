@@ -1,5 +1,5 @@
 <?php
-/** My Reservations: the rooms this boarder asked for, and each landlord's answer. */
+/** My reservations: the rooms this boarder asked for, and each landlord's answer. */
 require __DIR__ . '/../includes/init.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/components/icons.php';
@@ -7,7 +7,7 @@ require_login('boarder');
 
 $reservations = boarder_reservations($_SESSION['user_id']);
 
-$pageTitle = 'My Reservations';
+$pageTitle = 'My reservations';
 $band = [
   'title' => 'My reservations',
   'lede' => 'The rooms you asked for and each landlord\'s answer. You can cancel a request until the landlord answers it.',

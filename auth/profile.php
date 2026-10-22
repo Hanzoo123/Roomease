@@ -28,7 +28,7 @@ $activity = null;
 if ($role === 'boarder') {
   $saved = count(saved_listing_ids($userId));
   $activity = [
-    'label' => 'Saved rooms',
+    'label' => 'Saved',
     'value' => $saved === 0 ? 'None yet' : (string) $saved,
     'link' => [
       'href' => $saved === 0 ? 'boarder/browse.php' : 'boarder/saved.php',

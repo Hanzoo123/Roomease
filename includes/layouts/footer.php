@@ -10,10 +10,15 @@
 
       <nav class="footer-links" aria-label="Footer">
         <div>
-          <h2>Renters</h2>
+          <?php /* The same names as the header: Find Place to Stay, Saved,
+                   Reservations, About Us, Contact Us. */ ?>
+          <h2>Boarders</h2>
           <ul>
-            <li><a href="<?= base_url('boarder/browse.php') ?>">Browse rooms</a></li>
-            <li><a href="<?= base_url('boarder/saved.php') ?>">Saved rooms</a></li>
+            <li><a href="<?= base_url('boarder/browse.php') ?>">Find Place to Stay</a></li>
+            <li><a href="<?= base_url('boarder/saved.php') ?>">Saved</a></li>
+            <?php if (current_role() === 'boarder'): ?>
+              <li><a href="<?= base_url('boarder/reservations.php') ?>">Reservations</a></li>
+            <?php endif; ?>
           </ul>
         </div>
         <div>
@@ -24,7 +29,11 @@
               <li><a href="<?= base_url('landlord/dashboard.php') ?>">My listings</a></li>
             <?php else: ?>
               <li><a href="<?= base_url('auth/register.php?role=landlord') ?>">List a property</a></li>
-              <li><a href="<?= base_url('landlord/dashboard.php') ?>">My listings</a></li>
+              <?php /* A landlord who is not signed in yet logs in through this;
+                       a boarder has no listings. */ ?>
+              <?php if (!is_logged_in()): ?>
+                <li><a href="<?= base_url('landlord/dashboard.php') ?>">My listings</a></li>
+              <?php endif; ?>
             <?php endif; ?>
           </ul>
         </div>
@@ -46,8 +55,8 @@
     <div class="footer-base">
       <p>&copy; <?= date('Y') ?> RoomEase &middot; A web-based boarding house information and listing system</p>
       <ul class="footer-legal">
-        <li><a href="<?= base_url('legal/about.php') ?>">About</a></li>
-        <li><a href="<?= base_url('legal/contact.php') ?>">Contact</a></li>
+        <li><a href="<?= base_url('legal/about.php') ?>">About Us</a></li>
+        <li><a href="<?= base_url('legal/contact.php') ?>">Contact Us</a></li>
         <li><a href="<?= base_url('legal/terms.php') ?>">Terms &amp; Conditions</a></li>
         <li><a href="<?= base_url('legal/privacy.php') ?>">Privacy Policy</a></li>
       </ul>

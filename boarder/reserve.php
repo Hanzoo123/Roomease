@@ -65,7 +65,7 @@ $band = [
     'back' => ['href' => base_url($listingUrl . '#rooms'), 'label' => $room['house_name']],
     'title' => 'Request ' . $room['name'],
     'lede' => 'Ask ' . $room['landlord_name'] . ' to hold this room for you. They accept or decline, '
-        . 'and you see the answer on My Reservations.',
+        . 'and you see the answer on My reservations.',
 ];
 require __DIR__ . '/../includes/layouts/header.php';
 ?>

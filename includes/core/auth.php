@@ -274,7 +274,7 @@ function complete_after_login($after, $welcome)
         if ($name !== false) {
             $pdo->prepare('INSERT IGNORE INTO favorites (user_id, boarding_house_id) VALUES (?, ?)')
                 ->execute([$_SESSION['user_id'], (int) $after['save']]);
-            $message = $welcome . ' ' . $name . ' is in your saved listings.';
+            $message = $welcome . ' ' . $name . ' is in Saved.';
         }
     }
     flash_set($message, 'success');

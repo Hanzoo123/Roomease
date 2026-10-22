@@ -93,13 +93,14 @@ if ($action === 'unsave') {
     $pdo->prepare('DELETE FROM favorites WHERE user_id = ? AND boarding_house_id = ?')
         ->execute([$userId, $boardingHouseId]);
     $saved = false;
-    $message = 'Removed from your saved listings.';
+    $message = 'Removed from Saved.';
 } else {
     // INSERT IGNORE leans on the unique key, so a double submit is harmless.
     $pdo->prepare('INSERT IGNORE INTO favorites (user_id, boarding_house_id) VALUES (?, ?)')
         ->execute([$userId, $boardingHouseId]);
     $saved = true;
-    $message = 'Saved to your listings.';
+    // "Listings" is the landlord's word; a boarder's list is Saved.
+    $message = 'Added to Saved.';
 }
 
 if ($wantsJson) {
