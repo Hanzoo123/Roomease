@@ -31,8 +31,14 @@
     background: rgba(0, 0, 0, .06);
   }
 
+  /* The keyboard ring in the page's own colour: charcoal in the panel,
+     forest on the public site. Bootstrap's pale blue was under 2:1. */
   .pw-toggle:focus {
-    outline: 2px solid #80bdff;
+    outline: none;
+  }
+
+  .pw-toggle:focus-visible {
+    outline: 2px solid var(--re-forest, var(--forest, #184A3F));
     outline-offset: 1px;
   }
 

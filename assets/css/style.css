@@ -593,8 +593,17 @@ main:focus {
   color: #fff;
 }
 
-.band :focus-visible {
+/* The forest ring vanishes on forest, so every green area takes marigold:
+   the bands, the home page hero and the footer. The hero's white search box
+   keeps the forest ring, as marigold would be too faint on white. */
+.band :focus-visible,
+.hero :focus-visible,
+.site-footer :focus-visible {
   outline-color: var(--marigold);
+}
+
+.hero-search-field :focus-visible {
+  outline-color: var(--forest);
 }
 
 .band .alert {
