@@ -83,7 +83,7 @@ $listingsEmpty = $listingsEmpty ?? null;
                 <?php endif; ?>
               </td>
               <td>
-                <?= moderation_badge($l['moderation_status']) ?>
+                <?= moderation_badge($l['moderation_status'], true) ?>
                 <?php if ($l['moderation_status'] === 'rejected' && $l['rejection_reason']): ?>
                   <br>
                   <small class="text-danger d-inline-block mt-1" style="max-width:220px;">

@@ -8,6 +8,11 @@ $navUser    = $_SESSION['full_name'] ?? $panel['badge']['label'];
 $navEmail   = ($_SESSION['email'] ?? '') ?: (!empty($_SESSION['username']) ? '@' . $_SESSION['username'] : '');
 $navAccount = ['full_name' => $navUser, 'avatar_path' => $_SESSION['avatar_path'] ?? null];
 ?>
+<?php /* The first stop for the Tab key: past the top bar and the sidebar,
+     straight to the page. The content area gets id="main" here or from
+     panel_footer.php. */ ?>
+<a class="skip-link" href="#main">Skip to content</a>
+
 <!-- Navbar -->
 <nav class="main-header navbar navbar-expand navbar-white navbar-light">
   <!-- Left navbar links -->
@@ -23,6 +28,50 @@ $navAccount = ['full_name' => $navUser, 'avatar_path' => $_SESSION['avatar_path'
 
   <!-- Right navbar links -->
   <ul class="navbar-nav ml-auto">
+    <?php /* The bell: what is waiting on this person, on every panel page
+         (panel_notifications() in panel.php). The number counts only what
+         they can act on; it is hidden at zero. data-display="static" lets CSS
+         place the menu, so on a phone it spans the screen instead of running
+         off its left edge. */ ?>
+    <?php $panelNotify = panel_notifications(); ?>
+    <li class="nav-item dropdown panel-notify">
+      <a href="#" class="nav-link panel-notify-toggle" data-toggle="dropdown" data-display="static" role="button"
+        aria-haspopup="true" aria-expanded="false" title="Notifications"
+        aria-label="<?= $panelNotify['count'] ? 'Notifications, ' . (int) $panelNotify['count'] . ' waiting on you' : 'Notifications' ?>">
+        <i class="far fa-bell" aria-hidden="true"></i>
+        <?php if ($panelNotify['count']): ?>
+          <span class="panel-notify-count" aria-hidden="true"><?= $panelNotify['count'] > 99 ? '99+' : (int) $panelNotify['count'] ?></span>
+        <?php endif; ?>
+      </a>
+      <div class="dropdown-menu dropdown-menu-right panel-notify-menu">
+        <div class="panel-notify-head">
+          <strong>Notifications</strong>
+          <span><?= $panelNotify['count'] ? (int) $panelNotify['count'] . ' waiting on you' : 'All caught up' ?></span>
+        </div>
+        <?php if (!$panelNotify['groups']): ?>
+          <p class="panel-notify-empty">
+            <i class="fas fa-check-circle mr-1" aria-hidden="true"></i> Nothing is waiting on you right now.
+          </p>
+        <?php endif; ?>
+        <?php foreach ($panelNotify['groups'] as $notifyGroup): ?>
+          <div class="panel-notify-group">
+            <p class="panel-notify-title"><?= h($notifyGroup['title']) ?></p>
+            <?php foreach ($notifyGroup['items'] as $notifyItem): ?>
+              <a class="dropdown-item panel-notify-item" href="<?= base_url($notifyItem['link']) ?>">
+                <span class="panel-notify-label"><?= h($notifyItem['label']) ?></span>
+                <span class="panel-notify-meta"><?= h($notifyItem['meta']) ?></span>
+              </a>
+            <?php endforeach; ?>
+            <?php if (!empty($notifyGroup['more'])): ?>
+              <a class="dropdown-item panel-notify-more" href="<?= base_url($notifyGroup['more']['link']) ?>">
+                <?= h($notifyGroup['more']['label']) ?> <i class="fas fa-chevron-right" aria-hidden="true"></i>
+              </a>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </li>
+
     <?php /* Light and dark. The icon shows the mode a press switches TO, and
          the name says so in words. panel_head.php applies the saved choice
          before the page paints; this only changes it. */ ?>

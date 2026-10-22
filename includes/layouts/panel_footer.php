@@ -30,6 +30,38 @@ $flash = flash_get();
 <!-- AdminLTE App -->
 <script src="<?= base_url('assets/adminlte/dist/js/adminlte.min.js') ?>"></script>
 
+<script>
+  (function () {
+    // The page's content is the "main" landmark and the skip link's target.
+    // Pages written as <main class="content-wrapper" id="main"> already are;
+    // the rest are marked here.
+    var content = document.querySelector('.content-wrapper');
+    if (content && !content.id) {
+      content.id = 'main';
+      content.setAttribute('role', 'main');
+      content.setAttribute('tabindex', '-1');
+    }
+
+    // On a phone the sidebar slides off screen when closed, but its links
+    // stayed in the Tab order, so focus vanished for a dozen presses. While
+    // it is closed there, nothing in it can be reached.
+    var sidebar = document.querySelector('.main-sidebar');
+    if (!sidebar) return;
+    function syncSidebar() {
+      var offCanvas = window.innerWidth < 992 && !document.body.classList.contains('sidebar-open');
+      sidebar.inert = offCanvas;
+      if (offCanvas) {
+        sidebar.setAttribute('aria-hidden', 'true');
+      } else {
+        sidebar.removeAttribute('aria-hidden');
+      }
+    }
+    new MutationObserver(syncSidebar).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', syncSidebar);
+    syncSidebar();
+  })();
+</script>
+
 <!-- Flash Notification Trigger via Toastr -->
 <?php if ($flash): ?>
   <script>

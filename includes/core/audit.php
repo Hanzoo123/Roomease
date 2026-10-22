@@ -22,7 +22,8 @@ function audit_action_types()
     return [
         // What administrators decide and export.
         'listing_approve' => ['label' => 'Approved listing',    'badge' => 'badge-success',   'target' => 'listing', 'group' => 'admin'],
-        'listing_reject'  => ['label' => 'Rejected listing',    'badge' => 'badge-warning',   'target' => 'listing', 'group' => 'admin'],
+        // Red, as a rejected listing is everywhere else in the panel.
+        'listing_reject'  => ['label' => 'Rejected listing',    'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'admin'],
         'listing_remove'  => ['label' => 'Removed listing',     'badge' => 'badge-danger',    'target' => 'listing', 'group' => 'admin'],
         'listing_restore' => ['label' => 'Restored listing',    'badge' => 'badge-info',      'target' => 'listing', 'group' => 'admin'],
         'user_activate'   => ['label' => 'Activated account',   'badge' => 'badge-success',   'target' => 'user',    'group' => 'admin'],

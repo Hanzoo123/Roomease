@@ -27,19 +27,9 @@ $counts = $pdo->query(
 $counts['pending'] = pending_listing_count();
 $live = live_listing_stats();
 
-// Waiting longest first. A listing edited after a rejection goes back to
-// pending, so "waiting since" is its last change rather than when it was posted.
-$needsReview = $pdo->query(
-  "SELECT bh.boarding_house_id, bh.name, bh.address, bh.created_at, bh.updated_at, " . ROOM_SUMMARY_COLUMNS . ",
-          " . COVER_PHOTO_SELECT . ",
-          CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
-     FROM boarding_houses bh
-     JOIN users u ON u.user_id = bh.landlord_id AND u.is_active = 1 AND u.deleted_at IS NULL
-     " . room_summary_join() . "
-    WHERE bh.moderation_status = 'pending' AND bh.deleted_at IS NULL
-    ORDER BY bh.updated_at ASC
-    LIMIT 6"
-)->fetchAll();
+// Waiting longest first (admin_review_queue() in includes/core/listings.php,
+// which the notification bell uses too).
+$needsReview = admin_review_queue(6);
 
 // The last 30 days, one bucket per day, oldest first. Days are counted on the
 // database's clock, which is the one created_at was written with. Like the
@@ -72,18 +62,9 @@ $decided->execute([$since]);
 $decided = $decided->fetch();
 
 // Needs attention, for every administrator: approved listings boarders
-// cannot see (no room, or a deactivated landlord), rejected ones waiting on
-// their landlord, and approved ones with no map pin for Find places near me.
-$attention = $pdo->query(
-  "SELECT COALESCE(SUM(bh.moderation_status = 'approved' AND (u.is_active = 0 OR NOT EXISTS (
-            SELECT 1 FROM rooms r WHERE r.boarding_house_id = bh.boarding_house_id))), 0) AS approved_hidden,
-          COALESCE(SUM(bh.moderation_status = 'rejected'), 0) AS rejected,
-          MIN(CASE WHEN bh.moderation_status = 'rejected' THEN COALESCE(bh.moderated_at, bh.updated_at) END) AS rejected_since,
-          COALESCE(SUM(bh.moderation_status = 'approved' AND bh.latitude IS NULL), 0) AS no_pin
-     FROM boarding_houses bh
-     JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL
-    WHERE bh.deleted_at IS NULL"
-)->fetch();
+// cannot see, rejected ones waiting on their landlord, and approved ones with
+// no map pin (admin_attention_counts(), which the notification bell uses too).
+$attention = admin_attention_counts();
 
 // Security, for super admins only: failed sign-ins this week (from the audit
 // log, which keeps them for AUDIT_SIGNIN_DAYS), accounts paused right now by
@@ -147,127 +128,201 @@ function spark(array $days, $column, $label, $tone)
   return $html . '</div>';
 }
 
+// The sentence under the greeting: the queue first, in plain words. Every
+// number is an integer and the wait comes from time_ago(), so it is escaped
+// where it is joined in.
+$attentionCount = $attention['approved_hidden'] + $attention['rejected'] + $attention['no_pin'];
+if ($counts['pending'] > 0) {
+  $oldestWait = $needsReview ? preg_replace('/ ago$/', '', time_ago($needsReview[0]['updated_at'])) : null;
+  $status = '<strong>' . (int) $counts['pending'] . ' ' . ($counts['pending'] == 1 ? 'listing is' : 'listings are')
+    . '</strong> waiting for your review'
+    . ($oldestWait && $oldestWait !== 'just now' ? ($counts['pending'] == 1 ? ', for ' : ', the oldest for ') . h($oldestWait) : '') . '.';
+} elseif ($attentionCount > 0) {
+  $status = 'The review queue is clear. Some listings need attention below.';
+} else {
+  $status = 'The review queue is clear, and every approved listing can be seen.';
+}
+
 $pageTitle = 'Dashboard';
 require __DIR__ . '/../includes/layouts/panel_head.php';
 require __DIR__ . '/../includes/layouts/panel_navbar.php';
 require __DIR__ . '/../includes/layouts/panel_sidebar.php';
 ?>
 
-<div class="content-wrapper">
+<main class="content-wrapper" id="main" tabindex="-1">
   <?php panel_page_header('Dashboard', [
-    'subtitle' => 'What is waiting for a decision, who has joined, and the last 30 days on RoomEase.',
+    'subtitleHtml' => $status,
   ]); ?>
 
   <section class="content">
-    <div class="container-fluid">
+    <div class="container-fluid dash">
 
-      <div class="stat-row">
-        <a class="stat stat--filled stat--teal" href="<?= base_url('admin/manage_users.php?role=landlord') ?>">
-          <i class="fas fa-user-tie stat-icon" aria-hidden="true"></i>
-          <span class="stat-value"><?= (int) $counts['landlords'] ?></span>
-          <span class="stat-label">Landlords<?= $counts['landlords_off'] ? ' &middot; ' . (int) $counts['landlords_off'] . ' deactivated' : '' ?></span>
-          <span class="stat-more">View landlords <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
-        </a>
-        <a class="stat stat--filled stat--green" href="<?= base_url('admin/manage_users.php?role=boarder') ?>">
-          <i class="fas fa-users stat-icon" aria-hidden="true"></i>
-          <span class="stat-value"><?= (int) $counts['boarders'] ?></span>
-          <span class="stat-label">Boarders<?= $counts['boarders_off'] ? ' &middot; ' . (int) $counts['boarders_off'] . ' deactivated' : '' ?></span>
-          <span class="stat-more">View boarders <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
+      <?php /* The figures first. What waits on an administrator leads the row:
+               marigold while something is waiting, a pale wash at zero. The
+               same work is also in the bell in the top bar, on every page. */ ?>
+      <div class="stat-row stat-row--dash">
+        <a class="stat stat--filled <?= $counts['pending'] > 0 ? 'stat--attention' : 'stat--calm' ?>" href="<?= base_url('admin/manage_listings.php?status=pending') ?>">
+          <i class="fas fa-clipboard-check stat-icon" aria-hidden="true"></i>
+          <span class="stat-value"><?= (int) $counts['pending'] ?></span>
+          <span class="stat-label">Awaiting approval</span>
+          <span class="stat-more">
+            <?= $counts['pending'] > 0 ? 'Review queue' : 'The queue is clear' ?>
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </span>
         </a>
         <a class="stat stat--filled stat--terracotta" href="<?= base_url('admin/manage_listings.php') ?>">
           <i class="fas fa-home stat-icon" aria-hidden="true"></i>
           <span class="stat-value"><?= (int) $counts['listings'] ?></span>
           <span class="stat-label">Listings &middot; <?= (int) $live['listings'] ?> on the site</span>
-          <span class="stat-more">View listings <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
+          <span class="stat-more">View listings <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
         </a>
-        <a class="stat stat--filled stat--attention" href="<?= base_url('admin/manage_listings.php?status=pending') ?>">
-          <i class="fas fa-clipboard-check stat-icon" aria-hidden="true"></i>
-          <span class="stat-value"><?= (int) $counts['pending'] ?></span>
-          <span class="stat-label">Awaiting approval</span>
-          <span class="stat-more">Review queue <i class="fas fa-arrow-circle-right" aria-hidden="true"></i></span>
+        <a class="stat stat--filled stat--teal" href="<?= base_url('admin/manage_users.php?role=landlord') ?>">
+          <i class="fas fa-user-tie stat-icon" aria-hidden="true"></i>
+          <span class="stat-value"><?= (int) $counts['landlords'] ?></span>
+          <span class="stat-label">Landlords<?= $counts['landlords_off'] ? ' &middot; ' . (int) $counts['landlords_off'] . ' deactivated' : '' ?></span>
+          <span class="stat-more">View landlords <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a class="stat stat--filled stat--green" href="<?= base_url('admin/manage_users.php?role=boarder') ?>">
+          <i class="fas fa-users stat-icon" aria-hidden="true"></i>
+          <span class="stat-value"><?= (int) $counts['boarders'] ?></span>
+          <span class="stat-label">Boarders<?= $counts['boarders_off'] ? ' &middot; ' . (int) $counts['boarders_off'] . ' deactivated' : '' ?></span>
+          <span class="stat-more">View boarders <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
         </a>
       </div>
 
-      <div class="row">
-        <div class="col-lg-8">
-          <div class="card card-warning card-outline shadow-sm">
-            <?php panel_card_header(
-              'Needs your review',
-              'Listings waiting for a decision, the one that has waited longest first.',
-              '<a href="' . base_url('admin/manage_listings.php?status=pending') . '" class="btn btn-tool">All pending</a>'
-            ); ?>
-            <?php if (!$needsReview): ?>
-              <?= re_empty(
-                'The queue is clear',
-                'Nothing is waiting for a decision. New listings will appear here as landlords post them.',
-                'fa-clipboard-check'
-              ) ?>
-            <?php else: ?>
-              <ul class="list-group list-group-flush review-queue">
-                <?php foreach ($needsReview as $l): ?>
-                  <?php $avail = listing_availability($l); ?>
-                  <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between" style="gap: 8px;">
-                    <div class="d-flex align-items-center" style="gap: 12px;">
-                      <?= listing_thumb_html($l) ?>
-                      <div>
-                        <a class="font-weight-bold" href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>"><?= h($l['name']) ?></a>
-                        <small class="text-muted d-block">
-                          <?= h($l['landlord_name']) ?> &middot; <?= h($avail['summary']) ?>
-                          <?php if ($avail['rent_from'] !== null): ?> &middot; from <?= h(peso_round($avail['rent_from'])) ?><?php endif; ?>
-                        </small>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center" style="gap: 12px;">
-                      <small class="text-muted">waiting <?= h(preg_replace('/ ago$/', '', time_ago($l['updated_at']))) ?></small>
-                      <a href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>" class="btn btn-sm btn-primary">Review</a>
-                    </div>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
-            <?php endif; ?>
-            <?php $moreWaiting = $counts['pending'] - count($needsReview); ?>
-            <?php if ($moreWaiting > 0 || $counts['pending_hidden'] > 0): ?>
-              <div class="card-footer small text-muted">
-                <?php if ($moreWaiting > 0): ?>
-                  <div>
-                    <?= $moreWaiting ?> more waiting.
-                    <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>">See the whole queue</a>
-                  </div>
+      <?php /* Then the listing work, only while there is some: the queue waiting
+               on a decision, and the listings that are not where they should
+               be. Empty, they are left out; the line under the title says so. */ ?>
+      <?php
+      $showQueue = $needsReview || $counts['pending_hidden'] > 0;
+      $showAttention = $attentionCount > 0;
+      ?>
+      <?php if ($showQueue || $showAttention): ?>
+        <div class="row">
+          <?php if ($showQueue): ?>
+            <div class="<?= $showAttention ? 'col-lg-8' : 'col-12' ?>">
+              <div class="card<?= $needsReview ? ' card--waiting' : '' ?>">
+                <?php panel_card_header('Needs your review', '',
+                  panel_card_link(base_url('admin/manage_listings.php?status=pending'), 'See all')); ?>
+                <?php if ($needsReview): ?>
+                  <ul class="list-group list-group-flush review-queue">
+                    <?php foreach ($needsReview as $l): ?>
+                      <?php $avail = listing_availability($l); ?>
+                      <li class="list-group-item row-link d-flex flex-wrap align-items-center justify-content-between" style="gap: 8px;">
+                        <div class="d-flex align-items-center" style="gap: 12px; min-width: 0;">
+                          <?= listing_thumb_html($l) ?>
+                          <div style="min-width: 0;">
+                            <a class="font-weight-bold stretched-link" href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>"><?= h($l['name']) ?></a>
+                            <small class="text-muted d-block">
+                              <?= h($l['landlord_name']) ?>
+                              <?php if ($avail['rent_from'] !== null): ?> &middot; from <?= h(peso_round($avail['rent_from'])) ?><?php endif; ?>
+                            </small>
+                          </div>
+                        </div>
+                        <div class="d-flex align-items-center" style="gap: 12px;">
+                          <?php $wait = preg_replace('/ ago$/', '', time_ago($l['updated_at'])); ?>
+                          <?php /* Over two days, the wait itself is the signal. */ ?>
+                          <?php if (strtotime(db_now()) - strtotime($l['updated_at']) > 2 * 86400): ?>
+                            <span class="wait-pill"><?= h($wait) ?></span>
+                          <?php else: ?>
+                            <small class="text-muted"><?= h($wait) ?></small>
+                          <?php endif; ?>
+                          <a href="<?= base_url('admin/listing.php?id=' . (int) $l['boarding_house_id']) ?>" class="btn btn-sm btn-primary">
+                            Review<span class="sr-only"> <?= h($l['name']) ?></span>
+                          </a>
+                        </div>
+                      </li>
+                    <?php endforeach; ?>
+                  </ul>
                 <?php endif; ?>
-                <?php if ($counts['pending_hidden'] > 0): ?>
-                  <div>
-                    <?= $counts['pending_hidden'] == 1
-                      ? '1 more pending listing belongs to a deactivated landlord. It stays'
-                      : (int) $counts['pending_hidden'] . ' more pending listings belong to deactivated landlords. They stay' ?>
-                    out of this queue until the account is active again.
-                    <a href="<?= base_url('admin/manage_listings.php?status=pending') ?>">See every pending listing</a>
+                <?php $moreWaiting = $counts['pending'] - count($needsReview); ?>
+                <?php if ($moreWaiting > 0 || $counts['pending_hidden'] > 0): ?>
+                  <div class="card-footer small text-muted">
+                    <?php if ($moreWaiting > 0): ?>
+                      <div><?= $moreWaiting ?> more waiting.</div>
+                    <?php endif; ?>
+                    <?php if ($counts['pending_hidden'] > 0): ?>
+                      <div>
+                        <?= (int) $counts['pending_hidden'] ?> more from deactivated landlords, held until they are active again.
+                      </div>
+                    <?php endif; ?>
                   </div>
                 <?php endif; ?>
               </div>
-            <?php endif; ?>
-          </div>
+            </div>
+          <?php endif; ?>
 
+          <?php if ($showAttention): ?>
+            <div class="<?= $showQueue ? 'col-lg-4' : 'col-12' ?>">
+              <div class="card">
+                <?php panel_card_header('Needs attention'); ?>
+                <?php /* One short line each; the whole row is the link. */ ?>
+                <ul class="list-group list-group-flush">
+                  <?php if ($attention['approved_hidden']): ?>
+                    <li class="list-group-item row-link dash-link-row">
+                      <a class="stretched-link" href="<?= base_url('admin/manage_listings.php?status=approved') ?>">
+                        <strong><?= (int) $attention['approved_hidden'] ?></strong> approved, hidden from boarders
+                      </a>
+                      <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </li>
+                  <?php endif; ?>
+                  <?php if ($attention['rejected']): ?>
+                    <li class="list-group-item row-link dash-link-row">
+                      <a class="stretched-link" href="<?= base_url('admin/manage_listings.php?status=rejected') ?>">
+                        <strong><?= (int) $attention['rejected'] ?></strong> rejected, waiting on <?= $attention['rejected'] == 1 ? 'its landlord' : 'their landlords' ?>
+                      </a>
+                      <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </li>
+                  <?php endif; ?>
+                  <?php if ($attention['no_pin']): ?>
+                    <li class="list-group-item row-link dash-link-row">
+                      <a class="stretched-link" href="<?= base_url('admin/manage_listings.php?status=approved') ?>">
+                        <strong><?= (int) $attention['no_pin'] ?></strong> approved without a map pin
+                      </a>
+                      <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </li>
+                  <?php endif; ?>
+                </ul>
+              </div>
+            </div>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+
+      <?php /* Then the period and the people. A super admin also gets Security
+               and Recent activity beside them; anyone else gets the full width. */ ?>
+      <?php $superSide = $security !== null || $recentActivity !== null; ?>
+      <div class="row">
+        <div class="<?= $superSide ? 'col-lg-8' : 'col-12' ?>">
+          <?php $totalAccounts = array_sum(array_column($days, 'accounts')); ?>
+          <?php $totalListings = array_sum(array_column($days, 'listings')); ?>
           <div class="card card-primary card-outline shadow-sm">
             <?php panel_card_header(
-              'Last 30 days',
-              'New accounts and new listings, one day per step. Hover a day for its figures.',
-              '<a href="' . base_url('admin/reports.php') . '" class="btn btn-tool">Reports</a>'
+              'Last 30 days', '',
+              panel_card_link(base_url('admin/reports.php'), 'Reports')
             ); ?>
             <div class="card-body">
               <div class="chart-totals">
                 <div><span class="chart-key chart-key--teal"></span> New accounts
-                  <strong class="tabular"><?= array_sum(array_column($days, 'accounts')) ?></strong></div>
+                  <strong class="tabular"><?= $totalAccounts ?></strong></div>
                 <div><span class="chart-key chart-key--terracotta"></span> New listings
-                  <strong class="tabular"><?= array_sum(array_column($days, 'listings')) ?></strong></div>
+                  <strong class="tabular"><?= $totalListings ?></strong></div>
+                <div class="chart-totals-aside">
+                  Approved <strong class="tabular"><?= (int) $decided['approved'] ?></strong>
+                  &middot; Rejected <strong class="tabular"><?= (int) $decided['rejected'] ?></strong>
+                </div>
               </div>
               <?php /* Accounts as columns, listings as a line over them, one day per
-                   step, on one scale; hovering a day shows both. The totals above
-                   are the key, so the chart has no legend of its own. The sparks
-                   inside are what shows until the chart draws, and if it never does. */ ?>
-              <div class="re-chart" style="min-height: 260px;" data-chart="<?= h(json_encode([
+                   step, on one scale; hovering or tapping a day shows both. The
+                   totals above are the key, so the chart has no legend of its
+                   own. The sparks inside are what shows until the chart draws,
+                   and if it never does; the label goes to the drawn chart. */ ?>
+              <div class="re-chart" style="min-height: 180px;" data-chart="<?= h(json_encode([
                 'kind' => 'mixed',
-                'height' => 260,
+                'height' => 180,
                 'legend' => false,
+                'label' => 'New accounts and new listings per day over the last 30 days: '
+                  . $totalAccounts . ' accounts and ' . $totalListings . ' listings in total.',
                 'categories' => array_map(function ($d) { return date('M j', strtotime($d)); }, array_keys($days)),
                 'tickAmount' => 6,
                 'columnWidth' => '60%',
@@ -281,148 +336,110 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <div class="col-md-6"><?= spark($days, 'listings', 'New listings', 'terracotta') ?></div>
                 </div>
               </div>
-              <p class="text-muted small mb-0 mt-3">
-                <?= (int) $decided['approved'] ?> approved and <?= (int) $decided['rejected'] ?> rejected in the same period.
-              </p>
             </div>
           </div>
-        </div>
-
-        <div class="col-lg-4">
-          <?php $attentionCount = $attention['approved_hidden'] + $attention['rejected'] + $attention['no_pin']; ?>
-          <div class="card card-warning card-outline shadow-sm">
-            <?php panel_card_header('Needs attention', 'Listings that are not where they should be.'); ?>
-            <?php if (!$attentionCount): ?>
-              <?= re_empty_line('Nothing needs attention. Every approved listing can be seen and has a map pin.') ?>
-            <?php else: ?>
-              <ul class="list-group list-group-flush">
-                <?php if ($attention['approved_hidden']): ?>
-                  <li class="list-group-item">
-                    <strong><?= (int) $attention['approved_hidden'] ?> approved</strong>
-                    <?= $attention['approved_hidden'] == 1 ? 'listing boarders cannot see' : 'listings boarders cannot see' ?>:
-                    no room yet, or the landlord is deactivated.
-                    <a class="d-block small" href="<?= base_url('admin/manage_listings.php?status=approved') ?>">See approved listings</a>
-                  </li>
-                <?php endif; ?>
-                <?php if ($attention['rejected']): ?>
-                  <li class="list-group-item">
-                    <?php $oldest = $attention['rejected_since'] ? preg_replace('/ ago$/', '', time_ago($attention['rejected_since'])) : null; ?>
-                    <strong><?= (int) $attention['rejected'] ?> rejected</strong>, waiting on the landlord to fix
-                    <?= $attention['rejected'] == 1 ? 'it' : 'them' ?><?= $oldest ? ' (the oldest for ' . h($oldest) . ')' : '' ?>.
-                    <a class="d-block small" href="<?= base_url('admin/manage_listings.php?status=rejected') ?>">See rejected listings</a>
-                  </li>
-                <?php endif; ?>
-                <?php if ($attention['no_pin']): ?>
-                  <li class="list-group-item">
-                    <strong><?= (int) $attention['no_pin'] ?> approved</strong> without a map pin, so left out of
-                    Find places near me.
-                    <a class="d-block small" href="<?= base_url('admin/manage_listings.php?status=approved') ?>">See approved listings</a>
-                  </li>
-                <?php endif; ?>
-              </ul>
-            <?php endif; ?>
-          </div>
-
-          <?php if ($security !== null): ?>
-            <div class="card card-danger card-outline shadow-sm">
-              <?php panel_card_header('Security', 'Sign-ins and administrators. Super admins only.'); ?>
-              <ul class="list-group list-group-flush">
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <a href="<?= base_url('admin/activity.php?tab=signin&kind=failed') ?>">Failed sign-ins, last 7 days</a>
-                  <strong class="tabular"><?= (int) $security['failed_week'] ?></strong>
-                </li>
-                <?php if ($security['locked']): ?>
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>
-                      Accounts paused now
-                      <small class="text-muted d-block"><?= LOGIN_MAX_PER_ACCOUNT ?> wrong passwords in <?= LOGIN_WINDOW_SECONDS / 60 ?> minutes</small>
-                    </span>
-                    <strong class="tabular text-danger"><?= (int) $security['locked'] ?></strong>
-                  </li>
-                <?php endif; ?>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <span>
-                    <a href="<?= base_url('admin/admins.php') ?>">Administrators</a>
-                    <?php if ($security['admins_must_change']): ?>
-                      <small class="text-muted d-block"><?= (int) $security['admins_must_change'] ?> must still change their password</small>
-                    <?php endif; ?>
-                  </span>
-                  <strong class="tabular"><?= (int) $security['admins'] ?></strong>
-                </li>
-              </ul>
-            </div>
-          <?php endif; ?>
-
-          <?php /* The audit log is for super admins only, this glimpse of it included. */ ?>
-          <?php if ($recentActivity !== null): ?>
-            <div class="card card-info card-outline shadow-sm">
-              <?php panel_card_header(
-                'Recent activity',
-                'The last few things an administrator did.',
-                '<a href="' . base_url('admin/activity.php') . '" class="btn btn-tool">Full log</a>'
-              ); ?>
-              <div class="card-body<?= $recentActivity ? '' : ' p-0' ?>">
-                <?php if (!$recentActivity): ?>
-                  <?= re_empty('Nothing logged yet', 'Approvals, rejections and account changes will appear here.', 'fa-history') ?>
-                <?php else: ?>
-                  <ul class="review-history">
-                    <?php foreach ($recentActivity as $e): ?>
-                      <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
-                      <?php $url = admin_target_url($e['target_type'], $e['target_id']); ?>
-                      <li>
-                        <span class="badge <?= h($type['badge']) ?>"><?= h($type['label']) ?></span>
-                        <?php if ($url !== null): ?>
-                          <a href="<?= h($url) ?>"><?= h($e['target_label']) ?></a>
-                        <?php else: ?>
-                          <?= h($e['target_label']) ?>
-                        <?php endif; ?>
-                        <small class="text-muted d-flex align-items-center" style="gap: 6px;">
-                          <?php if ($e['admin_name'] !== null): ?>
-                            <?= avatar_html($e, 18) ?><?= h($e['admin_name']) ?>
-                          <?php else: ?>
-                            Unknown
-                          <?php endif; ?>
-                          &middot; <?= h(time_ago($e['created_at'])) ?>
-                        </small>
-                      </li>
-                    <?php endforeach; ?>
-                  </ul>
-                <?php endif; ?>
-              </div>
-            </div>
-          <?php endif; ?>
 
           <div class="card card-success card-outline shadow-sm">
             <?php panel_card_header(
-              'New accounts',
-              'The most recent landlords and boarders to sign up.',
-              '<a href="' . base_url('admin/manage_users.php') . '" class="btn btn-tool">All users</a>'
+              'New accounts', '',
+              panel_card_link(base_url('admin/manage_users.php'), 'See all')
             ); ?>
             <ul class="list-group list-group-flush">
               <?php if (!$recentUsers): ?>
                 <li class="list-group-item p-0"><?= re_empty('No accounts yet', 'Landlords and boarders appear here as they sign up.', 'fa-user-plus') ?></li>
               <?php endif; ?>
               <?php foreach ($recentUsers as $ru): ?>
-                <li class="list-group-item d-flex align-items-center" style="gap: 10px;">
+                <li class="list-group-item row-link d-flex align-items-center" style="gap: 10px;">
                   <?= avatar_html($ru, 32) ?>
                   <div class="flex-grow-1" style="min-width: 0;">
-                    <a class="font-weight-bold" href="<?= base_url('admin/user.php?id=' . (int) $ru['user_id']) ?>"><?= h($ru['full_name']) ?></a>
-                    <span class="badge badge-light border float-right"><?= h(ucfirst($ru['role'])) ?></span>
+                    <a class="font-weight-bold stretched-link" href="<?= base_url('admin/user.php?id=' . (int) $ru['user_id']) ?>"><?= h($ru['full_name']) ?></a>
                     <small class="text-muted d-block text-truncate">
                       <?= h($ru['email']) ?> &middot; <?= h(time_ago($ru['created_at'])) ?>
                       <?php if ($ru['deleted_at'] !== null): ?> &middot; removed<?php elseif (!$ru['is_active']): ?> &middot; deactivated<?php endif; ?>
                     </small>
                   </div>
+                  <span class="badge badge-light border"><?= h(ucfirst($ru['role'])) ?></span>
                 </li>
               <?php endforeach; ?>
             </ul>
           </div>
         </div>
+
+        <?php if ($superSide): ?>
+          <div class="col-lg-4">
+            <?php if ($security !== null): ?>
+              <div class="card card-danger card-outline shadow-sm">
+                <?php panel_card_header('Security'); ?>
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item row-link d-flex justify-content-between align-items-center" style="gap: 10px;">
+                    <span>
+                      <a class="stretched-link" href="<?= base_url('admin/activity.php?tab=signin&kind=failed') ?>">Failed sign-ins (7 days)</a>
+                    </span>
+                    <strong class="tabular"><?= (int) $security['failed_week'] ?></strong>
+                  </li>
+                  <?php if ($security['locked']): ?>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>Accounts paused now</span>
+                      <strong class="tabular text-danger"><?= (int) $security['locked'] ?></strong>
+                    </li>
+                  <?php endif; ?>
+                  <li class="list-group-item row-link d-flex justify-content-between align-items-center" style="gap: 10px;">
+                    <span>
+                      <a class="stretched-link" href="<?= base_url('admin/admins.php') ?>">Administrators</a>
+                      <?php if ($security['admins_must_change']): ?>
+                        <small class="text-muted d-block"><?= (int) $security['admins_must_change'] ?> must still change their password</small>
+                      <?php endif; ?>
+                    </span>
+                    <strong class="tabular"><?= (int) $security['admins'] ?></strong>
+                  </li>
+                </ul>
+              </div>
+            <?php endif; ?>
+
+            <?php /* The audit log is for super admins only, this glimpse of it included. */ ?>
+            <?php if ($recentActivity !== null): ?>
+              <div class="card card-info card-outline shadow-sm">
+                <?php panel_card_header(
+                  'Recent activity', '',
+                  panel_card_link(base_url('admin/activity.php'), 'Full log')
+                ); ?>
+                <div class="card-body<?= $recentActivity ? '' : ' p-0' ?>">
+                  <?php if (!$recentActivity): ?>
+                    <?= re_empty('Nothing logged yet', 'Approvals, rejections and account changes will appear here.', 'fa-history') ?>
+                  <?php else: ?>
+                    <ul class="review-history">
+                      <?php foreach ($recentActivity as $e): ?>
+                        <?php $type = $types[$e['action']] ?? ['label' => $e['action'], 'badge' => 'badge-secondary']; ?>
+                        <?php $url = admin_target_url($e['target_type'], $e['target_id']); ?>
+                        <li>
+                          <span class="badge <?= h($type['badge']) ?>"><?= h($type['label']) ?></span>
+                          <?php if ($url !== null): ?>
+                            <a href="<?= h($url) ?>"><?= h($e['target_label']) ?></a>
+                          <?php else: ?>
+                            <?= h($e['target_label']) ?>
+                          <?php endif; ?>
+                          <small class="text-muted d-flex align-items-center" style="gap: 6px;">
+                            <?php if ($e['admin_name'] !== null): ?>
+                              <?= avatar_html($e, 24) ?><?= h($e['admin_name']) ?>
+                            <?php else: ?>
+                              Unknown
+                            <?php endif; ?>
+                            &middot; <?= h(time_ago($e['created_at'])) ?>
+                          </small>
+                        </li>
+                      <?php endforeach; ?>
+                    </ul>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
       </div>
 
     </div>
   </section>
-</div>
+</main>
 
 <?php require __DIR__ . '/../includes/scripts/panel_charts.php'; ?>
 <?php require __DIR__ . '/../includes/layouts/panel_footer.php'; ?>

@@ -52,7 +52,9 @@ body,
    The public site's palette (assets/css/style.css), plus the
    colours the panel adds: a distinct fill for each kind of
    figure, and a solid colour for each status. Every fill with
-   white text on it passes WCAG AA for normal text.
+   white text on it passes WCAG AA for normal text (4.5:1), and
+   so do the greys below on both white and paper: check a new
+   colour before adding it, not after.
    ========================================================= */
 :root {
   --re-paper: #F4F5F6;         /* light grey: row hover, card footers, quiet fills */
@@ -64,7 +66,7 @@ body,
   --re-leaf: #E6EFEA;
   --re-ink: #1F2A28;
   --re-ink-soft: #5C6B66;
-  --re-ink-faint: #7A8682;
+  --re-ink-faint: #5F6966;     /* 5.7:1 on white, 5.2:1 on paper */
   --re-marigold: #F2A93B;
   --re-marigold-hover: #E39A2A;
   --re-on-marigold: #2A1E08;
@@ -91,9 +93,10 @@ body,
      inside one, where the stronger line would turn ten rows into a grid. */
   --re-line-soft: #F0ECE3;
 
-  /* The small grey a field label is set in: one step quieter than
-     --re-ink-faint, so a label never competes with its own value. */
-  --re-ink-label: #8A948F;
+  /* The small grey a field label and a card's subtitle are set in: one step
+     quieter than --re-ink-faint, so a label never competes with its own
+     value, and still 4.9:1 on white and 4.5:1 on paper. */
+  --re-ink-label: #68736F;
 
   /* The sidebar. It is white, like the cards, against the paper page: the
      panel's colour belongs to the figures and the statuses, not to the frame
@@ -229,9 +232,10 @@ body,
 /* =========================================================
    Stat row
    ---------------------------------------------------------
-   Plain white figures (reports), or filled tiles in the manner
-   of AdminLTE's small boxes (dashboards): a colour each, a faded
-   icon in the corner, and a "View" band along the bottom.
+   Plain white figures (reports), or filled tiles (dashboards): a
+   colour each, a small faded icon in the corner, and a line at
+   the bottom saying where the tile goes. On a dashboard the tiles
+   come first, and marigold means something is waiting right now.
    ========================================================= */
 .stat-row {
   display: grid;
@@ -292,12 +296,14 @@ a.stat:focus {
   color: var(--re-ink-soft);
 }
 
+/* Small enough to stay a corner mark: a larger one sat over the label on a
+   narrow tile. */
 .stat-icon {
   position: absolute;
-  top: 14px;
+  top: 16px;
   right: 16px;
-  font-size: 3.2rem;
-  opacity: .22;
+  font-size: 1.75rem;
+  opacity: .28;
   transition: transform .2s ease;
 }
 
@@ -305,27 +311,40 @@ a.stat:hover .stat-icon {
   transform: scale(1.08);
 }
 
+/* One line saying where the tile goes, with a small arrow. AdminLTE draws
+   this as a darker band across the tile's foot; here it is plain text on
+   the fill, so a tile is a colour and a figure, not a framed box. */
 .stat-more {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  margin: 14px -18px 0;
-  padding: 6px 18px;
-  font-size: .85rem;
-  background: rgba(0, 0, 0, .12);
+  /* Pinned to the bottom, so tiles of one row end in one line. */
+  margin-top: auto;
+  padding-top: 14px;
+  font-size: .82rem;
+  font-weight: 500;
+}
+
+.stat-more .fas {
+  font-size: .7rem;
+  transition: transform .15s ease;
+}
+
+a.stat:hover .stat-more .fas,
+a.stat:focus .stat-more .fas {
+  transform: translateX(3px);
 }
 
 .stat--filled {
-  padding-bottom: 0;
   border: 0;
   color: #FFFFFF;
 }
 
+/* Solid white: at 90% the label fell below 4.5:1 on the green and terracotta. */
 .stat--filled .stat-label,
 .stat--filled .stat-more {
-  color: rgba(255, 255, 255, .9);
+  color: #FFFFFF;
 }
 
 .stat--teal {
@@ -369,14 +388,29 @@ a.stat--terracotta:focus {
   color: var(--re-on-marigold);
 }
 
-.stat--attention .stat-more {
-  background: rgba(0, 0, 0, .08);
-}
-
 a.stat--attention:hover,
 a.stat--attention:focus {
   color: var(--re-on-marigold);
   background: var(--re-marigold-hover);
+}
+
+/* The same tile with nothing waiting: marigold turned down to a pale wash,
+   so the colour still says what the tile is about without raising an alarm
+   over a zero. */
+.stat--calm {
+  background: #FBEFD9;
+  color: var(--re-on-marigold);
+}
+
+.stat--calm .stat-label,
+.stat--calm .stat-more {
+  color: var(--re-on-marigold);
+}
+
+a.stat--calm:hover,
+a.stat--calm:focus {
+  color: var(--re-on-marigold);
+  background: #F7E3BF;
 }
 
 /* Something needing the landlord's own attention, such as a rejected listing.
@@ -397,8 +431,47 @@ a.stat--danger:focus {
     transition: none;
   }
 
-  a.stat:hover .stat-icon {
+  a.stat:hover .stat-icon,
+  a.stat:hover .stat-more .fas,
+  a.stat:focus .stat-more .fas {
     transform: none;
+  }
+
+  .stat-more .fas {
+    transition: none;
+  }
+}
+
+/* On a phone the tiles are a compact two-up strip, so the work waiting
+   above them and the lists below stay within a thumb's reach. */
+@media (max-width: 575.98px) {
+  .stat-row,
+  .stat-row--six {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 12px 14px;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: .82rem;
+  }
+
+  .stat-icon {
+    top: 12px;
+    right: 12px;
+    font-size: 1.25rem;
+  }
+
+  .stat-more {
+    padding-top: 10px;
+    font-size: .78rem;
   }
 }
 
@@ -655,12 +728,10 @@ html[data-theme="dark"] .re-chart .apexcharts-tooltip.apexcharts-theme-dark .ape
 /* =========================================================
    Theme: AdminLTE in RoomEase's colours
    ---------------------------------------------------------
-   As colourful as AdminLTE's defaults, in the brand's own
-   palette instead of Bootstrap's: a forest sidebar with the
-   current page in marigold, filled stat tiles, solid status
-   badges, coloured buttons, and a coloured rule along the top
-   of each card. The page itself stays paper and white, so the
-   colour has something calm to sit on.
+   The colour belongs to the information: filled stat tiles and
+   solid status badges in the brand's palette. The frame stays
+   quiet: a white sidebar, white cards on a paper page, and
+   charcoal (--re-forest) for buttons, links and focus rings.
    ========================================================= */
 
 body {
@@ -827,6 +898,140 @@ a:hover {
   border-color: var(--re-line);
 }
 
+/* ---- Notification bell ----
+   The work waiting on this person, from every page. The count is marigold,
+   the panel's colour for "waiting"; the menu is the account menu's surface. */
+.panel-notify-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  font-size: 1.1rem;
+}
+
+.panel-notify-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--re-marigold);
+  color: var(--re-on-marigold);
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel-notify-menu {
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--re-line);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 58, 49, .14);
+}
+
+.panel-notify-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--re-paper);
+  border-bottom: 1px solid var(--re-line);
+}
+
+.panel-notify-head strong {
+  color: var(--re-ink);
+}
+
+.panel-notify-head span {
+  font-size: .82rem;
+  color: var(--re-ink-soft);
+}
+
+.panel-notify-group + .panel-notify-group {
+  border-top: 1px solid var(--re-line);
+}
+
+.panel-notify-title {
+  margin: 0;
+  padding: 12px 16px 4px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--re-ink-soft);
+}
+
+.panel-notify-item {
+  display: block;
+  padding: 8px 16px;
+  white-space: normal;
+}
+
+.panel-notify-label {
+  display: block;
+  font-weight: 600;
+  color: var(--re-ink);
+}
+
+.panel-notify-meta {
+  display: block;
+  margin-top: 1px;
+  font-size: .8rem;
+  color: var(--re-ink-soft);
+}
+
+.panel-notify-item:hover,
+.panel-notify-item:focus,
+.panel-notify-more:hover,
+.panel-notify-more:focus {
+  background: var(--re-leaf);
+}
+
+.panel-notify-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 12px;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--re-forest);
+}
+
+.panel-notify-more .fas {
+  font-size: .65rem;
+}
+
+.panel-notify-empty {
+  margin: 0;
+  padding: 16px;
+  font-size: .9rem;
+  color: var(--re-ink-soft);
+}
+
+/* On a phone the menu spans the screen under the top bar, rather than
+   hanging off the bell and running past the left edge. */
+@media (max-width: 575.98px) {
+  .main-header .panel-notify {
+    position: static;
+  }
+
+  /* AdminLTE's dropdown script writes left/right onto the menu as an inline
+     style when it opens, so only !important keeps this margin. */
+  .main-header .navbar-nav .panel-notify-menu.dropdown-menu-right {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto;
+    max-width: none;
+  }
+}
+
 /* ---- Sidebar ---- */
 /* Both the dark and light AdminLTE variants are matched, so the panel looks
    right whichever class the markup carries. */
@@ -835,6 +1040,9 @@ a:hover {
   background: var(--re-sidebar-bg);
   border-right: 1px solid var(--re-sidebar-line);
   box-shadow: none !important;
+  /* Its border made it one pixel wider than its box, which drew a
+     horizontal scrollbar along the bottom on Windows. */
+  overflow-x: hidden;
 }
 
 /* The wordmark sits centred over the sidebar, in light and dark alike; the
@@ -1529,32 +1737,31 @@ html[data-theme="dark"] .main-sidebar .brand-mark {
   border-radius: 10px;
 }
 
+/* A tinted box with a hairline of the same hue all the way round. A thick
+   stripe down the left edge is a stock-template mark; the tint already says
+   which kind of note it is, and the words say the rest. */
 .alert-info {
   color: var(--re-forest);
   background-color: var(--re-leaf);
-  border-color: transparent;
-  border-left: 4px solid var(--re-teal);
+  border: 1px solid #B9D3C8;
 }
 
 .alert-success {
   color: #22613F;
   background-color: #E3F0E7;
-  border-color: transparent;
-  border-left: 4px solid var(--re-green);
+  border: 1px solid #B5D9C2;
 }
 
 .alert-warning {
   color: #7A4E0E;
   background-color: #FDF1DC;
-  border-color: transparent;
-  border-left: 4px solid var(--re-marigold);
+  border: 1px solid #F3D59A;
 }
 
 .alert-danger {
   color: #8E3325;
   background-color: #F6E4E1;
-  border-color: transparent;
-  border-left: 4px solid var(--re-red);
+  border: 1px solid #E7B9B1;
 }
 
 .alert-light {
@@ -2343,19 +2550,26 @@ html[data-theme="dark"] .btn-primary:focus {
 }
 
 /* The pale status notes, dark: the same hue, turned down. */
+html[data-theme="dark"] .alert-info {
+  border-color: #33433E;
+}
+
 html[data-theme="dark"] .alert-success {
   color: #A8DBBE;
   background-color: #17301F;
+  border-color: #2C5039;
 }
 
 html[data-theme="dark"] .alert-warning {
   color: #F0C987;
   background-color: #33260F;
+  border-color: #5A4419;
 }
 
 html[data-theme="dark"] .alert-danger {
   color: #F0B2A6;
   background-color: #3A1C17;
+  border-color: #64302A;
 }
 
 /* AdminLTE's dark mode paints its own greys (#343a40, #454d55); the panel's
@@ -2474,8 +2688,34 @@ html[data-theme="dark"] .dark-mode .text-muted {
   color: var(--re-ink-soft) !important;
 }
 
-html[data-theme="dark"] .dark-mode .content-wrapper a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) {
+/* Stat tiles are links too, but keep their own ink: this rule turned the
+   number on the marigold tile light grey (1.7:1). */
+html[data-theme="dark"] .dark-mode .content-wrapper a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):not(.stat) {
   color: var(--re-forest);
+}
+
+html[data-theme="dark"] .stat--calm {
+  background: #2C2618;
+  color: #EDBB63;
+}
+
+html[data-theme="dark"] .stat--calm .stat-label,
+html[data-theme="dark"] .stat--calm .stat-more,
+html[data-theme="dark"] a.stat--calm:hover,
+html[data-theme="dark"] a.stat--calm:focus {
+  color: #EDBB63;
+}
+
+html[data-theme="dark"] a.stat--calm:hover,
+html[data-theme="dark"] a.stat--calm:focus {
+  background: #362E1C;
+}
+
+/* AdminLTE paints list rows #343a40 in dark mode, which striped them
+   against the card. They take the card's own surface instead. */
+html[data-theme="dark"] .dark-mode .list-group-item {
+  background-color: var(--re-panel);
+  color: var(--re-ink);
 }
 
 /* The switch itself: a plain icon button in the navbar, the size of its
@@ -2570,4 +2810,246 @@ html[data-theme="dark"] .dark-mode .btn-outline-dark:not(:disabled):not(.disable
   max-width: 280px;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   Getting around without a mouse, and with a thumb
+   ========================================================= */
+
+/* "Skip to content": the first thing Tab reaches, hidden until then. */
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2000;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--re-panel);
+  color: var(--re-ink);
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: none;
+  color: var(--re-ink);
+  text-decoration: none;
+}
+
+/* The content area takes focus from the skip link without drawing a ring
+   around the whole page. */
+.content-wrapper:focus {
+  outline: none;
+}
+
+/* A list row that is one link as a whole (Bootstrap's .stretched-link on
+   the name): the row lights up together, and the row is the tap target. */
+.list-group-item.row-link:hover,
+.list-group-item.row-link:focus-within {
+  background-color: var(--re-paper);
+}
+
+.list-group-item.row-link .btn {
+  position: relative;
+  z-index: 2;
+}
+
+/* A room request opened from the dashboard's Answer button. */
+.reservation-table tr:target > td {
+  background-color: var(--re-leaf);
+}
+
+/* A move-in date already behind us. */
+.re-overdue {
+  color: var(--re-red);
+  font-weight: 500;
+}
+
+html[data-theme="dark"] .re-overdue {
+  color: #F28B7F;
+}
+
+/* Thumb-sized controls on a phone: 44px tall, however small the label. */
+@media (max-width: 719.98px) {
+  .content-wrapper .btn-sm,
+  .content-wrapper .btn-xs,
+  .content-wrapper .btn-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .content-wrapper .list-group-item.row-link {
+    min-height: 56px;
+  }
+}
+
+/* =========================================================
+   Dashboards
+   ---------------------------------------------------------
+   Under the title, one sentence saying in plain words what
+   matters right now, with its counts in bold. The figures come
+   next, then the work waiting on the person, whose card shares
+   the tiles' marigold. The same work is in the bell, below.
+   ========================================================= */
+.page-subtitle strong {
+  font-weight: 600;
+  color: var(--re-ink);
+}
+
+/* Work waiting on the person: the card's header in the marigold wash of a
+   calm tile, so "waiting" reads the same everywhere on the page. */
+.card.card--waiting > .card-header {
+  background: #FBEFD9;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.card.card--waiting > .card-header .card-title {
+  color: #2A1E08;
+}
+
+.card.card--waiting > .card-header .card-subtitle {
+  color: #6B5A3A;
+}
+
+html[data-theme="dark"] .card.card--waiting > .card-header {
+  background: #2C2618;
+}
+
+html[data-theme="dark"] .card.card--waiting > .card-header .card-title {
+  color: #EDBB63;
+}
+
+html[data-theme="dark"] .card.card--waiting > .card-header .card-subtitle {
+  color: #C9B48C;
+}
+
+/* A listing that has waited more than two days for a decision. */
+.wait-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #8A5A00;
+  background: #FDF1DC;
+}
+
+html[data-theme="dark"] .wait-pill {
+  color: #EDBB63;
+  background: #33260F;
+}
+
+/* "See all 3 >" on a card header: a link that says what it opens. */
+.card-tools .card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--re-forest);
+  white-space: nowrap;
+}
+
+.card-tools .card-link .fas {
+  font-size: .65rem;
+}
+
+/* The space between the parts of a dashboard: work, figures, the rest. */
+.stat-row--dash {
+  margin: 1rem 0 2rem;
+}
+
+/* A list row led by a person or a listing: picture, words, then status or
+   action, in that order on every row. */
+.row-lead {
+  flex: none;
+}
+
+/* ---- Dashboard containers ----
+   On the two dashboards (.dash) a card is one quiet box: a hairline border
+   and no shadow, the title in the box with its content rather than over a
+   divider, and rows split by the softest line. Other pages keep their
+   cards as they are. */
+.dash .card {
+  margin-bottom: 24px;
+  border: 1px solid var(--re-line);
+  border-radius: 12px;
+  box-shadow: none !important;
+}
+
+.dash .card > .card-header,
+.dash .card[class*="card-"] > .card-header {
+  padding: 18px 20px 6px;
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.dash .card-header--split {
+  align-items: center;
+}
+
+.dash .card > .card-body {
+  padding: 8px 20px 20px;
+}
+
+.dash .list-group-item {
+  padding: 12px 20px;
+  border-color: var(--re-line-soft);
+}
+
+.dash .card-footer {
+  padding: 10px 20px;
+  background: transparent;
+  border-top: 1px solid var(--re-line-soft);
+}
+
+/* A waiting card keeps its marigold header, as a band of its own. */
+.dash .card.card--waiting > .card-header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid #F3E2C1;
+}
+
+html[data-theme="dark"] .dash .card.card--waiting > .card-header {
+  border-bottom-color: #3A3120;
+}
+
+.dash .stat-row--dash {
+  margin: 4px 0 24px;
+}
+
+/* A row that is one short linked line, with a chevron at its end. */
+.dash-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-link-row a {
+  color: var(--re-ink);
+}
+
+.dash-link-row a strong {
+  font-weight: 600;
+}
+
+.dash-link-row .fas {
+  font-size: .7rem;
+  color: var(--re-ink-faint);
+}
+
+/* Approved and rejected, beside the chart's key instead of a line under it. */
+.chart-totals-aside {
+  align-self: center;
+  font-size: .9rem;
+  color: var(--re-ink-soft);
+}
+
+.chart-totals .chart-totals-aside strong {
+  margin-left: 2px;
+  font-size: .95rem;
 }

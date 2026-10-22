@@ -78,7 +78,9 @@ $activeItem = $activeItem === null ? null : (string) $activeItem;
 
     <!-- Sidebar Menu -->
     <nav class="mt-2">
-      <ul class="nav nav-pills nav-sidebar flex-column nav-child-indent" data-widget="treeview" role="menu"
+      <?php /* A plain list of links, not role="menu": a menu role promises
+           arrow-key menu behaviour a list of page links does not have. */ ?>
+      <ul class="nav nav-pills nav-sidebar flex-column nav-child-indent" data-widget="treeview"
         data-accordion="false">
 
         <?php foreach ($panel['menu'] as $idx => $item): ?>
@@ -139,11 +141,14 @@ $activeItem = $activeItem === null ? null : (string) $activeItem;
         <li class="nav-divider" role="separator"></li>
 
         <li class="nav-item">
-          <a href="<?= base_url('boarder/browse.php') ?>" target="_self" class="nav-link">
+          <?php /* A new tab, as the icon says and as the account menu's copy of
+               this link does, so the panel stays open behind it. */ ?>
+          <a href="<?= base_url('boarder/browse.php') ?>" target="_blank" rel="noopener" class="nav-link">
             <i class="nav-icon fas fa-globe"></i>
             <p>
               View Main Site
-              <i class="fas fa-external-link-alt right text-xs"></i>
+              <i class="fas fa-external-link-alt right text-xs" aria-hidden="true"></i>
+              <span class="sr-only">(opens in a new tab)</span>
             </p>
           </a>
         </li>

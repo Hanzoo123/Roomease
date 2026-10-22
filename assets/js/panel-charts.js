@@ -70,6 +70,8 @@
       };
       options.markers = { size: 0, hover: { size: 5 } };
       options.plotOptions = { bar: { columnWidth: spec.columnWidth || '55%', borderRadius: 4 } };
+      // A phone has room for about three dates before they run together.
+      options.responsive = [{ breakpoint: 576, options: { xaxis: { tickAmount: 3 } } }];
 
       // One y axis per series; the ones on axis 0 share the left scale.
       var leftName = null;
@@ -150,6 +152,12 @@
     }
     el.innerHTML = '';
     el.classList.add('re-chart--live');
+    // The fallback bars carried the chart's description; the drawn chart
+    // replaces them, so the description moves to the chart itself.
+    if (spec.label) {
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', spec.label);
+    }
     var chart = new ApexCharts(el, build(spec));
     chart.render();
     charts.push({ chart: chart, spec: spec });

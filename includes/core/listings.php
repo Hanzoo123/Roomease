@@ -485,8 +485,8 @@ function landlord_beds($landlordId)
 /**
  * What a landlord could still do to their listings, one entry per listing
  * that needs something: its name, the reason it was sent back (null if it
- * was not), what it is missing, and the fixes, each a label and a link.
- * $listings comes from landlord_listings().
+ * was not), what it is missing, the fixes, each a label and a link, and the
+ * listing row itself. $listings comes from landlord_listings().
  */
 
 function landlord_todo(array $listings)
@@ -497,7 +497,9 @@ function landlord_todo(array $listings)
         $edit = 'landlord/edit_listing.php?id=' . $id;
         $rejected = $l['moderation_status'] === 'rejected';
         $missing = [];
-        $fixes = $rejected ? [['label' => 'Fix it', 'link' => $edit]] : [];
+        // The fix for a rejection is the one that matters; the dashboard
+        // draws it as the row's main button.
+        $fixes = $rejected ? [['label' => 'Fix it', 'link' => $edit, 'primary' => true]] : [];
         if ((int) ($l['room_count'] ?? 0) === 0) {
             $missing[] = 'No rooms, so boarders cannot see it';
             $fixes[] = ['label' => 'Add a room', 'link' => 'landlord/room_form.php?house=' . $id];
@@ -516,6 +518,8 @@ function landlord_todo(array $listings)
                 'reason'  => $rejected ? ($l['rejection_reason'] ?: 'Open the listing to see why.') : null,
                 'missing' => $missing,
                 'fixes'   => $fixes,
+                // The row itself, so the dashboard can show its cover photo.
+                'listing' => $l,
             ];
         }
     }
@@ -566,6 +570,52 @@ function pending_listing_count()
         error_log('RoomEase: pending listing count failed - ' . $e->getMessage());
         return 0;
     }
+}
+
+/**
+ * The listings waiting for an administrator's decision, the one that has
+ * waited longest first, with room totals, cover photo and landlord. A listing
+ * edited after a rejection goes back to pending, so "waiting since" is its
+ * last change rather than when it was posted. For the admin dashboard and the
+ * notification bell.
+ */
+
+function admin_review_queue($limit = 6)
+{
+    global $pdo;
+    return $pdo->query(
+        "SELECT bh.boarding_house_id, bh.name, bh.address, bh.created_at, bh.updated_at, " . ROOM_SUMMARY_COLUMNS . ",
+                " . COVER_PHOTO_SELECT . ",
+                CONCAT(u.first_name, ' ', u.last_name) AS landlord_name
+           FROM boarding_houses bh
+           JOIN users u ON u.user_id = bh.landlord_id AND u.is_active = 1 AND u.deleted_at IS NULL
+           " . room_summary_join() . "
+          WHERE bh.moderation_status = 'pending' AND bh.deleted_at IS NULL
+          ORDER BY bh.updated_at ASC
+          LIMIT " . (int) $limit
+    )->fetchAll();
+}
+
+/**
+ * Listings that are not where they should be: approved ones boarders cannot
+ * see (no room, or a deactivated landlord), rejected ones waiting on their
+ * landlord (and since when, the oldest), and approved ones with no map pin
+ * for Find places near me. For the admin dashboard and the notification bell.
+ */
+
+function admin_attention_counts()
+{
+    global $pdo;
+    return $pdo->query(
+        "SELECT COALESCE(SUM(bh.moderation_status = 'approved' AND (u.is_active = 0 OR NOT EXISTS (
+                  SELECT 1 FROM rooms r WHERE r.boarding_house_id = bh.boarding_house_id))), 0) AS approved_hidden,
+                COALESCE(SUM(bh.moderation_status = 'rejected'), 0) AS rejected,
+                MIN(CASE WHEN bh.moderation_status = 'rejected' THEN COALESCE(bh.moderated_at, bh.updated_at) END) AS rejected_since,
+                COALESCE(SUM(bh.moderation_status = 'approved' AND bh.latitude IS NULL), 0) AS no_pin
+           FROM boarding_houses bh
+           JOIN users u ON u.user_id = bh.landlord_id AND u.deleted_at IS NULL
+          WHERE bh.deleted_at IS NULL"
+    )->fetch();
 }
 
 /**
@@ -763,15 +813,19 @@ function return_listing_to_queue($houseId, $landlordId, $fromStatus)
     return $stmt->rowCount() === 1;
 }
 
-/** Badge for pending / approved / rejected. */
+/** Badge for pending / approved / rejected. $forLandlord words rejected as "Needs changes". */
 
-function moderation_badge($status)
+function moderation_badge($status, $forLandlord = false)
 {
     switch ($status) {
         case 'approved':
             return '<span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i> Approved</span>';
         case 'rejected':
-            return '<span class="badge badge-danger px-2 py-1"><i class="fas fa-times-circle mr-1"></i> Rejected</span>';
+            // A landlord is told what to do about it, in the word the rest of
+            // their panel uses; an administrator sees the decision itself.
+            return $forLandlord
+                ? '<span class="badge badge-danger px-2 py-1"><i class="fas fa-pen mr-1"></i> Needs changes</span>'
+                : '<span class="badge badge-danger px-2 py-1"><i class="fas fa-times-circle mr-1"></i> Rejected</span>';
         default:
             return '<span class="badge badge-warning px-2 py-1"><i class="fas fa-clock mr-1"></i> Pending</span>';
     }

@@ -5,7 +5,9 @@
  *   $title     page name
  *   $options:
  *     'subtitle'  one line under the title
- *     'back'      URL of the "back" link (omit on top-level pages)
+ *     'subtitleHtml' the same line as HTML the caller has already escaped
+ *                 (a dashboard's status sentence, with its counts in bold)
+ *     'back'     URL of the "back" link (omit on top-level pages)
  *     'backLabel' label of the back link, for screen readers
  *     'actions'   HTML for the buttons on the right
  *     'lead'      HTML before the title (e.g. an avatar)
@@ -18,7 +20,8 @@ function panel_page_header($title, array $options = [])
     $back      = $options['back'] ?? null;
     $backLabel = $options['backLabel'] ?? 'Go back';
     $subtitle  = $options['subtitle'] ?? '';
-    $actions   = $options['actions'] ?? '';
+    $subtitleHtml = $options['subtitleHtml'] ?? null;
+    $actions  = $options['actions'] ?? '';
     $lead      = $options['lead'] ?? '';
     $tabs      = $options['tabs'] ?? [];
     ?>
@@ -35,7 +38,9 @@ function panel_page_header($title, array $options = [])
             <?= $lead ?>
             <div style="min-width: 0;">
               <h1 class="page-title"><?= h($title) ?></h1>
-              <?php if ($subtitle !== ''): ?>
+              <?php if ($subtitleHtml !== null): ?>
+                <p class="page-subtitle"><?= $subtitleHtml ?></p>
+              <?php elseif ($subtitle !== ''): ?>
                 <p class="page-subtitle"><?= h($subtitle) ?></p>
               <?php endif; ?>
             </div>
@@ -64,13 +69,24 @@ function panel_page_header($title, array $options = [])
     <?php
 }
 
-/** A card header: title, grey subtitle, and $tools (HTML) on the right. */
+/** A "See all" link for a card header's right side, with a chevron. */
+function panel_card_link($href, $label)
+{
+    return '<a href="' . h($href) . '" class="btn btn-tool card-link">' . h($label)
+        . ' <i class="fas fa-chevron-right" aria-hidden="true"></i></a>';
+}
+
+/**
+ * A card header: title, grey subtitle, and $tools (HTML) on the right. The
+ * title is an h2, one level under the page's h1, so heading navigation runs
+ * page, then card, without a gap.
+ */
 function panel_card_header($title, $subtitle = '', $tools = '')
 {
     ?>
     <div class="card-header<?= $tools !== '' ? ' card-header--split' : '' ?>">
       <div style="min-width: 0;">
-        <h3 class="card-title"><?= h($title) ?></h3>
+        <h2 class="card-title"><?= h($title) ?></h2>
         <?php if ($subtitle !== ''): ?>
           <span class="card-subtitle"><?= h($subtitle) ?></span>
         <?php endif; ?>

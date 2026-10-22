@@ -16,6 +16,7 @@ if (!in_array($statusFilter, ['pending', 'accepted', 'declined', 'cancelled'], t
 }
 
 $reservations = landlord_reservations($landlordId, $statusFilter);
+$today = substr(db_now(), 0, 10);
 $counts = landlord_reservation_counts($landlordId);
 
 // Each filter: its button and what the table says when nothing has that status.
@@ -80,8 +81,10 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                   <?php
                   $status = reservation_status_info($r['status']);
                   $full = (int) $r['slots_taken'] >= (int) $r['capacity'];
+                  $overdue = $r['status'] === 'pending' && $r['move_in_date'] < $today;
                   ?>
-                  <tr>
+                  <?php /* The id lets the dashboard's Answer button open this very request. */ ?>
+                  <tr id="request-<?= (int) $r['reservation_id'] ?>">
                     <td>
                       <strong><?= h($r['boarder_name']) ?></strong>
                       <?php if (!empty($r['boarder_phone'])): ?>
@@ -94,7 +97,12 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                       <a class="d-block small" href="<?= base_url('landlord/edit_listing.php?id=' . (int) $r['boarding_house_id']) ?>#rooms"><?= h($r['house_name']) ?></a>
                       <small class="text-muted d-block"><?= (int) $r['slots_taken'] ?> of <?= (int) $r['capacity'] ?> slots taken</small>
                     </td>
-                    <td class="text-nowrap"><?= h(date('M j, Y', strtotime($r['move_in_date']))) ?></td>
+                    <td class="text-nowrap">
+                      <?= h(date('M j, Y', strtotime($r['move_in_date']))) ?>
+                      <?php if ($overdue): ?>
+                        <small class="re-overdue d-block">Date has passed</small>
+                      <?php endif; ?>
+                    </td>
                     <td class="reservation-note-cell"><?= $r['message'] !== null ? h($r['message']) : '<span class="text-muted">None</span>' ?></td>
                     <td>
                       <span class="badge <?= h($status['badge']) ?>"><?= h($status['label']) ?></span>
