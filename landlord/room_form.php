@@ -234,7 +234,7 @@ require __DIR__ . '/../includes/layouts/panel_sidebar.php';
                     <label for="monthly_rent">Monthly rent (&#8369;)</label>
                     <input type="number" step="0.01" min="0" class="form-control" id="monthly_rent" name="monthly_rent"
                       value="<?= h($form['monthly_rent']) ?>" placeholder="e.g. 2500" required>
-                    <small class="form-text text-muted">Per person for bed spacers and dorms.</small>
+                    <small class="form-text text-muted">Per person when two or more share the room; for the whole room when it holds one.</small>
                   </div>
                   <div class="col-md-4 form-group">
                     <label for="capacity">Capacity (people)</label>

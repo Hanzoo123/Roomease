@@ -93,6 +93,7 @@ usort($rooms, function ($a, $b) {
 
 $roomTypeCounts = array_count_values(array_column($rooms, 'room_type_name'));
 $availableRooms = array_filter($rooms, fn($r) => room_state($r)['key'] === 'available');
+$singleRent = fn(array $list) => $list ? min(array_column($list, 'monthly_rent')) : null;
 $avail = listing_availability([
   'room_count' => count($rooms),
   'rooms_available' => count($availableRooms),
@@ -101,6 +102,10 @@ $avail = listing_availability([
   'rent_from_all' => $rooms ? min(array_column($rooms, 'monthly_rent')) : null,
   'rent_to_available' => $availableRooms ? max(array_column($availableRooms, 'monthly_rent')) : null,
   'rent_to_all' => $rooms ? max(array_column($rooms, 'monthly_rent')) : null,
+  // The cheapest rooms for one person, so the rent card can say whether its
+  // rent is for the room or per person.
+  'rent_from_single_available' => $singleRent(array_filter($availableRooms, fn($r) => (int) $r['capacity'] <= 1)),
+  'rent_from_single_all' => $singleRent(array_filter($rooms, fn($r) => (int) $r['capacity'] <= 1)),
 ]);
 // When the landlord last changed or confirmed a room.
 $freshness = availability_freshness($rooms ? max(array_column($rooms, 'updated_at')) : null);
@@ -384,7 +389,7 @@ require __DIR__ . '/../includes/layouts/header.php';
                     </div>
                   </div>
                   <div class="room-row-side">
-                    <p class="room-row-rent"><?= peso_round($room['monthly_rent']) ?> <span>/ month</span></p>
+                    <p class="room-row-rent"><?= peso_round($room['monthly_rent']) ?> <span><?= rent_unit(rent_per($room['capacity'])) ?></span></p>
                     <span class="pill <?= h($state['pill']) ?>"><?= h($state['label']) ?></span>
                     <?= $requestControl($room) ?>
                   </div>
@@ -408,7 +413,7 @@ require __DIR__ . '/../includes/layouts/header.php';
                 <div class="room-tile-body">
                   <h3><?= h($room['name']) ?></h3>
                   <p class="room-tile-type"><?= h($room['room_type_name']) ?> &middot; <?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></p>
-                  <p class="room-tile-rent"><?= peso_round($room['monthly_rent']) ?> <span>/ month</span></p>
+                  <p class="room-tile-rent"><?= peso_round($room['monthly_rent']) ?> <span><?= rent_unit(rent_per($room['capacity'])) ?></span></p>
                   <?php if (!empty($room['description'])): ?>
                     <p class="room-tile-desc"><?= h($room['description']) ?></p>
                   <?php endif; ?>
@@ -545,7 +550,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php if ($avail['rent_from'] !== null): ?>
         <p class="price">
           <?php if ($avail['rent_varies']): ?><span class="price-from">From</span><?php endif; ?>
-          <?= peso_round($avail['rent_from']) ?> <span>/ month</span>
+          <?= peso_round($avail['rent_from']) ?> <span><?= rent_unit($avail['rent_per']) ?></span>
         </p>
       <?php endif; ?>
       <?php if ($rooms): ?>
@@ -634,7 +639,7 @@ require __DIR__ . '/../includes/layouts/header.php';
       <?php if ($avail['rent_from'] !== null): ?>
         <p class="call-bar-price">
           <?php if ($avail['rent_varies']): ?><span>From</span> <?php endif; ?><?= peso_round($avail['rent_from']) ?>
-          <span>/ month</span>
+          <span><?= rent_unit($avail['rent_per']) ?></span>
         </p>
       <?php else: ?>
         <p class="call-bar-price"><?= h($listing['landlord_name']) ?></p>

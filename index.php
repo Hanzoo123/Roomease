@@ -117,7 +117,7 @@ require __DIR__ . '/includes/layouts/header.php';
         <?php if ($stats['lowest_rent'] !== null): ?>
           <div class="home-figure home-figure--rent">
             <dt>Lowest monthly rent with a free slot</dt>
-            <dd><?= peso_round($stats['lowest_rent']) ?> <span>/ month</span></dd>
+            <dd><?= peso_round($stats['lowest_rent']) ?> <span><?= rent_unit($stats['lowest_per']) ?></span></dd>
           </div>
         <?php endif; ?>
         <div class="home-figure">

@@ -134,6 +134,26 @@ function peso_round($amount)
     return '₱' . number_format($value, $decimals);
 }
 
+/**
+ * What a monthly rent pays for. A room two or more people share is rented per
+ * person (the landlord's form asks for it that way); a room for one is rented
+ * whole. rent_per() gives 'person' or 'room' from a room's capacity;
+ * rent_unit() turns that into "/ person / month", or plain "/ month" when it
+ * is not known. Its spaces are non-breaking, so on a narrow tile the unit
+ * moves under the price whole instead of splitting after "/ room /".
+ */
+
+function rent_per($capacity)
+{
+    return (int) $capacity > 1 ? 'person' : 'room';
+}
+
+function rent_unit($per)
+{
+    $unit = $per === 'person' || $per === 'room' ? '/ ' . $per . ' / month' : '/ month';
+    return str_replace(' ', "\u{00A0}", $unit);
+}
+
 /** True when the photo file exists, so a missing file isn't shown as a broken image. */
 
 function photo_on_disk($path)

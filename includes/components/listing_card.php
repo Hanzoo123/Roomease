@@ -43,9 +43,14 @@ function render_listing_card(array $l, ?array $save = null)
             : (int) ($l['match_count'] ?? 1) > 1;
         $type = $l['match_type'] ?? '';
         $rentLabel = $type !== '' ? ($many ? $type . ' from' : $type) : ($many ? 'From' : '');
+        // Per person unless a matching room for one has that rent (see listing_availability()).
+        $per = array_key_exists('match_rent_single', $l)
+            ? ($l['match_rent_single'] !== null && (float) $l['match_rent_single'] <= (float) $matchRent ? 'room' : 'person')
+            : null;
     } else {
         $rent = $avail['rent_from'];
         $rentLabel = $avail['rent_varies'] ? 'From' : '';
+        $per = $avail['rent_per'];
     }
 
     // What is free: the beds still open, where there are any; otherwise the
@@ -71,7 +76,8 @@ function render_listing_card(array $l, ?array $save = null)
         $spoken[] = $types;
     }
     if ($rent !== null) {
-        $spoken[] = ($rentLabel !== '' ? $rentLabel . ' ' : '') . peso_round($rent) . ' a month';
+        $spoken[] = ($rentLabel !== '' ? $rentLabel . ' ' : '') . peso_round($rent)
+            . ($per === 'person' ? ' a month per person' : ($per === 'room' ? ' a month for the room' : ' a month'));
     }
     $spoken[] = $meta;
     if ($distance !== null) {
@@ -119,7 +125,7 @@ function render_listing_card(array $l, ?array $save = null)
         <?php if ($rent !== null): ?>
           <p class="room-card-price" aria-hidden="true">
             <?php if ($rentLabel !== ''): ?><span class="room-card-from<?= $rentLabel !== 'From' ? ' room-card-from--type' : '' ?>"><?= h($rentLabel) ?></span><?php endif; ?>
-            <span class="room-card-rent"><?= peso_round($rent) ?></span> <span class="room-card-per">/ month</span>
+            <span class="room-card-rent"><?= peso_round($rent) ?></span> <span class="room-card-per"><?= rent_unit($per) ?></span>
           </p>
         <?php endif; ?>
 

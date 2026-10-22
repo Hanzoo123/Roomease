@@ -110,7 +110,7 @@ require __DIR__ . '/../includes/layouts/header.php';
     <ul class="quick-list">
       <li><?= icon('door', 16) ?><span>Type</span><strong><?= h($room['room_type_name']) ?></strong></li>
       <li><?= icon('users', 16) ?><span>Fits</span><strong><?= $capacity ?> <?= $capacity === 1 ? 'person' : 'people' ?></strong></li>
-      <li><?= icon('card', 16) ?><span>Rent</span><strong><?= peso_round($room['monthly_rent']) ?> / month</strong></li>
+      <li><?= icon('card', 16) ?><span>Rent</span><strong><?= peso_round($room['monthly_rent']) ?> <?= rent_unit(rent_per($capacity)) ?></strong></li>
       <li><?= icon('check', 16) ?><span>Free now</span><strong><?= (int) $slotsLeft ?> <?= $slotsLeft === 1 ? 'slot' : 'slots' ?></strong></li>
     </ul>
     <p class="reserve-summary-foot">Landlord: <strong><?= h($room['landlord_name']) ?></strong></p>

@@ -39,7 +39,7 @@ require __DIR__ . '/../includes/layouts/header.php';
           </p>
           <h2><?= h($r['room_name']) ?></h2>
           <p class="reservation-meta">
-            <?= h($r['room_type_name']) ?> &middot; <?= peso_round($r['monthly_rent']) ?> / month
+            <?= h($r['room_type_name']) ?> &middot; <?= peso_round($r['monthly_rent']) ?> <?= rent_unit(rent_per($r['capacity'])) ?>
             &middot; moving in <?= h(date('M j, Y', strtotime($r['move_in_date']))) ?>
           </p>
           <?php if ($r['message'] !== null): ?>

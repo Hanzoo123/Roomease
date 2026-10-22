@@ -53,6 +53,7 @@ function listing_thumb_html(array $l, $class = 'queue-thumb')
 
 const ROOM_SUMMARY_COLUMNS = 'rs.room_count, rs.rooms_available, rs.rooms_open,
        rs.rent_from_available, rs.rent_from_all, rs.rent_to_available, rs.rent_to_all,
+       rs.rent_from_single_available, rs.rent_from_single_all,
        rs.room_types, rs.open_room_types, rs.slots_left,
        rs.rooms_updated_at';
 
@@ -73,6 +74,10 @@ function room_summary_join($inner = false)
                -- The highest rents too, so \"From\" is said only when they differ.
                MAX(CASE WHEN r.is_open = 1 AND r.slots_taken < r.capacity THEN r.monthly_rent END) AS rent_to_available,
                MAX(r.monthly_rent) AS rent_to_all,
+               -- The cheapest room for one person, so the quoted rent can say
+               -- whether it is for the room or per person.
+               MIN(CASE WHEN r.capacity <= 1 AND r.is_open = 1 AND r.slots_taken < r.capacity THEN r.monthly_rent END) AS rent_from_single_available,
+               MIN(CASE WHEN r.capacity <= 1 THEN r.monthly_rent END) AS rent_from_single_all,
                GROUP_CONCAT(DISTINCT rt.room_type_name ORDER BY rt.room_type_id SEPARATOR ', ') AS room_types,
                GROUP_CONCAT(DISTINCT CASE WHEN r.is_open = 1 THEN rt.room_type_name END
                             ORDER BY rt.room_type_id SEPARATOR ', ') AS open_room_types,
@@ -120,6 +125,9 @@ function room_state_rank(array $room)
  * none. Also returns a summary like "3 of 5 rooms available", rent_from, and
  * rent_varies: whether the rooms quoted differ in rent, so "From" is true.
  * Without the rent_to_* figures, any listing with two or more rooms counts.
+ * rent_per: what rent_from pays for, 'room' when a room for one has that rent
+ * and 'person' when only a shared room does (see rent_per()), or null when
+ * the rent_from_single_* figures were not fetched.
  */
 
 function listing_availability(array $listing)
@@ -135,7 +143,15 @@ function listing_availability(array $listing)
         ? $rentTo !== null && (float) $rentTo > (float) $rentFrom
         : $count > 1;
 
-    $base = ['room_count' => $count, 'rent_from' => $rentFrom, 'rent_varies' => $rentVaries];
+    // A tie between a room for one and a shared room reads "room": it never
+    // makes a place look cheaper than it is.
+    $rentPer = null;
+    if ($rentFrom !== null && array_key_exists('rent_from_single_' . $pool, $listing)) {
+        $single = $listing['rent_from_single_' . $pool];
+        $rentPer = $single !== null && (float) $single <= (float) $rentFrom ? 'room' : 'person';
+    }
+
+    $base = ['room_count' => $count, 'rent_from' => $rentFrom, 'rent_varies' => $rentVaries, 'rent_per' => $rentPer];
 
     if ($count === 0) {
         return $base + ['key' => 'none', 'label' => 'No rooms yet', 'pill' => 'pill--unavailable',
@@ -391,18 +407,23 @@ function live_listing_stats()
     try {
         $row = $pdo->query(
             'SELECT COUNT(*) AS listings, COALESCE(SUM(rs.rooms_available), 0) AS rooms_available,
-                    MIN(rs.rent_from_available) AS lowest_rent
+                    MIN(rs.rent_from_available) AS lowest_rent,
+                    MIN(rs.rent_from_single_available) AS lowest_single
                FROM boarding_houses bh ' . LIVE_LANDLORD_JOIN . ' ' . room_summary_join(true) . '
               WHERE ' . LIVE_STATUS_WHERE
         )->fetch();
+        $lowest = $row['lowest_rent'] !== null ? (float) $row['lowest_rent'] : null;
         return [
             'listings' => (int) $row['listings'],
             'rooms_available' => (int) $row['rooms_available'],
-            'lowest_rent' => $row['lowest_rent'] !== null ? (float) $row['lowest_rent'] : null,
+            'lowest_rent' => $lowest,
+            // Whether that lowest rent is for a whole room or per person.
+            'lowest_per' => $lowest === null ? null
+                : ($row['lowest_single'] !== null && (float) $row['lowest_single'] <= $lowest ? 'room' : 'person'),
         ];
     } catch (PDOException $e) {
         error_log('RoomEase: live listing stats failed - ' . $e->getMessage());
-        return ['listings' => 0, 'rooms_available' => 0, 'lowest_rent' => null];
+        return ['listings' => 0, 'rooms_available' => 0, 'lowest_rent' => null, 'lowest_per' => null];
     }
 }
 
