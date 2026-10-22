@@ -33,17 +33,26 @@ usort($typeCounts, function ($a, $b) use ($tileOrder) {
 });
 
 // Newest listings that have a room available, so the home page leads with
-// places a boarder can actually move into.
+// places a boarder can actually move into, and those with a photo first: the
+// first real listings a visitor sees should look like places. The query
+// takes twelve, photos first; the photo is then checked on disk, as the
+// card does, so a missing file does not count.
 $newestStmt = $pdo->query(
     "SELECT bh.*, " . ROOM_SUMMARY_COLUMNS . ", " . COVER_PHOTO_SELECT . "
        FROM boarding_houses bh
        " . LIVE_LANDLORD_JOIN . "
        " . room_summary_join(true) . "
       WHERE " . LIVE_STATUS_WHERE . "
-      ORDER BY rs.rooms_available > 0 DESC, bh.created_at DESC
-      LIMIT 6"
+      ORDER BY rs.rooms_available > 0 DESC, cover_photo IS NULL, bh.created_at DESC
+      LIMIT 12"
 );
 $newest = $newestStmt->fetchAll();
+$rank = function ($l) {
+    return [(int) $l['rooms_available'] > 0 ? 0 : 1, !empty($l['cover_photo']) && photo_on_disk($l['cover_photo']) ? 0 : 1];
+};
+// usort is stable in PHP 8, so within a rank the newest stay first.
+usort($newest, fn($a, $b) => $rank($a) <=> $rank($b));
+$newest = array_slice($newest, 0, 6);
 
 $savedIds = can_save_listings() ? saved_listing_ids($_SESSION['user_id']) : [];
 
