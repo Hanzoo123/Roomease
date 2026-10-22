@@ -5856,6 +5856,58 @@ body.page-white {
   color: var(--rejected-fg);
 }
 
+/* Still waiting: what happens next, in the body's colour, not a status. */
+.reservation-answer--wait {
+  color: var(--ink-soft);
+}
+
+/* A request just sent: the page opens on it, clear of the sticky header,
+   marked for a moment. */
+.reservation-item {
+  scroll-margin-top: 88px;
+}
+
+.reservation-item:target {
+  animation: reservation-new 2.4s ease-out;
+}
+
+@keyframes reservation-new {
+  from {
+    box-shadow: 0 0 0 3px var(--marigold);
+  }
+
+  to {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reservation-item:target {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--marigold);
+  }
+}
+
+/* Cancelling is there when needed, not the loudest thing on the request:
+   a plain link that only turns red under the pointer. Still 44px tall. */
+.reservation-cancel {
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.reservation-cancel:hover {
+  color: var(--danger);
+}
+
 .reservation-side {
   display: flex;
   flex-direction: column;

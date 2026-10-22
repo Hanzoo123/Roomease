@@ -28,7 +28,8 @@ require __DIR__ . '/../includes/layouts/header.php';
       // Pulled from the site after the request: still listed, but not linked.
       $houseLive = $r['house_deleted_at'] === null && $r['moderation_status'] === 'approved';
       ?>
-      <li class="panel reservation-item">
+      <?php /* The id lets a new request open straight onto itself (reserve.php). */ ?>
+      <li class="panel reservation-item" id="request-<?= (int) $r['reservation_id'] ?>">
         <div class="reservation-main">
           <p class="reservation-house">
             <?php if ($houseLive): ?>
@@ -46,7 +47,16 @@ require __DIR__ . '/../includes/layouts/header.php';
             <p class="reservation-note"><span>Your note:</span> <?= h($r['message']) ?></p>
           <?php endif; ?>
 
-          <?php if ($r['status'] === 'accepted'): ?>
+          <?php if ($r['status'] === 'pending'): ?>
+            <?php /* What happens next, for as long as it is waiting. The number is
+                     the one the listing shows a signed-in boarder. */ ?>
+            <?php $askPhone = trim((string) ($r['house_phone'] ?: $r['landlord_phone'])); ?>
+            <p class="reservation-answer reservation-answer--wait">
+              <?= icon('clock', 16) ?>
+              <span>Waiting for <?= h($r['landlord_name']) ?> to accept or decline. The answer shows here.<?php if ($askPhone !== '' && $houseLive): ?>
+                You can also call <a href="tel:<?= h(preg_replace('/[^\d+]/', '', $askPhone)) ?>"><?= h($askPhone) ?></a>.<?php endif; ?></span>
+            </p>
+          <?php elseif ($r['status'] === 'accepted'): ?>
             <p class="reservation-answer reservation-answer--yes">
               <?= icon('check', 16) ?>
               <span><?= h($r['landlord_name']) ?> accepted. Contact them to arrange your move-in<?php if (!empty($r['landlord_phone'])): ?>:
@@ -69,7 +79,7 @@ require __DIR__ . '/../includes/layouts/header.php';
               <?= csrf_field() ?>
               <input type="hidden" name="reservation_id" value="<?= (int) $r['reservation_id'] ?>">
               <input type="hidden" name="action" value="cancel">
-              <button type="submit" class="btn btn-sm btn-danger">Cancel request</button>
+              <button type="submit" class="reservation-cancel">Cancel request</button>
             </form>
           <?php endif; ?>
         </div>

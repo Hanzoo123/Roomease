@@ -45,14 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = reservation_errors($room, $boarderId, $old['move_in_date'], $old['message']);
 
     if (!$errors) {
-        create_reservation($room, $boarderId, $old['move_in_date'], $old['message']);
+        $reservationId = create_reservation($room, $boarderId, $old['move_in_date'], $old['message']);
         audit_log('reservation_request', $room['boarding_house_id'], $room['house_name'], reservation_log_detail([
             'room_name' => $room['name'],
             'boarder_name' => $_SESSION['full_name'] ?? 'A boarder',
             'move_in_date' => $old['move_in_date'],
         ]));
         flash_set('Request sent. ' . $room['landlord_name'] . ' will accept or decline it, and the answer shows here.', 'success');
-        redirect('boarder/reservations.php');
+        // Straight to the new request, which is marked for a moment.
+        redirect('boarder/reservations.php#request-' . $reservationId);
     }
 }
 

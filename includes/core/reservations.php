@@ -162,7 +162,8 @@ function boarder_reservations($boarderId)
     try {
         $stmt = $pdo->prepare(
             'SELECT ' . RESERVATION_COLUMNS . ',
-                    ' . account_name_sql('lu') . ' AS landlord_name, lu.phone_number AS landlord_phone
+                    ' . account_name_sql('lu') . ' AS landlord_name, lu.phone_number AS landlord_phone,
+                    bh.contact_number AS house_phone
                FROM reservations res
                ' . RESERVATION_JOINS . '
                JOIN users lu ON lu.user_id = bh.landlord_id

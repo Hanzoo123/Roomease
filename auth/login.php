@@ -88,6 +88,20 @@ if (!$preview && is_array($afterLogin) && !empty($afterLogin['save'])) {
     $savingName = $nameStmt->fetchColumn() ?: null;
 }
 
+// The same for a guest who tapped Request this room: name the room they are
+// here to request (the return address is boarder/reserve.php?room=N).
+$requesting = null;
+if (!$preview && !$savingName && is_array($afterLogin)
+    && preg_match('~^boarder/reserve\.php\?room=(\d+)$~', (string) ($afterLogin['next'] ?? ''), $roomMatch)) {
+    $roomStmt = $pdo->prepare(
+        'SELECT r.name AS room_name, bh.name AS house_name
+           FROM rooms r JOIN boarding_houses bh ON bh.boarding_house_id = r.boarding_house_id
+          WHERE r.room_id = ?'
+    );
+    $roomStmt->execute([(int) $roomMatch[1]]);
+    $requesting = $roomStmt->fetch() ?: null;
+}
+
 $pageTitle = 'Log in';
 $authHeading = 'Sign in to your account';
 $authPreview = $preview;
@@ -98,6 +112,11 @@ require __DIR__ . '/../includes/layouts/auth_header.php';
 <?php if ($savingName): ?>
   <p class="auth-sub auth-context">
     Log in as a boarder to save <strong><?= h($savingName) ?></strong>. You'll go straight back to it.
+  </p>
+<?php elseif ($requesting): ?>
+  <p class="auth-sub auth-context">
+    Log in as a boarder to request <strong><?= h($requesting['room_name']) ?></strong> at
+    <strong><?= h($requesting['house_name']) ?></strong>. You'll come straight back to it.
   </p>
 <?php endif; ?>
 
