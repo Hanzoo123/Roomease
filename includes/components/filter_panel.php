@@ -1,9 +1,9 @@
 <?php
 /**
  * The browse page's filter panel: a card beside the results on a laptop, and
- * above them on a tablet. On a phone, Find places near me stays on the page
- * with an "Open filters" button under it, and the rest of the filters wait in
- * a drawer that slides in from the left. It is the page's one search form;
+ * above them on a tablet. On a phone, Search stays on the page with Near me
+ * and a Filters button side by side under it, and the rest of the filters
+ * wait in a drawer that slides in from the left. It is the page's one search form;
  * the Sort by menu above the results joins it with form="browse-filters".
  *
  * Options: 'action', 'room_types', 'amenity_options', 'filters' (the search
@@ -26,10 +26,11 @@ function render_filter_panel(array $opts)
     $within = $f['within'] ?? '';
     $amenityOptions = $opts['amenity_options'] ?? filter_amenity_options();
 
-    // How many of the filters in the drawer are in use, for its button on a phone.
-    $filterCount = ($q !== '' ? 1 : 0) + ($roomType !== '' ? 1 : 0) + ($minRent !== '' ? 1 : 0)
+    // How many of the filters in the drawer are in use, for its button on a
+    // phone. The search words are on the page, so they are not counted.
+    $filterCount = ($roomType !== '' ? 1 : 0) + ($minRent !== '' ? 1 : 0)
         + ($maxRent !== '' ? 1 : 0) + ($vacant ? 1 : 0) + count($ticked);
-    $anySet = $filterCount > 0 || $near || isset($f['sort']);
+    $anySet = $filterCount > 0 || $q !== '' || $near || isset($f['sort']);
 
     // Landlords' own amenities wait behind "+ N more", unless one of them is
     // ticked, in which case the whole list is shown so it can be seen.
@@ -47,6 +48,17 @@ function render_filter_panel(array $opts)
     ?>
     <form method="get" action="<?= h($opts['action'] ?? '') ?>" class="filter-panel" id="browse-filters"
       role="search" aria-label="Filter boarding houses">
+      <?php /* Search by words, first and always on the page: on a phone it is
+               not in the drawer, so it is on the first screen. Its button is
+               for phones; on a laptop Apply filters below does the same. */ ?>
+      <div class="filter-search">
+        <label for="q">Search</label>
+        <div class="filter-search-field">
+          <input type="text" id="q" name="q" value="<?= h($q) ?>" placeholder="Name, barangay, or street">
+          <button type="submit" class="filter-search-go" aria-label="Search"><?= icon('search', 18) ?></button>
+        </div>
+      </div>
+
       <?php /* Find places near me needs the browser's location, so it only
                shows where the script below runs (html.js). The location goes
                to the server in the small form after this one. */ ?>
@@ -68,7 +80,8 @@ function render_filter_panel(array $opts)
             <a href="<?= h(base_url(browse_path($opts['near_off'] ?? [], 'results'))) ?>">Turn off</a>
           </p>
         <?php else: ?>
-          <button type="button" class="btn btn-near" data-near-me><?= icon('locate', 18) ?><span>Find places near me</span></button>
+          <?php /* "Near me" on a phone, where it shares a row with Filters. */ ?>
+          <button type="button" class="btn btn-near" data-near-me><?= icon('locate', 18) ?><span class="label-long">Find places near me</span><span class="label-short">Near me</span></button>
         <?php endif; ?>
         <p class="near-me-note" data-near-status role="status" aria-live="polite"><?= h($nearNote) ?></p>
       </div>
@@ -78,7 +91,7 @@ function render_filter_panel(array $opts)
                it, the filters are simply shown. */ ?>
       <button type="button" class="btn btn-ghost filter-open" data-filter-open
         aria-controls="filter-drawer" aria-expanded="false">
-        <?= icon('filter', 18) ?><span>Open filters<?= $filterCount ? ' (' . $filterCount . ')' : '' ?></span>
+        <?= icon('filter', 18) ?><span>Filters<?= $filterCount ? ' (' . $filterCount . ')' : '' ?></span>
       </button>
 
       <div class="filter-drawer" id="filter-drawer" aria-labelledby="filter-drawer-title">
@@ -88,11 +101,6 @@ function render_filter_panel(array $opts)
         </div>
 
         <div class="filter-body">
-          <div>
-            <label for="q">Search</label>
-            <input type="text" id="q" name="q" value="<?= h($q) ?>" placeholder="Name, barangay, or street">
-          </div>
-
           <div class="filter-fields">
             <div>
               <label for="room_type">Room type</label>

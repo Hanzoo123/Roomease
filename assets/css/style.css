@@ -1855,6 +1855,25 @@ input[type=checkbox] {
   border: 0;
 }
 
+/* Search by words, first in the panel. On a phone it is the one field left
+   on the page, with a search button inside it (see the 720px rules). */
+.filter-search {
+  margin: var(--s4) var(--s4) 0;
+}
+
+.filter-search-field {
+  position: relative;
+}
+
+.filter-search-go {
+  display: none;
+}
+
+/* "Find places near me" is "Near me" where it shares a row on a phone. */
+.btn-near .label-short {
+  display: none;
+}
+
 /* Find places near me, first in the panel. It needs the browser's location,
    so it only shows where the script runs. */
 .near-me {
@@ -2213,14 +2232,94 @@ html.js .results-sort-apply {
     min-height: 44px;
   }
 
-  /* With the script, the panel stops being a card: Near me stays on the
-     page with Open filters under it, and the filters slide in from the left
+  /* With the script, the panel stops being a card: Search, Near me and the
+     Filters button stay on the page, and the filters slide in from the left
      in a drawer over the tinted page, the way the header's menu opens. */
   html.js .filter-panel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 10px;
     border: 0;
     background: none;
+  }
+
+  /* Search across the top, with its button inside the field. */
+  html.js .filter-search {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  /* The field's words and its search button say what it is; the label is
+     kept for screen readers. */
+  html.js .filter-search label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  html.js .filter-search-field input[type=text] {
+    padding-right: 52px;
+  }
+
+  html.js .filter-search-go {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--forest);
+    cursor: pointer;
+    transform: translateY(-50%);
+  }
+
+  /* Near me and Filters share one row, the location note under both. While
+     Near me is on (its distance menu showing) or not offered, each takes the
+     whole width again. */
+  html.js .near-me:not(.is-on):not([hidden]) {
+    display: contents;
+  }
+
+  html.js .near-me:not(.is-on) .btn-near {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 46px;
+  }
+
+  html.js .filter-open {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  html.js .near-me:not(.is-on) .near-me-note {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin: 0;
+  }
+
+  html.js .near-me.is-on,
+  html.js .filter-panel:has(.near-me.is-on) .filter-open,
+  html.js .filter-panel:has(.near-me[hidden]) .filter-open {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .btn-near .label-long {
+    display: none;
+  }
+
+  .btn-near .label-short {
+    display: inline;
   }
 
   html.js .near-me {

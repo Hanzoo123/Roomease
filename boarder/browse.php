@@ -378,7 +378,7 @@ $metaDescription = 'Browse every approved boarding house in Baybay City, Leyte. 
   . 'Filter by name, room type, budget, free slots and amenities, and see what each room includes before you visit.';
 $band = [
   'title' => 'Rooms in Baybay City',
-  'lede' => 'Every boarding house here is approved. Filter by name, room type, budget, free slots, or the amenities you need.',
+  'lede' => 'Every boarding house here is approved by RoomEase.',
 ];
 require __DIR__ . '/../includes/layouts/header.php';
 ?>
