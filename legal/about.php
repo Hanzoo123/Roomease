@@ -39,8 +39,8 @@ $values = [
   ],
   [
     'title' => 'The landlord, directly',
-    'text' => 'Boarders call the landlord on the number in the listing. RoomEase takes no fee and '
-      . 'sits in no conversation.',
+    'text' => 'Boarders request a room or call the number on the listing. RoomEase takes no fee or '
+      . 'payment, and the landlord decides.',
   ],
 ];
 

@@ -1053,7 +1053,7 @@ a.room-type-tile:focus-visible {
   transform: translateY(1px);
 }
 
-/* The accent. Search and Call. */
+/* The accent. Search, and a listing's main action (Request a room). */
 .btn-accent,
 .btn-brass {
   background: var(--marigold);
@@ -3592,14 +3592,59 @@ img.avatar {
   margin-top: var(--s2);
 }
 
+/* The listing's main action, right under the rent: requesting a room. Call
+   and Copy number sit lower down as plain buttons. */
+.request-cta {
+  margin-bottom: 10px;
+}
+
+/* In its place once this boarder has asked: where the request stands, as a
+   note in the colour of its status, linking to My Reservations. */
+.request-standing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 11px 14px;
+  border-radius: var(--r-md);
+  font-size: 14.5px;
+  font-weight: 600;
+  background: var(--pending-bg);
+  color: var(--pending-fg);
+}
+
+.request-standing--accepted {
+  background: var(--available-bg);
+  color: var(--available-fg);
+}
+
+.request-standing:hover {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.request-standing--pending:hover {
+  color: var(--pending-fg);
+}
+
+.request-standing--accepted:hover {
+  color: var(--available-fg);
+}
+
+.request-standing .icon {
+  flex: 0 0 auto;
+}
+
 /* =========================================================
    The call bar: the landlord's number, kept within reach
    ---------------------------------------------------------
    Below 980px Quick Info moves above the long read, so by the time a boarder
    has been through the rooms, the utilities and the house rules, the number
    they came for is thousands of pixels behind them. On a phone it rides along
-   the bottom of the screen instead. Rent on the left, Call on the right in
-   the accent that is already reserved for it.
+   the bottom of the screen instead. Rent on the left; on the right, the
+   listing's main action in the accent: Request a room, with Call beside it
+   as an icon, or Call alone when no room can be requested.
    ========================================================= */
 .call-bar {
   display: none;
@@ -3647,7 +3692,15 @@ img.avatar {
 
 .call-bar .btn {
   flex: 0 0 auto;
+  min-height: 44px;
   padding: 11px 18px;
+}
+
+/* Call, beside Request: the phone icon alone, a full thumb's width. */
+.call-bar .call-bar-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
 }
 
 .is-copied {

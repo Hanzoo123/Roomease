@@ -197,8 +197,8 @@ require __DIR__ . '/includes/layouts/header.php';
       </li>
       <li>
         <span class="step-no" aria-hidden="true">3</span>
-        <h3>Contact the landlord</h3>
-        <p>Call or copy the landlord's number straight from the listing page.</p>
+        <h3>Request a room</h3>
+        <p>Pick a room and send the landlord your move-in date. They accept or decline, and their number is there if you'd rather call.</p>
       </li>
     </ol>
   </div>
@@ -222,7 +222,7 @@ require __DIR__ . '/includes/layouts/header.php';
         </li>
         <li>
           <span class="pill pill--available">Live</span>
-          <p>Boarders can find it, save it, and call you.</p>
+          <p>Boarders can find it, save it, and request a room.</p>
         </li>
         <li>
           <span class="pill pill--rejected">Needs changes</span>

@@ -145,6 +145,19 @@ $requestControl = function (array $room) use ($canReserve, $myRequests) {
   return '';
 };
 
+// The listing's main action, in the rent card and the phone's bottom bar:
+// requesting a room on RoomEase. With one open room it goes straight to that
+// room's form; with several, to the rooms to choose from. A boarder who has
+// already asked is shown where that stands instead. Calling stays beside it,
+// quieter, and is the main action only when a request is not possible.
+$myStanding = $myRequests ? (in_array('accepted', $myRequests, true) ? 'accepted' : 'pending') : null;
+$requestCta = null;
+if ($myStanding === null && $canReserve && $availableRooms) {
+  $requestCta = count($availableRooms) === 1
+    ? ['href' => 'boarder/reserve.php?room=' . (int) reset($availableRooms)['room_id'], 'label' => 'Request this room']
+    : ['href' => '#rooms', 'label' => 'Request a room'];
+}
+
 /* ---------------------------------------------------------------------------
  * Stay terms: only the ones the landlord filled in (NULL = not stated).
  * ------------------------------------------------------------------------ */
@@ -540,6 +553,16 @@ require __DIR__ . '/../includes/layouts/header.php';
         <p class="freshness"><?= icon('clock', 14) ?><span>Availability <?= h(lcfirst($freshness['text'])) ?></span></p>
       <?php endif; ?>
 
+      <?php if ($requestCta): ?>
+        <a class="btn btn-accent btn-block request-cta"
+          href="<?= $requestCta['href'][0] === '#' ? $requestCta['href'] : base_url($requestCta['href']) ?>"><?= icon('calendar', 16) ?> <?= h($requestCta['label']) ?></a>
+      <?php elseif ($myStanding): ?>
+        <a class="request-standing request-standing--<?= $myStanding ?>" href="<?= base_url('boarder/reservations.php') ?>">
+          <?= icon($myStanding === 'accepted' ? 'check' : 'clock', 16) ?>
+          <span><?= $myStanding === 'accepted' ? 'Your request was accepted' : 'Requested, waiting for the landlord' ?></span>
+        </a>
+      <?php endif; ?>
+
       <?php if (can_save_listings()): ?>
         <form method="post" action="<?= base_url('boarder/favorite_action.php') ?>" class="save-form">
           <?= csrf_field() ?>
@@ -590,7 +613,7 @@ require __DIR__ . '/../includes/layouts/header.php';
 
       <?php if ($shownPhone !== ''): ?>
         <div class="contact-actions">
-          <a class="btn btn-accent" href="tel:<?= h($dialPhone) ?>"><?= icon('phone', 16) ?> Call</a>
+          <a class="btn <?= $requestCta || $myStanding ? 'btn-ghost' : 'btn-accent' ?>" href="tel:<?= h($dialPhone) ?>"><?= icon('phone', 16) ?> Call</a>
           <button type="button" class="btn btn-ghost js-copy-number" data-number="<?= h($shownPhone) ?>">Copy number</button>
         </div>
       <?php endif; ?>
@@ -600,8 +623,10 @@ require __DIR__ . '/../includes/layouts/header.php';
   </aside>
 </div>
 
-<?php if ($shownPhone !== ''): ?>
-  <?php /* Phones only: a bar at the bottom with the price, call button and heart. */ ?>
+<?php if ($shownPhone !== '' || $requestCta): ?>
+  <?php /* Phones only: a bar at the bottom with the price, the heart and the
+           main action: Request when a room can be asked for, with Call beside
+           it as an icon; otherwise Call. */ ?>
   <div class="call-bar">
     <div class="call-bar-inner">
       <?php if ($avail['rent_from'] !== null): ?>
@@ -631,7 +656,14 @@ require __DIR__ . '/../includes/layouts/header.php';
         </form>
       <?php endif; ?>
 
-      <a class="btn btn-accent" href="tel:<?= h($dialPhone) ?>"><?= icon('phone', 16) ?> Call</a>
+      <?php if ($requestCta): ?>
+        <?php if ($shownPhone !== ''): ?>
+          <a class="btn btn-ghost call-bar-icon" href="tel:<?= h($dialPhone) ?>" aria-label="Call the landlord" title="Call the landlord"><?= icon('phone', 18) ?></a>
+        <?php endif; ?>
+        <a class="btn btn-accent" href="<?= $requestCta['href'][0] === '#' ? $requestCta['href'] : base_url($requestCta['href']) ?>"><?= h($requestCta['label']) ?></a>
+      <?php else: ?>
+        <a class="btn btn-accent" href="tel:<?= h($dialPhone) ?>"><?= icon('phone', 16) ?> Call</a>
+      <?php endif; ?>
     </div>
   </div>
 <?php endif; ?>

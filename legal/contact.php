@@ -106,7 +106,7 @@ $faqs = [
   [
     'q' => 'Do I need an account to look at rooms?',
     'a' => 'No. Anyone can browse and open a listing. An account is only needed to save rooms to a shortlist, '
-      . 'or to post a boarding house.',
+      . 'to request a room, or to post a boarding house.',
   ],
   [
     'q' => 'Will you ever ask for my password?',
